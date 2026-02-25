@@ -22,6 +22,7 @@ export const trust = pgTable('trust', {
 	responses: jsonb('responses').$type<Response[]>(),
 	complete: boolean('complete').notNull().default(false),
 	price: integer('price').notNull().default(799),
+	paid: boolean('paid').notNull().default(false),
 
 });
 

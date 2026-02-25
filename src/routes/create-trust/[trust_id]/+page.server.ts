@@ -21,6 +21,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			id: existing.id,
 			joint: existing.joint,
 			complete: existing.complete,
+			responses: (existing.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
 		},
 		userName: locals.user.name,
 	};
@@ -34,14 +35,31 @@ export const actions: Actions = {
 		if (isNaN(trustId)) throw error(400, 'Invalid trust');
 
 		const data = await request.formData();
-		const jointValue = data.get('joint');
-		const isJoint = jointValue === 'true';
+		const isJoint = data.get('joint') === 'true';
 
 		await db
 			.update(trust)
 			.set({ joint: isJoint, updatedAt: new Date() })
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
-		throw redirect(302, `/create-trust/${trustId}`);
+		return { selected: true };
+	},
+
+	save: async ({ request, locals, params }) => {
+		if (!locals.user) throw redirect(302, '/login');
+
+		const trustId = parseInt(params.trust_id, 10);
+		if (isNaN(trustId)) throw error(400, 'Invalid trust');
+
+		const formData = await request.formData();
+		const responsesRaw = formData.get('responses');
+		if (typeof responsesRaw !== 'string') throw error(400, 'Invalid data');
+
+		await db
+			.update(trust)
+			.set({ responses: JSON.parse(responsesRaw), updatedAt: new Date() })
+			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
+
+		return { saved: true };
 	},
 };
