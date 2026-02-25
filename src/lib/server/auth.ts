@@ -1,0 +1,44 @@
+import { betterAuth } from 'better-auth/minimal';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { sveltekitCookies } from 'better-auth/svelte-kit';
+import { magicLink } from 'better-auth/plugins/magic-link';
+import { admin } from 'better-auth/plugins/admin';
+import { env } from '$env/dynamic/private';
+import { getRequestEvent } from '$app/server';
+import { db } from '$lib/server/db';
+import { Resend } from 'resend';
+
+const resend = new Resend(env.RESEND_API_KEY);
+
+export const auth = betterAuth({
+	baseURL: env.ORIGIN,
+	secret: env.BETTER_AUTH_SECRET,
+	database: drizzleAdapter(db, { provider: 'pg' }),
+	emailAndPassword: { enabled: true },
+	socialProviders: {
+		google: {
+			clientId: env.GOOGLE_CLIENT_ID!,
+			clientSecret: env.GOOGLE_CLIENT_SECRET!,
+		},
+	},
+	plugins: [
+		admin({
+			// New users default to the "client" role
+			defaultRole: 'client',
+			// "admin" is the only elevated role
+			adminRoles: ['admin'],
+		}),
+		magicLink({
+			sendMagicLink: async ({ email, url }) => {
+				await resend.emails.send({
+					from: 'onboarding@resend.dev',
+					to: email,
+					subject: 'Your magic link',
+					html: `<p>Click <a href="${url}">here</a> to sign in</p>`,
+				});
+				console.log(`[Magic Link] Send to ${email}: ${url}`);
+			},
+		}),
+		sveltekitCookies(getRequestEvent),
+	],
+});
