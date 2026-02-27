@@ -1,14 +1,29 @@
 <script lang="ts">
 	import { siteName, questions, buckets, getActiveQuestions } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, goto } from '$app/navigation';
 	import QuestionInput from '$lib/components/QuestionInput.svelte';
 	import QuestionnaireSidebar from '$lib/components/QuestionnaireSidebar.svelte';
+	import ScreeningStep from '$lib/components/ScreeningStep.svelte';
+
+	let completing = $state(false);
 
 	let { data } = $props();
 
 	let firstName = $derived(data.userName?.split(' ')[0] ?? 'there');
-	let showQuestionnaire = $derived(data.trust.joint !== null);
+	let step = $derived<'screening' | 'type' | 'questionnaire'>(
+		data.trust.isEligible === null ? 'screening' :
+		data.trust.joint === null ? 'type' :
+		'questionnaire'
+	);
+
+	async function handleScreeningSubmit(eligible: boolean) {
+		const form = new FormData();
+		form.set('eligible', String(eligible));
+		await fetch('?/screen', { method: 'POST', body: form });
+		await invalidateAll();
+		if (!eligible) goto(`/consultation/${data.trust.id}`);
+	}
 
 	// ── questionnaire state ──
 	const initialResponses = Object.fromEntries(
@@ -81,6 +96,15 @@
 		if (!isLast) goToQuestion(currentIndex + 1);
 	}
 
+	async function completeIntake() {
+		completing = true;
+		if (saveTimer) clearTimeout(saveTimer);
+		await doSave();
+		const form = new FormData();
+		await fetch('?/complete', { method: 'POST', body: form });
+		goto('/dashboard');
+	}
+
 	function goBack() {
 		if (!isFirst) goToQuestion(currentIndex - 1);
 	}
@@ -113,7 +137,10 @@
 	});
 </script>
 
-{#if !showQuestionnaire}
+{#if step === 'screening'}
+<ScreeningStep {firstName} trustId={data.trust.id} onsubmit={handleScreeningSubmit} />
+
+{:else if step === 'type'}
 <!-- ─── TRUST TYPE SELECTION ─── -->
 <div class="h-screen w-screen overflow-hidden bg-cream font-sans flex flex-col relative">
 	<div class="absolute inset-0 pointer-events-none"
@@ -199,7 +226,7 @@
 	</div>
 </div>
 
-{:else}
+{:else if step === 'questionnaire'}
 <!-- ─── QUESTIONNAIRE ─── -->
 <div class="h-screen w-screen overflow-hidden bg-cream font-sans flex flex-col relative">
 	<div class="absolute inset-0 pointer-events-none"
@@ -266,15 +293,27 @@
 					</svg>
 					Back
 				</button>
-				<button onclick={goNext} disabled={isLast}
-					class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy
-						   transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10
-						   disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
-					Next
-					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-					</svg>
-				</button>
+				{#if isLast}
+					<button onclick={completeIntake} disabled={completing}
+						class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-emerald-accent
+							   transition-all duration-200 hover:bg-emerald-accent/90 hover:shadow-lg hover:shadow-emerald-accent/15
+							   disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+						{completing ? 'Completing...' : 'Complete'}
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+						</svg>
+					</button>
+				{:else}
+					<button onclick={goNext}
+						class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy
+							   transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10
+							   cursor-pointer">
+						Next
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+						</svg>
+					</button>
+				{/if}
 			</div>
 		</main>
 	</div>

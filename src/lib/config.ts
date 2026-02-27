@@ -1,6 +1,14 @@
 export const siteName = 'Amanah Trust';
 export const siteTagline = 'Estate Planning';
 
+export const screeningQuestions = [
+	{ id: 'business_ownership', text: 'Do you own a business?' },
+	{ id: 'multiple_properties', text: 'Do you own more than one property?' },
+	{ id: 'blended_family', text: 'Do you have a blended family?' },
+	{ id: 'special_needs', text: 'Do you have a special needs beneficiary?' },
+	{ id: 'taxable_estate', text: 'Is your estate at risk of exceeding the taxable-estate threshold?' },
+];
+
 export type Question = {
 	id: string;
 	text: string;
@@ -35,13 +43,6 @@ export const buckets: Record<string, { label: string; icon: string }> = {
 };
 
 export const questions: Question[] = [
-	{
-		id: 'name',
-		text: 'What is your name?',
-		type: 'text',
-		required: true,
-		bucket: 'personal',
-	},
 	{
 		id: 'phone',
 		text: 'What is your phone number?',
@@ -86,5 +87,29 @@ export const questions: Question[] = [
 		bucket: 'family',
 		depends: { field: 'children', eq: true },
 		defaultWhen: { field: 'children', eq: false, value: false },
+	},
+	{
+		id: "has-house",
+		text: "Do you own a house?",
+		type: 'boolean',
+		required: true,
+		bucket: 'property',
+	},
+	{
+		id: "house-deed",
+		text: "Do you know where the deed to your house is?",
+		type: 'boolean',
+		required: true,
+		bucket: 'property',
+		depends: { field: 'has-house', eq: true },
+	},
+	{
+		id: "house-deed-retrieval",
+		text: "Would you like us to retrieve the deed for you?",
+		type: 'boolean',
+		required: true,
+		bucket: 'property',
+		depends: { field: 'house-deed', eq: false},
+
 	},
 ];

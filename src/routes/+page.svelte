@@ -52,7 +52,7 @@
 						<a href="/login" class="px-4 py-1.5 text-sm text-navy/70 transition-colors hover:text-navy">
 							Log in
 						</a>
-						<a href="/login" class="px-4 py-1.5 text-sm font-medium text-cream bg-navy rounded-lg transition-all duration-200 hover:bg-navy-light">
+						<a href="/signup" class="px-4 py-1.5 text-sm font-medium text-cream bg-navy rounded-lg transition-all duration-200 hover:bg-navy-light">
 							Sign up
 						</a>
 					</div>
@@ -104,7 +104,7 @@
 						<a href="/login" class="px-4 py-2.5 text-sm text-navy/60 rounded-xl transition-colors hover:bg-navy/[0.04] hover:text-emerald-accent">
 							Log in
 						</a>
-						<a href="/login" class="mx-2 mt-1 py-2.5 text-sm font-medium text-cream bg-navy rounded-xl text-center transition-all hover:bg-navy-light">
+						<a href="/signup" class="mx-2 mt-1 py-2.5 text-sm font-medium text-cream bg-navy rounded-xl text-center transition-all hover:bg-navy-light">
 							Sign up
 						</a>
 					{/if}
@@ -137,7 +137,7 @@
 
 		<!-- CTA -->
 		<a
-			href="/login"
+			href="/signup"
 			class="group mt-2 inline-flex items-center gap-2.5 px-9 py-3.5 bg-navy text-cream text-sm tracking-wider uppercase rounded-lg
 				   transition-all duration-300 hover:bg-navy-light hover:shadow-xl hover:shadow-navy/15 hover:-translate-y-0.5"
 		>

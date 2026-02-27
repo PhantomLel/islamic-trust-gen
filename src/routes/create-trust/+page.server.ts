@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	});
 
 	if (existing) {
-		throw redirect(302, "/dashboard");
+		throw redirect(302, '/dashboard');
 	}
 
 	const [newTrust] = await db.insert(trust).values({

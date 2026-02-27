@@ -11,7 +11,7 @@
 		loading = true;
 		error = '';
 
-		const { error: err } = await authClient.signIn.magicLink({ email, callbackURL: '/create-trust' });
+		const { error: err } = await authClient.signIn.magicLink({ email, callbackURL: '/dashboard' });
 
 		loading = false;
 		if (err) {
@@ -22,7 +22,7 @@
 	}
 
 	async function handleGoogle() {
-		await authClient.signIn.social({ provider: 'google', callbackURL: '/create-trust' });
+		await authClient.signIn.social({ provider: 'google', callbackURL: '/dashboard' });
 	}
 </script>
 
@@ -45,7 +45,7 @@
 		<!-- header -->
 		<div class="mb-10">
 			<h1 class="text-2xl font-semibold text-navy tracking-tight">Sign in</h1>
-			<p class="text-navy/45 text-sm mt-1.5">Welcome to Amanah Trust</p>
+			<p class="text-navy/45 text-sm mt-1.5">Welcome back to Amanah Trust</p>
 		</div>
 
 		{#if magicLinkSent}
@@ -67,7 +67,7 @@
 			</div>
 		{:else}
 			<!-- magic link form -->
-			<form onsubmit={e => { e.preventDefault(); handleMagicLink(); }}>
+			<form onsubmit={e => { e.preventDefault(); handleMagicLink(); }} class="space-y-3">
 				<label class="block">
 					<span class="text-navy/60 text-xs font-medium tracking-wide uppercase">Email</span>
 					<input
@@ -82,13 +82,13 @@
 				</label>
 
 				{#if error}
-					<p class="mt-2 text-red-600 text-xs">{error}</p>
+					<p class="text-red-600 text-xs">{error}</p>
 				{/if}
 
 				<button
 					type="submit"
 					disabled={loading || !email}
-					class="mt-4 w-full py-3 rounded-lg bg-navy text-cream text-sm font-medium tracking-wide
+					class="w-full py-3 rounded-lg bg-navy text-cream text-sm font-medium tracking-wide
 						   transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10
 						   disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
 				>
@@ -118,6 +118,11 @@
 				</svg>
 				Continue with Google
 			</button>
+
+			<!-- signup link -->
+			<p class="text-center text-navy/40 text-xs mt-6">
+				Don't have an account? <a href="/signup" class="text-emerald-accent hover:text-emerald-light transition-colors">Sign up</a>
+			</p>
 		{/if}
 	</div>
 </div>
