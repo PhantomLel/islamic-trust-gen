@@ -10,9 +10,18 @@
 	--color-cream: #faf6f0;
 	--color-cream-dark: #f0e9df;
 
-	--font-sans: "Poppins", system-ui, sans-serif;
+	--font-sans: Georgia, "Times New Roman", Times, serif;
 }
 
 body {
 	background-color: var(--color-cream);
+	font-family: Georgia, "Times New Roman", Times, serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	font-family: "Playfair Display", Georgia, serif;
+}
+
+html {
+	scroll-behavior: smooth;
 }

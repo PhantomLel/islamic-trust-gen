@@ -1,5 +1,5 @@
-export const siteName = 'Amanah Trust';
-export const siteTagline = 'Estate Planning';
+export const siteName = 'Amana Trust';
+export const siteTagline = 'Texas Estate Planning';
 
 export const screeningQuestions = [
 	{ id: 'business_ownership', text: 'Do you own a business?' },
