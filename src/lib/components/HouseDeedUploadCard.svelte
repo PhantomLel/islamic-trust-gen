@@ -83,8 +83,7 @@
 			'ut-ready:border-navy/12 ut-ready:hover:border-emerald-accent/45 ut-ready:bg-white/70 ut-ready:hover:bg-white ut-uploading:border-emerald-accent/45 ut-uploading:bg-emerald-accent/[0.04] border-2 border-dashed rounded-xl p-7 md:p-8 transition-all shadow-[0_1px_0_rgba(5,26,37,0.02)]',
 		label: 'text-navy text-[14px] font-medium tracking-tight',
 		allowedContent: 'text-navy/42 text-[11px]',
-		button:
-			'mt-3 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-[12px] font-medium bg-navy text-cream hover:bg-navy-light shadow-sm transition-all cursor-pointer',
+		button: 'hidden',
 		uploadIcon: 'text-emerald-accent/95 h-8 w-8',
 	};
 </script>
@@ -112,13 +111,15 @@
 				</svg>
 			</svelte:fragment>
 			<svelte:fragment slot="label">
-				Drop your house deed here
+				<span class="text-center">
+					<span class="block">Drop your house deed here</span>
+					<span class="mt-3 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-[12px] font-medium bg-navy text-cream hover:bg-navy-light shadow-sm transition-all cursor-pointer">
+						Browse files
+					</span>
+				</span>
 			</svelte:fragment>
 			<svelte:fragment slot="allowed-content">
 				PDF or image accepted, up to 16MB
-			</svelte:fragment>
-			<svelte:fragment slot="button-content">
-				Browse files
 			</svelte:fragment>
 		</UploadDropzone>
 	</div>
