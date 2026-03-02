@@ -35,6 +35,10 @@ export const auth = betterAuth({
 					to: email,
 					subject: 'Your magic link',
 					html: `<p>Click <a href="${url}">here</a> to sign in</p>`,
+				}).then(() => {
+					console.log(`[Magic Link] Successfully sent to ${email}: ${url}`);
+				}).catch((error) => {
+					console.error(`[Magic Link] Error sending to ${email}: ${error}`);
 				});
 				console.log(`[Magic Link] Send to ${email}: ${url}`);
 			},

@@ -36,6 +36,8 @@
 	"dependencies": {
 		"@neondatabase/serverless": "^1.0.2",
 		"@tailwindcss/vite": "^4.2.1",
-		"resend": "^6.9.2"
+		"@uploadthing/svelte": "^7.3.3",
+		"resend": "^6.9.2",
+		"uploadthing": "^7.7.4"
 	}
 }

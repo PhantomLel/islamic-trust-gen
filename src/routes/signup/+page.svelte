@@ -12,7 +12,7 @@
 		loading = true;
 		error = '';
 
-		const { error: err } = await authClient.signIn.magicLink({ email, name: name.trim(), callbackURL: '/create-trust' });
+		const { error: err } = await authClient.signIn.magicLink({ email, name: name.trim(), callbackURL: '/dashboard' });
 
 		loading = false;
 		if (err) {
@@ -23,7 +23,7 @@
 	}
 
 	async function handleGoogle() {
-		await authClient.signIn.social({ provider: 'google', callbackURL: '/create-trust' });
+		await authClient.signIn.social({ provider: 'google', callbackURL: '/dashboard' });
 	}
 </script>
 

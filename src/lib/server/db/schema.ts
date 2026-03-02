@@ -32,6 +32,7 @@ export const trust = pgTable('trust', {
 	complete: boolean('complete').notNull().default(false),
 	approved: boolean('approved').notNull().default(false),
 	file_urls: text('file_urls').array(),
+	house_deed_url: text('house_deed_url'),
 	price: integer('price').notNull().default(799),
 	paid: boolean('paid').notNull().default(false),
 	donate_percentage: integer('donate_percentage').notNull().default(0), // the amount from the wasiyyah that the user decides to give away

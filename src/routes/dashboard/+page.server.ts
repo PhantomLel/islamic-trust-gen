@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { trust, user } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { trust } from '$lib/server/db/schema';
+import { and, eq } from 'drizzle-orm';
 import { questions } from '$lib/config';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw redirect(302, '/login');
@@ -23,6 +23,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const responses = (existing.responses ?? []) as { id: string; response: unknown }[];
 	const answered = responses.filter((r) => r.response != null && r.response !== '').length;
 	const questionnaireProgress = questions.length > 0 ? Math.round((answered / questions.length) * 100) : 0;
+	const hasHouse = responses.find((r) => r.id === 'has-house')?.response === true;
 
 	return {
 		userName: locals.user.name,
@@ -37,7 +38,33 @@ export const load: PageServerLoad = async ({ locals }) => {
 			approved: existing.approved,
 			paid: existing.paid,
 			fileUrls: existing.file_urls ?? [],
+			houseDeedUrl: existing.house_deed_url,
+			hasHouse,
 			questionnaireProgress,
 		},
 	};
+};
+
+export const actions: Actions = {
+	saveHouseDeed: async ({ request, locals }) => {
+		if (!locals.user) throw redirect(302, '/login');
+
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		const houseDeedUrl = formData.get('houseDeedUrl');
+
+		if (Number.isNaN(trustId) || typeof houseDeedUrl !== 'string' || !houseDeedUrl) {
+			return { saved: false };
+		}
+
+		await db
+			.update(trust)
+			.set({
+				house_deed_url: houseDeedUrl,
+				updatedAt: new Date(),
+			})
+			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
+
+		return { saved: true };
+	},
 };

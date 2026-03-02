@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
+	import HouseDeedUploadCard from '$lib/components/HouseDeedUploadCard.svelte';
 
 	let { data } = $props();
 
@@ -40,36 +41,6 @@
 			t.approved && t.fileUrls.length === 0 && { label: 'Schedule Notarization', href: '#', desc: 'Book an appointment', external: true },
 		].filter(Boolean) as { label: string; href: string; desc: string; external?: boolean; progress?: number }[]
 	);
-
-	// upload state (frontend only)
-	let dragOver = $state(false);
-	let uploadedFiles = $state<{ name: string; size: string }[]>([]);
-
-	function handleDrop(e: DragEvent) {
-		e.preventDefault();
-		dragOver = false;
-		if (e.dataTransfer?.files) addFiles(e.dataTransfer.files);
-	}
-
-	function handleFileInput(e: Event & { currentTarget: HTMLInputElement }) {
-		if (e.currentTarget.files) addFiles(e.currentTarget.files);
-	}
-
-	function addFiles(files: FileList) {
-		for (const f of files) {
-			uploadedFiles = [...uploadedFiles, { name: f.name, size: formatSize(f.size) }];
-		}
-	}
-
-	function removeFile(index: number) {
-		uploadedFiles = uploadedFiles.filter((_, i) => i !== index);
-	}
-
-	function formatSize(bytes: number): string {
-		if (bytes < 1024) return bytes + ' B';
-		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-		return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-	}
 
 	function formatDate(iso: string): string {
 		return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -178,57 +149,12 @@
 					</a>
 				{/if}
 
-				<!-- document upload -->
-				{#if t.paid}
-					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6">
-						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-4">Upload Documents</p>
-
-						<!-- drop zone -->
-						<div
-							class="relative border-2 border-dashed rounded-xl p-8 text-center transition-colors
-								   {dragOver ? 'border-emerald-accent/40 bg-emerald-accent/[0.03]' : 'border-navy/10 hover:border-navy/20'}"
-							ondragover={(e) => { e.preventDefault(); dragOver = true; }}
-							ondragleave={() => { dragOver = false; }}
-							ondrop={handleDrop}
-							role="button"
-							tabindex="0"
-						>
-							<svg class="w-8 h-8 mx-auto text-navy/20 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-							</svg>
-							<p class="text-sm text-navy/40 mb-1">Drag and drop files here</p>
-							<p class="text-[11px] text-navy/25 mb-3">or</p>
-							<label class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-medium text-navy/50
-										 border border-navy/10 hover:border-navy/20 hover:text-navy transition-all cursor-pointer">
-								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
-								Browse files
-								<input type="file" multiple class="hidden" onchange={handleFileInput} />
-							</label>
-						</div>
-
-						<!-- uploaded files list -->
-						{#if uploadedFiles.length > 0}
-							<div class="mt-4 space-y-2">
-								{#each uploadedFiles as file, i}
-									<div class="flex items-center justify-between px-4 py-2.5 rounded-lg bg-navy/[0.03] border border-navy/[0.06]">
-										<div class="flex items-center gap-3 min-w-0">
-											<svg class="w-4 h-4 text-navy/30 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-											</svg>
-											<div class="min-w-0">
-												<p class="text-[13px] text-navy truncate">{file.name}</p>
-												<p class="text-[10px] text-navy/30">{file.size}</p>
-											</div>
-										</div>
-										<button onclick={() => removeFile(i)}
-											class="text-navy/25 hover:text-navy/50 transition-colors cursor-pointer shrink-0 p-1">
-											<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-										</button>
-									</div>
-								{/each}
-							</div>
-						{/if}
-					</div>
+				{#if t.hasHouse}
+					<HouseDeedUploadCard
+						trustId={t.id}
+						existingUrl={t.houseDeedUrl}
+						title="Upload Your House Deed"
+					/>
 				{/if}
 
 				<!-- document download -->
