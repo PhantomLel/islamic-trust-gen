@@ -31,7 +31,7 @@ export const auth = betterAuth({
 		magicLink({
 			sendMagicLink: async ({ email, url }) => {
 				await resend.emails.send({
-					from: 'onboarding@resend.dev',
+					from: env.FROM_EMAIL,
 					to: email,
 					subject: 'Your magic link',
 					html: `<p>Click <a href="${url}">here</a> to sign in</p>`,
