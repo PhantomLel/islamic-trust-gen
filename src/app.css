@@ -25,3 +25,15 @@ h1, h2, h3, h4, h5, h6 {
 html {
 	scroll-behavior: smooth;
 }
+
+.scroll-reveal {
+	opacity: 0;
+	transform: translateY(18px);
+	transition: opacity 900ms ease, transform 900ms ease;
+	will-change: opacity, transform;
+}
+
+.scroll-reveal.is-visible {
+	opacity: 1;
+	transform: translateY(0);
+}

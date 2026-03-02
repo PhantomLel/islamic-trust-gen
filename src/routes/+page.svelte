@@ -17,6 +17,34 @@
 		openConcern = openConcern === index ? null : index;
 	}
 
+	function revealOnScroll(node: HTMLElement) {
+		if (typeof IntersectionObserver === 'undefined') {
+			node.classList.add('is-visible');
+			return;
+		}
+
+		const observer = new IntersectionObserver(
+			([entry]) => {
+				if (entry.isIntersecting) {
+					node.classList.add('is-visible');
+					observer.unobserve(node);
+				}
+			},
+			{
+				threshold: 0.15,
+				rootMargin: '0px 0px -8% 0px'
+			}
+		);
+
+		observer.observe(node);
+
+		return {
+			destroy() {
+				observer.disconnect();
+			}
+		};
+	}
+
 	const concerns = [
 		{
 			question: 'Will I lose control of my home?',
@@ -163,7 +191,7 @@
 
 		</div>
 
-		<div class="relative flex flex-col items-center gap-7 px-6 text-center">
+		<div use:revealOnScroll class="scroll-reveal relative flex flex-col items-center gap-7 px-6 text-center">
 
 			<div class="flex items-center gap-4">
 				<span class="w-8 h-px bg-emerald-accent/60"></span>
@@ -236,7 +264,7 @@
 
 	<!-- ═══════════════════ WHO THIS IS FOR ═══════════════════ -->
 	<section id="eligibility" class="py-20 md:py-28 px-6 scroll-mt-24 min-h-[calc(100vh-10rem)] flex items-center justify-center" >
-		<div class="max-w-3xl mx-auto">
+		<div use:revealOnScroll class="scroll-reveal max-w-3xl mx-auto">
 
 			<div class="text-center mb-14">
 				<div class="flex items-center justify-center gap-4 mb-6">
@@ -354,7 +382,7 @@
 			<div class="absolute bottom-8 left-5 md:left-20 w-7 h-7 md:w-9 md:h-9 border-b border-l border-emerald-accent/50"></div>
 			<div class="absolute bottom-8 right-5 md:right-20 w-7 h-7 md:w-9 md:h-9 border-b border-r border-emerald-accent/50"></div>
 		</div>
-		<div class="max-w-2xl mx-auto">
+		<div use:revealOnScroll class="scroll-reveal max-w-2xl mx-auto">
 
 			<div class="text-center mb-14">
 				<div class="flex items-center justify-center gap-4 mb-6">
@@ -407,7 +435,7 @@
 
 	<!-- ═══════════════════ AUTHORITY FOOTER ═══════════════════ -->
 	<footer class="py-10 px-6 border-t border-navy/8">
-		<div class="max-w-3xl mx-auto flex flex-col items-center gap-4">
+		<div use:revealOnScroll class="scroll-reveal max-w-3xl mx-auto flex flex-col items-center gap-4">
 			<a href="/" class="flex items-center gap-2 text-navy/60 font-semibold text-sm tracking-tight">
 				<span class="w-1.5 h-1.5 rounded-full bg-emerald-accent/60"></span>
 				{siteName}
