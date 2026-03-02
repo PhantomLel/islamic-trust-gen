@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { trust } from '$lib/server/db/schema';
+import { trust, user } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { questions } from '$lib/config';
 import type { PageServerLoad, Actions } from './$types';
@@ -39,11 +39,20 @@ export const actions: Actions = {
 
 		const data = await request.formData();
 		const eligible = data.get('eligible') === 'true';
+		const countyRaw = data.get('county');
+		const county = typeof countyRaw === 'string' ? countyRaw.trim() : '';
+
+		if (!county) throw error(400, 'County is required');
 
 		await db
 			.update(trust)
 			.set({ isEligible: eligible, updatedAt: new Date() })
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
+
+		await db
+			.update(user)
+			.set({ county, updatedAt: new Date() })
+			.where(eq(user.id, locals.user.id));
 
 		return { screened: true, eligible };
 	},

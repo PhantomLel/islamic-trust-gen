@@ -5,7 +5,7 @@
 	let { firstName, trustId, onsubmit: onsubmitProp }: {
 		firstName: string;
 		trustId: number;
-		onsubmit: (eligible: boolean) => void;
+		onsubmit: (eligible: boolean, county: string) => void;
 	} = $props();
 
 	let screeningAnswers = $state<Record<string, boolean | null>>(
@@ -13,21 +13,86 @@
 	);
 	let screeningIndex = $state(0);
 	let submitting = $state(false);
+	let county = $state('');
+	let screeningConfirmed = $state(false);
+	const totalSteps = screeningQuestions.length + 1;
 
-	let allAnswered = $derived(screeningQuestions.every((q) => screeningAnswers[q.id] !== null));
+	const texasCounties = [
+		'Harris County',
+		'Dallas County',
+		'Tarrant County',
+		'Bexar County',
+		'Travis County',
+		'Collin County',
+		'Denton County',
+		'Fort Bend County',
+		'Williamson County',
+		'El Paso County',
+		'Hidalgo County',
+		'Cameron County',
+		'Nueces County',
+		'Lubbock County',
+		'Brazoria County',
+		'Galveston County',
+		'Bell County',
+		'Montgomery County',
+		'Brazos County',
+		'Webb County',
+		'McLennan County',
+		'Comal County',
+		'Guadalupe County',
+		'Jefferson County',
+		'Smith County',
+		'Rockwall County',
+		'Tom Green County',
+		'Hays County',
+		'Johnson County',
+		'Ector County',
+		'Midland County',
+		'Potter County',
+		'Randall County',
+		'Wichita County',
+		'Bowie County',
+		'Grayson County',
+		'Gregg County',
+		'Kaufman County',
+		'Ellis County',
+		'Parker County',
+		'Hunt County',
+		'Victoria County',
+		'Orange County',
+		'San Patricio County',
+		'Kerr County',
+		'Walker County',
+		'Liberty County',
+		'Bastrop County',
+		'Burnet County',
+		'Fannin County',
+		'Navarro County'
+	];
+
+	let hasCounty = $derived(county.trim().length > 0);
+
+	let allAnswered = $derived(hasCounty && screeningQuestions.every((q) => screeningAnswers[q.id] !== null));
 	let anyYes = $derived(screeningQuestions.some((q) => screeningAnswers[q.id] === true));
-	let currentQ = $derived(screeningQuestions[screeningIndex]);
+	let isCountyStep = $derived(screeningIndex === 0);
+	let currentQ = $derived(isCountyStep ? null : screeningQuestions[screeningIndex - 1]);
+	let isFinalQuestionStep = $derived(screeningIndex === totalSteps - 1 && !isCountyStep);
+	let finalQuestionAnswered = $derived(
+		isFinalQuestionStep && currentQ ? screeningAnswers[currentQ.id] !== null : false
+	);
 
 	function answer(id: string, value: boolean) {
 		screeningAnswers = { ...screeningAnswers, [id]: value };
-		if (screeningIndex < screeningQuestions.length - 1) {
+		if (screeningIndex < totalSteps - 1) {
 			screeningIndex++;
 		}
 	}
 
 	async function submit() {
+		if (!hasCounty || !screeningConfirmed) return;
 		submitting = true;
-		onsubmitProp(!anyYes);
+		onsubmitProp(!anyYes, county.trim());
 	}
 
 	async function handleLogout() {
@@ -68,28 +133,75 @@
 			<!-- progress -->
 			<div class="flex items-center justify-between mb-2">
 				<span class="text-[11px] text-navy/40 tracking-wider uppercase font-medium">Eligibility Check</span>
-				<span class="text-[11px] text-navy/35">{screeningIndex + 1} of {screeningQuestions.length}</span>
+				<span class="text-[11px] text-navy/35">{screeningIndex + 1} of {totalSteps}</span>
 			</div>
 			<div class="w-full h-1 rounded-full bg-navy/[0.06] overflow-hidden mb-10">
 				<div class="h-full rounded-full bg-emerald-accent transition-all duration-500 ease-out"
-					style="width: {((screeningIndex + 1) / screeningQuestions.length) * 100}%"></div>
+					style="width: {((screeningIndex + 1) / totalSteps) * 100}%"></div>
 			</div>
 
 			<!-- question -->
-			<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
-				{currentQ.text}
-			</h2>
+			{#if isCountyStep}
+				<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
+					Which county in Texas do you live in?
+				</h2>
+				<div class="mb-8">
+					<input
+						id="county"
+						list="texas-counties"
+						bind:value={county}
+						placeholder="Start typing to search counties"
+						class="w-full px-4 py-3 rounded-xl border border-navy/10 bg-white text-navy text-sm outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/15"
+					/>
+					<datalist id="texas-counties">
+						{#each texasCounties as countyName}
+							<option value={countyName}></option>
+						{/each}
+					</datalist>
+				</div>
+			{:else}
+				<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
+					{currentQ?.text}
+				</h2>
 
-			<div class="flex gap-3 mb-8">
-				{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
-					{@const sel = screeningAnswers[currentQ.id] === opt.value}
-					<button onclick={() => answer(currentQ.id, opt.value)}
-						class="flex-1 px-5 py-4 rounded-xl border text-center transition-all duration-200 cursor-pointer
-							   {sel ? 'bg-emerald-accent/8 border-emerald-accent/30 text-navy font-medium' : 'bg-white border-navy/10 text-navy/70 hover:border-navy/20'}">
-						{opt.label}
-					</button>
-				{/each}
-			</div>
+				<div class="flex gap-3 mb-8">
+					{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
+						{@const sel = currentQ ? screeningAnswers[currentQ.id] === opt.value : false}
+						<button onclick={() => currentQ && answer(currentQ.id, opt.value)}
+							class="flex-1 px-5 py-4 rounded-xl border text-center transition-all duration-200 cursor-pointer
+								   {sel ? 'bg-emerald-accent/8 border-emerald-accent/30 text-navy font-medium' : 'bg-white border-navy/10 text-navy/70 hover:border-navy/20'}">
+							{opt.label}
+						</button>
+					{/each}
+				</div>
+
+				{#if finalQuestionAnswered}
+					<div class="mb-8 rounded-xl border border-navy/10 bg-white/70 p-4 md:p-5">
+						<ul class="list-disc pl-5 space-y-3 text-[13px] text-navy/65 leading-relaxed">
+							<li>
+								I confirm my situation fits this online plan (Texas resident, one primary residence, no business ownership, no blended-family or special needs planning). If my situation is more complex, I understand I should schedule a consultation instead.
+							</li>
+							<li>
+								I understand this trust is structured in accordance with established Islamic inheritance principles. The prescribed shares are not customizable.
+							</li>
+							<li>
+								I understand Amana Legacy provides detailed, attorney-prepared guidance for securing my Texas homestead exemption, but does not file the exemption application on my behalf.
+							</li>
+						</ul>
+
+						<label class="mt-4 flex items-start gap-3 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={screeningConfirmed}
+								class="mt-1 h-4 w-4 rounded border-navy/20 text-emerald-accent focus:ring-emerald-accent/30"
+							/>
+							<span class="text-sm text-navy/70 leading-relaxed">
+								I have read and agree to the statements above.
+							</span>
+						</label>
+					</div>
+				{/if}
+			{/if}
 
 			<!-- nav -->
 			<div class="flex items-center justify-between">
@@ -104,9 +216,16 @@
 					Back
 				</button>
 
-				{#if screeningIndex < screeningQuestions.length - 1}
-					<button onclick={() => { if (screeningAnswers[currentQ.id] !== null) screeningIndex++; }}
-						disabled={screeningAnswers[currentQ.id] === null}
+				{#if screeningIndex < totalSteps - 1}
+					<button
+						onclick={() => {
+							if (isCountyStep) {
+								if (hasCounty) screeningIndex++;
+								return;
+							}
+							if (currentQ && screeningAnswers[currentQ.id] !== null) screeningIndex++;
+						}}
+						disabled={isCountyStep ? !hasCounty : (currentQ ? screeningAnswers[currentQ.id] === null : true)}
 						class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy
 							   transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10
 							   disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
@@ -117,7 +236,7 @@
 					</button>
 				{:else}
 					<button onclick={submit}
-						disabled={!allAnswered || submitting}
+						disabled={!allAnswered || submitting || !hasCounty || !screeningConfirmed}
 						class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy
 							   transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10
 							   disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">

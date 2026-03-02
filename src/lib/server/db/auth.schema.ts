@@ -13,6 +13,8 @@ export const user = pgTable("user", {
     .notNull(),
   role: text("role").default("client"),
   requestedConsultationAt: timestamp("requested_consultation_at"),
+  requestedFindDeedAt: timestamp("requested_find_deed_at"),
+  county: text("county"),
   banned: boolean("banned").default(false),
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires"),

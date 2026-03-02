@@ -17,9 +17,10 @@
 		'questionnaire'
 	);
 
-	async function handleScreeningSubmit(eligible: boolean) {
+	async function handleScreeningSubmit(eligible: boolean, county: string) {
 		const form = new FormData();
 		form.set('eligible', String(eligible));
+		form.set('county', county);
 		await fetch('?/screen', { method: 'POST', body: form });
 		await invalidateAll();
 		if (!eligible) goto(`/consultation/${data.trust.id}`);
