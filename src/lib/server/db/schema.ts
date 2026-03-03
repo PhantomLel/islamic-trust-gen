@@ -33,10 +33,19 @@ export const trust = pgTable('trust', {
 	approved: boolean('approved').notNull().default(false),
 	file_urls: text('file_urls').array(),
 	house_deed_url: text('house_deed_url'),
-	price: integer('price').notNull().default(799),
-	paid: boolean('paid').notNull().default(false),
 	donate_percentage: integer('donate_percentage').notNull().default(0), // the amount from the wasiyyah that the user decides to give away
 	charities: jsonb('charities').$type<string[]>(),
+});
+
+export const invoice = pgTable('invoice', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').references(() => user.id).notNull(),
+	name: text('name').notNull(), // the reason for the invoice
+	description: text('description').notNull(),
+	amount: integer('amount').notNull().default(799),
+	paid: boolean('paid').notNull().default(false),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	paidAt: timestamp('paid_at'),
 });
 
 
@@ -44,6 +53,7 @@ export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
 	accounts: many(account),
 	trusts: many(trust),
+	invoices: many(invoice),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -63,6 +73,13 @@ export const accountRelations = relations(account, ({ one }) => ({
 export const trustRelations = relations(trust, ({ one }) => ({
 	user: one(user, {
 		fields: [trust.userId],
+		references: [user.id],
+	}),
+}));
+
+export const invoiceRelations = relations(invoice, ({ one }) => ({
+	user: one(user, {
+		fields: [invoice.userId],
 		references: [user.id],
 	}),
 }));

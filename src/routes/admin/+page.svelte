@@ -18,6 +18,14 @@
 		await authClient.signOut();
 		window.location.href = '/';
 	}
+
+	function getStatus(trust: typeof data.trusts[number] & { awaitingPayment?: boolean }): { label: string; color: string } {
+		if (trust.awaitingPayment) return { label: 'Awaiting Payment', color: 'bg-amber-400' };
+		if (trust.complete ) return { label: 'Approved', color: 'bg-emerald-accent' };
+		if (trust.isEligible === false) return { label: 'Ineligible', color: 'bg-black/[0.04]' };
+		if (trust.isEligible === true) return { label: 'Eligible', color: 'bg-emerald-accent/60' };
+		return { label: 'Not Screened', color: 'bg-navy/10' };
+	}
 </script>
 
 <div class="min-h-screen w-screen bg-cream font-sans relative">
@@ -52,13 +60,15 @@
 			<div class="space-y-3">
 				{#each data.trusts as t}
 					{@const progress = getProgress(t.responses)}
+					{@const status = getStatus(t)}
+					{@const awaitingPayment = 'awaitingPayment' in t && t.awaitingPayment}
 
 					<a href="/admin/user/{t.user.id}"
 						class="block rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden transition-all duration-200 hover:bg-white hover:shadow-lg hover:shadow-navy/[0.04] hover:-translate-y-0.5">
 
 						<div class="group w-full flex items-center gap-4 px-6 py-5">
 							<!-- status dot -->
-							<div class="w-2.5 h-2.5 rounded-full shrink-0 {t.complete ? 'bg-emerald-accent' : progress > 0 ? 'bg-amber-400' : 'bg-navy/15'}"></div>
+							<div class="w-2.5 h-2.5 rounded-full shrink-0 {status.color}"></div>
 
 							<!-- user info -->
 							<div class="flex-1 min-w-0">
@@ -95,6 +105,13 @@
 										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-navy/[0.04] text-navy/45 border border-navy/[0.08]">
 											<span class="w-1.5 h-1.5 rounded-full bg-amber-300"></span>
 											Consultation Requested
+										</span>
+									{/if}
+
+									{#if status.label === 'Awaiting Payment'}
+										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-navy/[0.04] text-navy/45 border border-navy/[0.08]">
+											<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+											Awaiting Payment
 										</span>
 									{/if}
 								</div>

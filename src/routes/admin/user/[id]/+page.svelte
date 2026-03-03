@@ -95,7 +95,7 @@
 							<span class="text-navy/15">&middot;</span>
 							<span>{trust.joint === null ? 'Type not selected' : trust.joint ? 'Joint trust' : 'Individual trust'}</span>
 							<span class="text-navy/15">&middot;</span>
-							<span>{trust.complete ? 'Complete' : 'In progress'}</span>
+							<span>{trust.awaitingPayment ? 'Awaiting payment' : trust.complete ? 'Complete' : 'In progress'}</span>
 						{/if}
 					</div>
 				</div>
@@ -118,13 +118,21 @@
 						</button>
 					{/if}
 
-					<button onclick={toggleConsultation}
-						class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition-all cursor-pointer
-							   bg-navy/[0.03] border-navy/10 hover:bg-navy/[0.06]
-							   {data.targetUser.requestedConsultation ? 'text-navy/50' : 'text-navy/35'}">
-						<span class="w-1.5 h-1.5 rounded-full {data.targetUser.requestedConsultation ? 'bg-amber-300' : 'bg-navy/20'}"></span>
-						{data.targetUser.requestedConsultation ? 'Consultation requested' : 'No consultation'}
-					</button>
+					{#if data.targetUser.requestedConsultation}
+						<button onclick={toggleConsultation}
+							class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition-all cursor-pointer
+								bg-navy/[0.03] border-navy/10 hover:bg-navy/[0.06]
+								{data.targetUser.requestedConsultation ? 'text-navy/50' : 'text-navy/35'}">
+							<span class="w-1.5 h-1.5 rounded-full {data.targetUser.requestedConsultation ? 'bg-amber-300' : 'bg-navy/20'}"></span>
+							Consultation requested
+						</button>
+					{/if}
+					{#if trust?.awaitingPayment}
+						<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border bg-navy/[0.03] border-navy/10 text-navy/50">
+							<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+							Awaiting Payment
+						</span>
+					{/if}
 				</div>
 			</div>
 		</div>

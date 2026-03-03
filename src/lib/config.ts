@@ -121,4 +121,32 @@ export const questions: Question[] = [
 		depends: { field: 'house-deed', eq: false},
 
 	},
+	{
+		id: "trustee-1",
+		text: "Add the full name of the first person you would like to be a trustee",
+		type: 'text',
+		required: true,
+		bucket: 'trust',
+	},
+	{
+		id: "trustee-2",
+		text: "Add the full name of the second person you would like to be a trustee",
+		type: 'text',
+		required: true,
+		bucket: 'trust',
+	},
+	{
+		id: "trustee-3",
+		text: "Add the full name of the third person you would like to be a trustee",
+		type: 'text',
+		required: true,
+		bucket: 'trust',
+	},
+	{
+		id: "trust-name",
+		text: "What would you like to call your trust?",
+		type: 'text',
+		required: true,
+		bucket: 'trust',
+	}
 ];

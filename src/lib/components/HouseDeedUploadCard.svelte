@@ -4,11 +4,13 @@
 
 	let {
 		trustId,
+		userId,
 		existingUrl = null,
 		saveActionPath = '/dashboard?/saveHouseDeed',
 		title = 'Upload Your House Deed',
 	} = $props<{
 		trustId: number;
+		userId: string;
 		existingUrl?: string | null;
 		saveActionPath?: string;
 		title?: string;
@@ -38,6 +40,13 @@
 		}, 2200);
 	}
 
+	function getHouseDeedFilename(originalName: string): string {
+		const extensionMatch = originalName.match(/(\.[^./\\]+)$/);
+		const extension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+		const normalizedUserId = userId.replace(/[^a-zA-Z0-9_-]/g, '') || 'user';
+		return `house_deed_${normalizedUserId}_${Date.now()}${extension}`;
+	}
+
 	async function persistHouseDeedUrl(url: string) {
 		saving = true;
 		error = '';
@@ -63,6 +72,12 @@
 
 	const uploader = createUploader('houseDeedUploader', {
 		config: { mode: 'auto' },
+		onBeforeUploadBegin: (files) => {
+			return files.map((file) => {
+				const renamed = getHouseDeedFilename(file.name);
+				return new File([file], renamed, { type: file.type, lastModified: file.lastModified });
+			});
+		},
 		onClientUploadComplete: async (files) => {
 			const file = files?.[0];
 			const url = file?.ufsUrl ?? file?.url;

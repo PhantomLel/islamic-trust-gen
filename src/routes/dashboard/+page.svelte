@@ -7,6 +7,7 @@
 
 	let firstName = $derived(data.userName?.split(' ')[0] ?? 'there');
 	let t = $derived(data.trust);
+	let paid = $derived(data.paid);
 
 	// timeline steps derived from trust state
 	let steps = $derived([
@@ -14,8 +15,8 @@
 		{ label: 'Eligibility Screening', done: t.isEligible !== null },
 		{ label: 'Trust Type Selected', done: t.joint !== null },
 		{ label: 'Intake Complete', done: t.complete },
-		{ label: 'Payment', done: t.paid },
-		{ label: 'Under Review', done: t.paid && t.approved },
+		{ label: 'Payment', done: paid },
+		{ label: 'Under Review', done: paid && t.approved },
 		{ label: 'Documents Delivered', done: t.fileUrls.length > 0 },
 	]);
 
@@ -25,7 +26,7 @@
 	let statusLabel = $derived(
 		t.fileUrls.length > 0 ? 'Documents Delivered' :
 		t.approved ? 'Approved — Awaiting Documents' :
-		t.paid ? 'Under Review' :
+		paid ? 'Under Review' :
 		t.complete ? 'Awaiting Payment' :
 		t.joint !== null ? 'Intake In Progress' :
 		t.isEligible !== null ? 'Select Trust Type' :
@@ -37,7 +38,7 @@
 		[
 			!t.complete && t.joint !== null && { label: 'Complete Intake', href: `/create-trust/${t.id}`, desc: `${t.questionnaireProgress}% done`, progress: t.questionnaireProgress },
 			!t.complete && t.joint === null && t.isEligible === true && { label: 'Select Trust Type', href: `/create-trust/${t.id}`, desc: 'Choose individual or joint' },
-			t.complete && !t.paid && { label: 'Make Payment', href: '#', desc: 'Complete payment to finalize your trust' },
+			t.complete && !paid && { label: 'Make Payment', href: '#', desc: 'Complete payment to finalize your trust' },
 			t.approved && t.fileUrls.length === 0 && { label: 'Schedule Notarization', href: '#', desc: 'Book an appointment', external: true },
 		].filter(Boolean) as { label: string; href: string; desc: string; external?: boolean; progress?: number }[]
 	);
@@ -152,6 +153,7 @@
 				{#if t.hasHouse}
 					<HouseDeedUploadCard
 						trustId={t.id}
+						userId={data.userId}
 						existingUrl={t.houseDeedUrl}
 						title="Upload Your House Deed"
 					/>

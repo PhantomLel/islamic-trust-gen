@@ -6,8 +6,8 @@ export const ourFileRouter = {
 	houseDeedUploader: f({
 		pdf: { maxFileCount: 1, maxFileSize: '16MB' },
 		image: { maxFileCount: 1, maxFileSize: '16MB' },
-	}).onUploadComplete(async ({ file }) => {
-		return { url: file.ufsUrl };
+	}).onUploadComplete(async ({ file }) => { // TODO add auth
+		return { url: file.ufsUrl, };
 	}),
 } satisfies FileRouter;
 
