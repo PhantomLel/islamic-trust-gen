@@ -1,69 +1,19 @@
 <script lang="ts">
-	import { siteName, questions } from '$lib/config';
+	import { siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { invalidateAll } from '$app/navigation';
+	import AdminQuestionResponses from '$lib/components/AdminQuestionResponses.svelte';
 
 	let { data } = $props();
 
 	let trust = $derived(data.trusts[0] ?? null);
-	let trustProgress = $derived(trust ? getProgress(trust.responses) : 0);
 
 	let copiedEmail = $state(false);
-	let editing = $state(false);
-	let editResponses = $state<Record<string, string | boolean | null>>({});
-	let saving = $state(false);
 
 	async function copyEmail() {
 		await navigator.clipboard.writeText(data.targetUser.email);
 		copiedEmail = true;
 		setTimeout(() => { copiedEmail = false; }, 1500);
-	}
-
-	function enterEdit() {
-		if (!trust) return;
-		editing = true;
-		const map: Record<string, string | boolean | null> = {};
-		for (const r of trust.responses) {
-			map[r.id] = r.response as string | boolean | null;
-		}
-		editResponses = map;
-	}
-
-	function exitEdit() {
-		editing = false;
-		editResponses = {};
-	}
-
-	function setEditValue(questionId: string, value: string | boolean | null) {
-		editResponses = { ...editResponses, [questionId]: value };
-	}
-
-	async function saveEdit(trustId: number) {
-		saving = true;
-		const responses = questions.map((q) => ({
-			id: q.id,
-			response: editResponses[q.id] ?? null,
-		}));
-		const formData = new FormData();
-		formData.set('trustId', String(trustId));
-		formData.set('responses', JSON.stringify(responses));
-		await fetch('?/save', { method: 'POST', body: formData });
-		await invalidateAll();
-		saving = false;
-		exitEdit();
-	}
-
-	function getAnswer(responses: { id: string; response: unknown }[], questionId: string): string {
-		const r = responses.find((res) => res.id === questionId);
-		if (!r || r.response == null) return '—';
-		if (typeof r.response === 'boolean') return r.response ? 'Yes' : 'No';
-		return String(r.response);
-	}
-
-	function getProgress(responses: { id: string; response: unknown }[]): number {
-		if (questions.length === 0) return 0;
-		const answered = responses.filter((r) => r.response != null && r.response !== '').length;
-		return Math.round((answered / questions.length) * 100);
 	}
 
 	function formatDate(iso: string): string {
@@ -181,86 +131,7 @@
 
 		<!-- questionnaire answers -->
 		{#if trust}
-			<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden">
-				<div class="px-6 py-4 flex items-center justify-between">
-					<div class="flex items-center gap-3">
-						<h2 class="text-sm font-medium text-navy">Intake Responses</h2>
-						<div class="flex items-center gap-2">
-							<div class="w-20 h-1.5 rounded-full bg-navy/[0.06] overflow-hidden">
-								<div class="h-full rounded-full transition-all duration-500
-											{trust.complete ? 'bg-emerald-accent' : trustProgress > 0 ? 'bg-amber-400' : 'bg-navy/10'}"
-									style="width: {trustProgress}%"></div>
-							</div>
-							<span class="text-[11px] text-navy/40">{trustProgress}%</span>
-						</div>
-					</div>
-					<div class="flex items-center gap-2">
-						{#if editing}
-							<button onclick={exitEdit}
-								class="text-[12px] text-navy/40 hover:text-navy transition-colors cursor-pointer px-3 py-1.5 rounded-lg hover:bg-navy/[0.04]">
-								Cancel
-							</button>
-							<button onclick={() => saveEdit(trust.id)} disabled={saving}
-								class="text-[12px] text-white bg-emerald-accent hover:bg-emerald-accent/90 transition-colors cursor-pointer px-4 py-1.5 rounded-lg disabled:opacity-50">
-								{saving ? 'Saving...' : 'Save'}
-							</button>
-						{:else}
-							<button onclick={enterEdit}
-								class="text-[12px] text-navy/40 hover:text-navy transition-colors cursor-pointer px-3 py-1.5 rounded-lg hover:bg-navy/[0.04] flex items-center gap-1.5">
-								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-								Edit
-							</button>
-						{/if}
-					</div>
-				</div>
-
-				<div class="border-t border-navy/[0.06] px-6 py-5">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
-						{#each questions as q}
-							{@const answer = getAnswer(trust.responses, q.id)}
-							<div class="flex flex-col gap-1.5 py-1">
-								<span class="text-[12px] text-navy/40">{q.text}</span>
-								{#if editing}
-									{#if q.type === 'boolean'}
-										<div class="flex gap-2">
-											{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
-												{@const sel = editResponses[q.id] === opt.value}
-												<button onclick={() => setEditValue(q.id, opt.value)}
-													class="px-3 py-1.5 rounded-lg text-[12px] border transition-all cursor-pointer
-														   {sel ? 'bg-emerald-accent/10 border-emerald-accent/30 text-navy font-medium' : 'bg-white border-navy/10 text-navy/50 hover:border-navy/20'}">
-													{opt.label}
-												</button>
-											{/each}
-										</div>
-									{:else if q.type === 'select' && q.options}
-										<div class="flex flex-wrap gap-2">
-											{#each q.options as option}
-												{@const sel = editResponses[q.id] === option}
-												<button onclick={() => setEditValue(q.id, option)}
-													class="px-3 py-1.5 rounded-lg text-[12px] border transition-all cursor-pointer
-														   {sel ? 'bg-emerald-accent/10 border-emerald-accent/30 text-navy font-medium' : 'bg-white border-navy/10 text-navy/50 hover:border-navy/20'}">
-													{option}
-												</button>
-											{/each}
-										</div>
-									{:else if q.type === 'date'}
-										<input type="date" value={editResponses[q.id] ?? ''}
-											oninput={(e) => setEditValue(q.id, e.currentTarget.value || null)}
-											class="px-3 py-1.5 rounded-lg text-[13px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40 w-full max-w-[200px]" />
-									{:else}
-										<input type={q.type === 'tel' ? 'tel' : 'text'} value={editResponses[q.id] ?? ''}
-											oninput={(e) => setEditValue(q.id, e.currentTarget.value || null)}
-											placeholder="—"
-											class="px-3 py-1.5 rounded-lg text-[13px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40 w-full max-w-[280px] placeholder:text-navy/20" />
-									{/if}
-								{:else}
-									<span class="text-[13px] text-navy font-medium {answer === '—' ? 'text-navy/25' : ''}">{answer}</span>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-			</div>
+			<AdminQuestionResponses {trust} />
 		{:else}
 			<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center">
 				<p class="text-navy/40 text-sm">No trust created yet.</p>

@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { siteName, questions, buckets, getActiveQuestions } from '$lib/config';
+	import {
+		siteName,
+		questions,
+		buckets,
+		getActiveQuestions,
+		isQuestionResponseAnswered,
+		isQuestionResponseComplete,
+		type QuestionResponseValue
+	} from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { invalidateAll, goto } from '$app/navigation';
 	import QuestionInput from '$lib/components/QuestionInput.svelte';
@@ -11,6 +19,7 @@
 	let { data } = $props();
 
 	let firstName = $derived(data.userName?.split(' ')[0] ?? 'there');
+	let userEmail = $derived(data.userEmail ?? '');
 	let step = $derived<'screening' | 'type' | 'questionnaire'>(
 		data.trust.isEligible === null ? 'screening' :
 		data.trust.joint === null ? 'type' :
@@ -26,13 +35,12 @@
 		if (!eligible) goto(`/consultation/${data.trust.id}`);
 	}
 
-	// ── questionnaire state ──
-	const initialResponses = Object.fromEntries(
-		(data.trust.responses ?? []).map((r: { id: string; response: unknown }) => [r.id, r.response as string | boolean | null])
-	);
-
 	let currentIndex = $state(0);
-	let responses = $state<Record<string, string | boolean | null>>(initialResponses);
+	let responses = $state<Record<string, QuestionResponseValue>>(
+		Object.fromEntries(
+			(data.trust.responses ?? []).map((r: { id: string; response: unknown }) => [r.id, r.response as QuestionResponseValue])
+		)
+	);
 	let saving = $state(false);
 	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -64,6 +72,13 @@
 	let isFirst = $derived(currentIndex === 0);
 	let isLast = $derived(currentIndex === activeQuestions.length - 1);
 
+	function isCurrentQuestionComplete(): boolean {
+		if (!currentQuestion) return false;
+		return isQuestionResponseComplete(currentQuestion.type, currentValue);
+	}
+
+	let canGoNext = $derived(isCurrentQuestionComplete());
+
 	// ── autosave ──
 	function scheduleAutosave() {
 		if (saveTimer) clearTimeout(saveTimer);
@@ -73,7 +88,7 @@
 	async function doSave() {
 		saving = true;
 		const arr = Object.entries(responses)
-			.filter(([, v]) => v != null && v !== '')
+			.filter(([, v]) => isQuestionResponseAnswered(v))
 			.map(([id, response]) => ({ id, response }));
 		const form = new FormData();
 		form.set('responses', JSON.stringify(arr));
@@ -81,7 +96,7 @@
 		saving = false;
 	}
 
-	function setResponse(value: string | boolean | null) {
+	function setResponse(value: QuestionResponseValue) {
 		if (!currentQuestion) return;
 		responses[currentQuestion.id] = value;
 		scheduleAutosave();
@@ -94,6 +109,7 @@
 	}
 
 	function goNext() {
+		if (!canGoNext) return;
 		if (!isLast) goToQuestion(currentIndex + 1);
 	}
 
@@ -139,7 +155,7 @@
 </script>
 
 {#if step === 'screening'}
-<ScreeningStep {firstName} trustId={data.trust.id} onsubmit={handleScreeningSubmit} />
+<ScreeningStep {firstName} {userEmail} trustId={data.trust.id} onsubmit={handleScreeningSubmit} />
 
 {:else if step === 'type'}
 <!-- ─── TRUST TYPE SELECTION ─── -->
@@ -156,7 +172,10 @@
 			<span class="w-2 h-2 rounded-full bg-emerald-accent"></span>
 			{siteName}
 		</a>
-		<button onclick={handleLogout} class="text-sm text-navy/50 transition-colors hover:text-navy cursor-pointer">Log out</button>
+		<div class="flex items-center gap-3">
+			<span class="hidden sm:inline text-sm text-navy/45">{userEmail}</span>
+			<button onclick={handleLogout} class="text-sm text-navy/50 transition-colors hover:text-navy cursor-pointer">Log out</button>
+		</div>
 	</nav>
 
 	<div class="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-16">
@@ -241,6 +260,7 @@
 		</a>
 		<div class="flex items-center gap-4">
 			<span class="text-[11px] text-navy/35 transition-opacity duration-300 {saving ? 'opacity-100' : 'opacity-0'}">Saving...</span>
+			<span class="hidden sm:inline text-sm text-navy/45">{userEmail}</span>
 			<button onclick={handleLogout} class="text-sm text-navy/50 transition-colors hover:text-navy cursor-pointer">Log out</button>
 		</div>
 	</nav>
@@ -305,10 +325,10 @@
 						</svg>
 					</button>
 				{:else}
-					<button onclick={goNext}
+					<button onclick={goNext} disabled={!canGoNext}
 						class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy
 							   transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10
-							   cursor-pointer">
+							   disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer">
 						Next
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />

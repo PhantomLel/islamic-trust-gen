@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName } from '$lib/config';
+	import { consultationBookingUrl, siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import HouseDeedUploadCard from '$lib/components/HouseDeedUploadCard.svelte';
 
@@ -37,7 +37,7 @@
 		[
 			!t.complete && t.joint !== null && { label: 'Complete Intake', href: `/create-trust/${t.id}`, desc: `${t.questionnaireProgress}% done`, progress: t.questionnaireProgress },
 			!t.complete && t.joint === null && t.isEligible === true && { label: 'Select Trust Type', href: `/create-trust/${t.id}`, desc: 'Choose individual or joint' },
-			t.complete && !t.paid && { label: 'Make Payment', href: '#', desc: 'Complete payment to proceed' },
+			t.complete && !t.paid && { label: 'Make Payment', href: '#', desc: 'Complete payment to finalize your trust' },
 			t.approved && t.fileUrls.length === 0 && { label: 'Schedule Notarization', href: '#', desc: 'Book an appointment', external: true },
 		].filter(Boolean) as { label: string; href: string; desc: string; external?: boolean; progress?: number }[]
 	);
@@ -216,7 +216,6 @@
 				</div>
 
 				<!-- consultation -->
-				{#if data.requestedConsultation || t.isEligible === false}
 					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6">
 						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-3">Consultation</p>
 						{#if data.requestedConsultation}
@@ -224,18 +223,15 @@
 								Your consultation request has been received. A member of our team will be in touch shortly.
 							</p>
 						{:else}
-							<p class="text-[13px] text-navy/50 leading-relaxed mb-4">
-								Your estate may benefit from a personalized consultation with one of our specialists.
-							</p>
+							<p class="text-[13px] text-navy/50 leading-relaxed mb-4">If you need assistance with your trust, please contact us.</p>
 						{/if}
-						<a href="/consultation/{t.id}"
+						<a href={consultationBookingUrl} target="_blank" rel="noopener noreferrer"
 							class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12px] font-medium
 								   border border-navy/10 text-navy/50 hover:text-navy hover:border-navy/20 transition-all">
 							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
 							Book Consultation
 						</a>
 					</div>
-				{/if}
 
 				<!-- notarization -->
 				{#if t.approved}

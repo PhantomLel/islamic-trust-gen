@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName } from '$lib/config';
+	import { consultationBookingUrl, siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { invalidateAll } from '$app/navigation';
 
@@ -12,6 +12,8 @@
 	}
 
 	async function requestConsultation() {
+		// Open booking in a new tab from the click gesture, then keep existing request flow.
+		window.open(consultationBookingUrl, '_blank', 'noopener,noreferrer');
 		const form = new FormData();
 		await fetch('?/requestConsultation', { method: 'POST', body: form });
 		await invalidateAll();
@@ -43,7 +45,7 @@
 					</svg>
 				</div>
 				<h1 class="text-3xl font-semibold text-navy tracking-tight mb-3">You're on the list</h1>
-				<p class="text-navy/50 text-base font-light leading-relaxed mb-8">We'll be in touch soon to schedule a consultation. Thank you for your patience.</p>
+				<p class="text-navy/50 text-base font-light leading-relaxed mb-8">Book your consultation on the page that was just opened or we will be in touch soon!</p>
 				<a href="/" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-cream bg-navy transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10">
 					Back to Home
 				</a>

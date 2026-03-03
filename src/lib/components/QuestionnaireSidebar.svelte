@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { buckets, type Question } from '$lib/config';
+	import { buckets, isQuestionResponseAnswered, type Question, type QuestionResponseValue } from '$lib/config';
 
 	let { currentIndex, responses, activeQuestions, onnavigate }: {
 		currentIndex: number;
-		responses: Record<string, string | boolean | null>;
+		responses: Record<string, QuestionResponseValue>;
 		activeQuestions: Question[];
 		onnavigate: (index: number) => void;
 	} = $props();
@@ -14,14 +14,14 @@
 		Object.fromEntries(
 			bucketOrder.map((b) => {
 				const total = activeQuestions.filter((q) => q.bucket === b).length;
-				const done = activeQuestions.filter((q) => q.bucket === b && responses[q.id] != null && responses[q.id] !== '').length;
+				const done = activeQuestions.filter((q) => q.bucket === b && isQuestionResponseAnswered(responses[q.id])).length;
 				return [b, { total, done }];
 			})
 		)
 	);
 
 	let overallProgress = $derived(
-		Math.round((activeQuestions.filter((q) => responses[q.id] != null && responses[q.id] !== '').length / activeQuestions.length) * 100)
+		Math.round((activeQuestions.filter((q) => isQuestionResponseAnswered(responses[q.id])).length / activeQuestions.length) * 100)
 	);
 </script>
 
@@ -83,7 +83,7 @@
 					<div class="ml-6 mt-1 mb-2 flex flex-col gap-0.5">
 						{#each bqs as q, qi}
 							{@const gi = firstIdx + qi}
-							{@const answered = responses[q.id] != null && responses[q.id] !== ''}
+							{@const answered = isQuestionResponseAnswered(responses[q.id])}
 							<button
 								onclick={() => onnavigate(gi)}
 								class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-left transition-all cursor-pointer

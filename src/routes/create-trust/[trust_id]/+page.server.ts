@@ -2,7 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { trust, user } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { questions } from '$lib/config';
+import { isQuestionResponseAnswered, questions } from '$lib/config';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -27,6 +27,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			responses: (existing.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
 		},
 		userName: locals.user.name,
+		userEmail: locals.user.email,
 	};
 };
 
@@ -85,7 +86,7 @@ export const actions: Actions = {
 		if (typeof responsesRaw !== 'string') throw error(400, 'Invalid data');
 
 		const parsed = JSON.parse(responsesRaw) as { id: string; response: unknown }[];
-		const answeredIds = new Set(parsed.filter((r) => r.response != null && r.response !== '').map((r) => r.id));
+		const answeredIds = new Set(parsed.filter((r) => isQuestionResponseAnswered(r.response)).map((r) => r.id));
 		const allAnswered = questions.every((q) => answeredIds.has(q.id));
 
 		const updates: Record<string, unknown> = { responses: parsed, updatedAt: new Date() };

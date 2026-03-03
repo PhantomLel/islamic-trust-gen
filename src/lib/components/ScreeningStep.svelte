@@ -2,8 +2,9 @@
 	import { siteName, screeningQuestions } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 
-	let { firstName, trustId, onsubmit: onsubmitProp }: {
+	let { firstName, userEmail, trustId, onsubmit: onsubmitProp }: {
 		firstName: string;
+		userEmail: string;
 		trustId: number;
 		onsubmit: (eligible: boolean, county: string) => void;
 	} = $props();
@@ -113,7 +114,10 @@
 			<span class="w-2 h-2 rounded-full bg-emerald-accent"></span>
 			{siteName}
 		</a>
-		<button onclick={handleLogout} class="text-sm text-navy/50 transition-colors hover:text-navy cursor-pointer">Log out</button>
+		<div class="flex items-center gap-3">
+			<span class="hidden sm:inline text-sm text-navy/45">{userEmail}</span>
+			<button onclick={handleLogout} class="text-sm text-navy/50 transition-colors hover:text-navy cursor-pointer">Log out</button>
+		</div>
 	</nav>
 
 	<div class="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-16">
@@ -163,6 +167,11 @@
 				<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
 					{currentQ?.text}
 				</h2>
+				{#if currentQ?.subtext}
+					<p class="text-sm text-navy/55 leading-relaxed -mt-4 mb-6">
+						{currentQ.subtext}
+					</p>
+				{/if}
 
 				<div class="flex gap-3 mb-8">
 					{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
