@@ -3,11 +3,13 @@
 		siteName,
 		questions,
 		buckets,
-		getActiveQuestions,
-		isQuestionResponseAnswered,
-		isQuestionResponseComplete,
 		type QuestionResponseValue
 	} from '$lib/config';
+	import {
+		getActiveQuestions,
+		isQuestionResponseAnswered,
+		isQuestionResponseComplete
+	} from '$lib/question-response-helpers';
 	import { authClient } from '$lib/auth-client';
 	import { invalidateAll, goto } from '$app/navigation';
 	import QuestionInput from '$lib/components/QuestionInput.svelte';

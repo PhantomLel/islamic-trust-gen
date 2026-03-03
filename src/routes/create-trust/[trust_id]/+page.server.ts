@@ -2,7 +2,8 @@ import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { trust, user } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { isQuestionResponseAnswered, questions } from '$lib/config';
+import { questions } from '$lib/config';
+import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {

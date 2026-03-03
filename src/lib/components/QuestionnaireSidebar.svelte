@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { buckets, isQuestionResponseAnswered, type Question, type QuestionResponseValue } from '$lib/config';
+	import { buckets, type Question, type QuestionResponseValue } from '$lib/config';
+	import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
 
 	let { currentIndex, responses, activeQuestions, onnavigate }: {
 		currentIndex: number;

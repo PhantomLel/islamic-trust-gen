@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import {
-		isQuestionResponseAnswered,
 		questions,
 		type ChildResponse,
 		type QuestionResponseValue
 	} from '$lib/config';
+	import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
 
 	type TrustResponse = { id: string; response: unknown };
 	type TrustDetails = {
