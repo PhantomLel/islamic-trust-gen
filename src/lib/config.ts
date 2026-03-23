@@ -13,7 +13,7 @@ export const screeningQuestions = [
 export type Question = {
 	id: string;
 	text: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children';
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'charities';
 	required: boolean;
 	bucket: string;
 	options?: string[];
@@ -27,12 +27,45 @@ export type ChildResponse = {
 	dob: string;
 };
 
-export type QuestionResponseValue = string | boolean | ChildResponse[] | null;
+export type CharityResponse = {
+	charityId: string;
+	percentage: number;
+};
+
+export type QuestionResponseValue = string | boolean | ChildResponse[] | CharityResponse[] | null;
 
 export const buckets: Record<string, { label: string; icon: string }> = {
 	personal: { label: 'Personal Info', icon: 'user' },
 	family: { label: 'Family', icon: 'users' },
 };
+
+export type Charity = {
+	id: string;
+	name: string;
+	logo: string;
+	website: string;
+};
+
+export const charities: Charity[] = [
+	{
+		id: 'islamic-relief',
+		name: 'Islamic Relief USA',
+		logo: 'https://irusa.org/wp-content/uploads/2022/03/2022-IRUSA-Logo_Blue_IRUSA-stacked-e1771511047826.png',
+		website: 'https://www.irusa.org'
+	},
+	{
+		id: 'helping-hand',
+		name: 'Helping Hand for Relief and Development',
+		logo: 'https://www1.hhrd.org/Portals/0/ThemePluginPro/uploads/2021/11/9/HHRD%20LOGO-h-01.png',
+		website: 'https://hhrd.org'
+	},
+	{
+		id: 'penny-appeal',
+		name: 'Penny Appeal USA',
+		logo: 'https://pennyappeal.org/themes/pennyappeal/assets/images/global/logos/pennyappeal-orange.svg',
+		website: 'https://pennyappeal.org'
+	},
+];
 
 export const questions: Question[] = [
 	{
@@ -73,20 +106,35 @@ export const questions: Question[] = [
 		depends: { field: 'married', eq: true },
 	},
 	{
-		id: 'children',
-		text: 'Do you have any children?',
+		id: 'children-sons',
+		text: 'Do you have any sons?',
 		type: 'boolean',
 		required: true,
 		bucket: 'family',
 	},
 	{
-		id: 'children-data',
-		text: 'Add the full names and dates of birth of your children',
+		id: 'children-data-sons',
+		text: 'Add the full names and dates of birth of your sons',
 		type: 'children',
 		required: true,
 		bucket: 'family',
-		depends: { field: 'children', eq: true },
+		depends: { field: 'children-sons', eq: true },
 
+	},
+	{
+		id: 'children-daughters',
+		text: 'Do you have any daughters?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+	},
+	{
+		id: 'children-data-daughters',
+		text: 'Add the full names and dates of birth of your daughters',
+		type: 'children',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'children-daughters', eq: true },
 	},
 	{
 		id: 'grandchildren',
@@ -119,6 +167,14 @@ export const questions: Question[] = [
 		required: true,
 		bucket: 'property',
 		depends: { field: 'house-deed', eq: false},
+
+	},
+	{
+		id: "charities",
+		text: "Would you like to any of these charities to receive a portion of your wasiyyah?",
+		type: 'charities',
+		required: false,
+		bucket: 'trust',
 
 	},
 	{

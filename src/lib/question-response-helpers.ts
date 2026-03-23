@@ -1,4 +1,4 @@
-import { questions, type ChildResponse, type Question, type QuestionResponseValue } from '$lib/config';
+import { questions, type ChildResponse, type CharityResponse, type Question, type QuestionResponseValue } from '$lib/config';
 
 export function isChildResponseComplete(child: Partial<ChildResponse>): boolean {
 	return (
@@ -11,9 +11,35 @@ export function isChildResponseComplete(child: Partial<ChildResponse>): boolean 
 	);
 }
 
+export function isCharityResponseComplete(charity: Partial<CharityResponse>): boolean {
+	return (
+		typeof charity.charityId === 'string' &&
+		charity.charityId.trim() !== '' &&
+		typeof charity.percentage === 'number' &&
+		charity.percentage > 0
+	);
+}
+
+export function getTotalCharityPercentage(value: unknown): number {
+	if (!Array.isArray(value)) return 0;
+	return value
+		.filter((item): item is CharityResponse => 
+			!!item && typeof item === 'object' && 'charityId' in item
+		)
+		.reduce((sum, c) => sum + (c.percentage || 0), 0);
+}
+
 export function isQuestionResponseAnswered(value: unknown): boolean {
 	if (Array.isArray(value)) {
-		return value.some((child) => !!child && typeof child === 'object' && isChildResponseComplete(child));
+		if (value.length === 0) return false;
+		const first = value[0];
+		if (first && typeof first === 'object' && 'firstName' in first) {
+			return value.some((child) => !!child && typeof child === 'object' && isChildResponseComplete(child));
+		}
+		if (first && typeof first === 'object' && 'charityId' in first) {
+			return value.some((charity) => !!charity && typeof charity === 'object' && isCharityResponseComplete(charity));
+		}
+		return false;
 	}
 	return value != null && value !== '';
 }
@@ -25,6 +51,12 @@ export function isQuestionResponseComplete(type: Question['type'], value: unknow
 			value.length > 0 &&
 			value.every((child) => !!child && typeof child === 'object' && isChildResponseComplete(child))
 		);
+	}
+	if (type === 'charities') {
+		if (!Array.isArray(value) || value.length === 0) return true;
+		const allComplete = value.every((charity) => !!charity && typeof charity === 'object' && isCharityResponseComplete(charity));
+		const totalPercentage = getTotalCharityPercentage(value);
+		return allComplete && totalPercentage <= 100;
 	}
 	if (type === 'tel') {
 		return typeof value === 'string' && value.replace(/\D/g, '').length === 10;

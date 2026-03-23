@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { ChildResponse, Question, QuestionResponseValue } from '$lib/config';
+	import type { ChildResponse, CharityResponse, Question, QuestionResponseValue } from '$lib/config';
+	import { charities } from '$lib/config';
 
 	let { question, value, onresponse, onnext }: {
 		question: Question;
@@ -35,11 +36,15 @@
 
 	function getChildren(): ChildResponse[] {
 		if (!Array.isArray(value)) return [];
-		return value.map((child) => ({
-			firstName: child.firstName ?? '',
-			lastName: child.lastName ?? '',
-			dob: child.dob ?? ''
-		}));
+		return value
+			.filter((item): item is ChildResponse => 
+				!!item && typeof item === 'object' && 'firstName' in item
+			)
+			.map((child) => ({
+				firstName: child.firstName ?? '',
+				lastName: child.lastName ?? '',
+				dob: child.dob ?? ''
+			}));
 	}
 
 	function updateChild(index: number, field: keyof ChildResponse, fieldValue: string) {
@@ -61,6 +66,46 @@
 	function removeChild(index: number) {
 		const next = getChildren().filter((_, i) => i !== index);
 		onresponse(next.length > 0 ? next : null);
+	}
+
+	function getCharities(): CharityResponse[] {
+		if (!Array.isArray(value)) return [];
+		return value
+			.filter((item): item is CharityResponse => 
+				!!item && typeof item === 'object' && 'charityId' in item
+			)
+			.map((charity) => ({
+				charityId: charity.charityId ?? '',
+				percentage: charity.percentage ?? 0
+			}));
+	}
+
+	function isCharitySelected(charityId: string): boolean {
+		return getCharities().some((c) => c.charityId === charityId);
+	}
+
+	function toggleCharity(charityId: string) {
+		const current = getCharities();
+		const exists = current.some((c) => c.charityId === charityId);
+		
+		if (exists) {
+			const next = current.filter((c) => c.charityId !== charityId);
+			onresponse(next.length > 0 ? next : null);
+		} else {
+			onresponse([...current, { charityId, percentage: 0 }]);
+		}
+	}
+
+	function updateCharityPercentage(charityId: string, percentage: number) {
+		const current = getCharities();
+		const next = current.map((c) => 
+			c.charityId === charityId ? { ...c, percentage } : c
+		);
+		onresponse(next);
+	}
+
+	function getTotalCharityPercentage(): number {
+		return getCharities().reduce((sum, c) => sum + (c.percentage || 0), 0);
 	}
 </script>
 
@@ -168,5 +213,102 @@
 			</svg>
 			Add Child
 		</button>
+	</div>
+
+{:else if question.type === 'charities'}
+	{@const selectedCharities = getCharities()}
+	<div class="space-y-3">
+		{#each charities as charity}
+			{@const selected = isCharitySelected(charity.id)}
+			{@const charityData = selectedCharities.find((c) => c.charityId === charity.id)}
+			{@const percentage = charityData?.percentage ?? 0}
+			
+			<div class="rounded-xl border transition-all duration-200
+				{selected ? 'border-emerald-accent/30 bg-emerald-accent/5' : 'border-navy/10 bg-white'}">
+				<div class="p-4">
+					<div class="flex items-start gap-4">
+						<button
+							type="button"
+							onclick={() => toggleCharity(charity.id)}
+							class="flex items-center justify-center w-6 h-6 mt-1 rounded-md border-2 shrink-0 transition-colors cursor-pointer
+								{selected ? 'border-emerald-accent bg-emerald-accent' : 'border-navy/20 bg-white hover:border-navy/30'}"
+							aria-label={selected ? `Deselect ${charity.name}` : `Select ${charity.name}`}
+						>
+							{#if selected}
+								<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							{/if}
+						</button>
+						
+						<div class="flex-1 min-w-0">
+							<div class="flex items-center gap-3 mb-2">
+								<div class="w-24 h-12 bg-white rounded-lg border border-navy/5 flex items-center justify-center p-2 shrink-0">
+									<img src={charity.logo} alt={`${charity.name} logo`} class="max-w-full max-h-full object-contain" />
+								</div>
+								<div class="flex-1 min-w-0">
+									<h3 class="text-base font-medium text-navy mb-0.5">{charity.name}</h3>
+									<a href={charity.website} target="_blank" rel="noopener noreferrer" 
+										class="text-xs text-emerald-accent hover:text-emerald-accent/80 transition-colors">
+										Visit Website →
+									</a>
+								</div>
+							</div>
+							
+							{#if selected}
+								<div class="mt-3 flex items-center gap-3">
+									<label for={`${charity.id}-percentage`} class="text-sm text-navy/70 whitespace-nowrap">
+										Percentage:
+									</label>
+									<div class="flex items-center gap-2 flex-1 max-w-xs">
+										<input
+											id={`${charity.id}-percentage`}
+											type="number"
+											min="0"
+											max="100"
+											step="0.1"
+											value={percentage}
+											oninput={(e) => {
+												const val = parseFloat(e.currentTarget.value);
+												if (!isNaN(val)) updateCharityPercentage(charity.id, val);
+											}}
+											class="w-full px-3 py-2 rounded-lg border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
+											placeholder="0"
+										/>
+										<span class="text-sm text-navy/50 shrink-0">%</span>
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+				</div>
+			</div>
+		{/each}
+		
+		<div class="space-y-2 mt-3 pt-3 border-t border-navy/10">
+			{#if selectedCharities.length > 0}
+				{@const totalPercentage = getTotalCharityPercentage()}
+				{@const exceedsLimit = totalPercentage > 100}
+				
+				<div class="flex items-center justify-between px-3 py-2 rounded-lg bg-navy/5">
+					<span class="text-sm font-medium text-navy">Total Allocated:</span>
+					<span class="text-sm font-semibold {exceedsLimit ? 'text-red-500' : 'text-emerald-accent'}">
+						{totalPercentage.toFixed(1)}%
+					</span>
+				</div>
+				{#if exceedsLimit}
+					<div class="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200">
+						<svg class="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+						</svg>
+						<p class="text-xs text-red-600 leading-relaxed">
+							Total percentage cannot exceed 100%. Please adjust your allocations.
+						</p>
+					</div>
+				{/if}
+			{:else}
+				<p class="text-xs text-navy/40 text-center">Select one or more charities above to allocate a percentage of your wasiyyah</p>
+			{/if}
+		</div>
 	</div>
 {/if}

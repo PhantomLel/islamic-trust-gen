@@ -2,7 +2,9 @@
 	import { invalidateAll } from '$app/navigation';
 	import {
 		questions,
+		charities,
 		type ChildResponse,
+		type CharityResponse,
 		type QuestionResponseValue
 	} from '$lib/config';
 	import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
@@ -79,6 +81,51 @@
 		setEditValue(questionId, next.length > 0 ? next : null);
 	}
 
+	function normalizeCharities(value: unknown): CharityResponse[] {
+		if (!Array.isArray(value)) return [];
+		return value
+			.filter((charity) => !!charity && typeof charity === 'object')
+			.map((charity) => {
+				const entry = charity as Partial<CharityResponse>;
+				return {
+					charityId: typeof entry.charityId === 'string' ? entry.charityId : '',
+					percentage: typeof entry.percentage === 'number' ? entry.percentage : 0
+				};
+			});
+	}
+
+	function getEditCharities(questionId: string): CharityResponse[] {
+		return normalizeCharities(editResponses[questionId]);
+	}
+
+	function isEditCharitySelected(questionId: string, charityId: string): boolean {
+		return getEditCharities(questionId).some((c) => c.charityId === charityId);
+	}
+
+	function toggleEditCharity(questionId: string, charityId: string) {
+		const current = getEditCharities(questionId);
+		const exists = current.some((c) => c.charityId === charityId);
+		
+		if (exists) {
+			const next = current.filter((c) => c.charityId !== charityId);
+			setEditValue(questionId, next.length > 0 ? next : null);
+		} else {
+			setEditValue(questionId, [...current, { charityId, percentage: 0 }]);
+		}
+	}
+
+	function updateEditCharityPercentage(questionId: string, charityId: string, percentage: number) {
+		const current = getEditCharities(questionId);
+		const next = current.map((c) => 
+			c.charityId === charityId ? { ...c, percentage } : c
+		);
+		setEditValue(questionId, next);
+	}
+
+	function getEditCharityTotalPercentage(questionId: string): number {
+		return getEditCharities(questionId).reduce((sum, c) => sum + (c.percentage || 0), 0);
+	}
+
 	function getRawResponse(responses: TrustResponse[], questionId: string): unknown {
 		const response = responses.find((res) => res.id === questionId);
 		return response?.response ?? null;
@@ -88,8 +135,17 @@
 		const raw = getRawResponse(responses, questionId);
 		if (raw == null) return '—';
 		if (Array.isArray(raw)) {
-			const children = normalizeChildren(raw);
-			return children.length > 0 ? `${children.length} child(ren)` : '—';
+			if (raw.length === 0) return '—';
+			const first = raw[0];
+			if (first && typeof first === 'object' && 'firstName' in first) {
+				const children = normalizeChildren(raw);
+				return children.length > 0 ? `${children.length} child(ren)` : '—';
+			}
+			if (first && typeof first === 'object' && 'charityId' in first) {
+				const charitiesData = normalizeCharities(raw);
+				return charitiesData.length > 0 ? `${charitiesData.length} charity(ies)` : '—';
+			}
+			return '—';
 		}
 		if (typeof raw === 'boolean') return raw ? 'Yes' : 'No';
 		return String(raw);
@@ -221,6 +277,77 @@
 									Add Child
 								</button>
 							</div>
+						{:else if q.type === 'charities'}
+							{@const editChars = getEditCharities(q.id)}
+							<div class="space-y-2">
+								{#each charities as charity}
+									{@const selected = isEditCharitySelected(q.id, charity.id)}
+									{@const charityData = editChars.find((c) => c.charityId === charity.id)}
+									{@const percentage = charityData?.percentage ?? 0}
+									
+									<div class="rounded-md border transition-all
+										{selected ? 'border-emerald-accent/30 bg-emerald-accent/5' : 'border-navy/10 bg-white'} p-2.5">
+										<div class="flex items-center gap-3">
+											<button
+												type="button"
+												onclick={() => toggleEditCharity(q.id, charity.id)}
+												class="flex items-center justify-center w-5 h-5 rounded border-2 shrink-0 transition-colors cursor-pointer
+													{selected ? 'border-emerald-accent bg-emerald-accent' : 'border-navy/20 bg-white hover:border-navy/30'}"
+											>
+												{#if selected}
+													<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+														<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+													</svg>
+												{/if}
+											</button>
+											
+											<div class="flex-1 min-w-0 flex items-center gap-2">
+												<div class="text-[12px] font-medium text-navy truncate">{charity.name}</div>
+												{#if selected}
+													<input
+														type="number"
+														min="0"
+														max="100"
+														step="0.1"
+														value={percentage}
+														oninput={(e) => {
+															const val = parseFloat(e.currentTarget.value);
+															if (!isNaN(val)) updateEditCharityPercentage(q.id, charity.id, val);
+														}}
+														class="w-16 px-2 py-1 rounded-md border border-navy/10 text-[11px] text-navy outline-none transition-all focus:border-emerald-accent/40"
+														placeholder="0"
+													/>
+													<span class="text-[11px] text-navy/50">%</span>
+												{/if}
+											</div>
+										</div>
+									</div>
+								{/each}
+								
+								{#if editChars.length > 0}
+									{@const totalEditPercentage = getEditCharityTotalPercentage(q.id)}
+									{@const exceedsEditLimit = totalEditPercentage > 100}
+									
+									<div class="mt-2 pt-2 border-t border-navy/10">
+										<div class="flex items-center justify-between px-2 py-1.5 rounded-md bg-navy/5">
+											<span class="text-[11px] font-medium text-navy">Total Allocated:</span>
+											<span class="text-[11px] font-semibold {exceedsEditLimit ? 'text-red-500' : 'text-emerald-accent'}">
+												{totalEditPercentage.toFixed(1)}%
+											</span>
+										</div>
+										{#if exceedsEditLimit}
+											<div class="flex items-start gap-1.5 mt-1.5 px-2 py-1.5 rounded-md bg-red-50 border border-red-200">
+												<svg class="w-3 h-3 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+												</svg>
+												<p class="text-[11px] text-red-600 leading-relaxed">
+													Total percentage cannot exceed 100%.
+												</p>
+											</div>
+										{/if}
+									</div>
+								{/if}
+							</div>
 						{:else if q.type === 'boolean'}
 							<div class="flex gap-2">
 								{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
@@ -264,6 +391,29 @@
 											<span class="text-navy/35 font-normal"> — {child.dob ? formatDob(child.dob) : 'No DOB provided'}</span>
 										</div>
 									{/each}
+								</div>
+							{:else}
+								<span class="text-[13px] text-navy/25">—</span>
+							{/if}
+						{:else if q.type === 'charities'}
+							{@const charitiesData = normalizeCharities(raw)}
+							{#if charitiesData.length > 0}
+								{@const totalViewPercentage = charitiesData.reduce((sum, c) => sum + (c.percentage || 0), 0)}
+								<div class="space-y-1.5">
+									{#each charitiesData as charityData}
+										{@const charity = charities.find((c) => c.id === charityData.charityId)}
+										{#if charity}
+											<div class="text-[13px] text-navy font-medium">
+												{charity.name}
+												<span class="text-navy/35 font-normal"> — {charityData.percentage}%</span>
+											</div>
+										{/if}
+									{/each}
+									<div class="mt-2 pt-2 border-t border-navy/10">
+										<div class="text-[11px] text-navy/50">
+											Total: <span class="font-semibold {totalViewPercentage > 100 ? 'text-red-500' : 'text-emerald-accent'}">{totalViewPercentage.toFixed(1)}%</span>
+										</div>
+									</div>
 								</div>
 							{:else}
 								<span class="text-[13px] text-navy/25">—</span>
