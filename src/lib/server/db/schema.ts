@@ -25,7 +25,7 @@ export const trust = pgTable('trust', {
 	id: serial('id').primaryKey(),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	updatedAt: timestamp('updated_at').defaultNow().notNull(), // going to be same as completed_as if complete is true
-	userId: text('user_id').references(() => user.id).notNull(),
+	userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
 	isEligible: boolean('is_eligible'),
 	joint: boolean('joint'),
 	responses: jsonb('responses').$type<Response[]>(),
@@ -39,7 +39,7 @@ export const trust = pgTable('trust', {
 
 export const invoice = pgTable('invoice', {
 	id: serial('id').primaryKey(),
-	userId: text('user_id').references(() => user.id).notNull(),
+	userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
 	name: text('name').notNull(), // the reason for the invoice
 	description: text('description').notNull(),
 	amount: integer('amount').notNull().default(799),
