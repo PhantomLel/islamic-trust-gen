@@ -200,6 +200,17 @@
 			{/each}
 		</div>
 
+		<div class="rounded-xl bg-sky-50 border border-sky-200 p-4 mb-6 flex gap-3 items-start">
+			<svg class="w-5 h-5 text-sky-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+			</svg>
+			<div class="text-sm text-sky-900 leading-relaxed">
+				<strong>Important:</strong> Non-Muslim relatives and adopted children are not eligible for Islamic inheritance.
+				All relatives must be from legitimate (recognized) lineage to receive a share.
+				Provision for non-eligible individuals can be made through the waṣiyyah (bequest), which is separate from the inheritance shares below.
+			</div>
+		</div>
+
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 			<!-- ─── LEFT: Inputs ─── -->
 			<div class="space-y-4">
