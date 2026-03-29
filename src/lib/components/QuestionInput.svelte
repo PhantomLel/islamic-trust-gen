@@ -7,13 +7,20 @@
 		QuestionResponseValue
 	} from '$lib/config';
 	import { charities } from '$lib/config';
+	import HeirsCalculatorInput from './HeirsCalculatorInput.svelte';
 
-	let { question, value, onresponse, onnext }: {
+	let { question, value, onresponse, onnext, allResponses = {} }: {
 		question: Question;
 		value: QuestionResponseValue;
 		onresponse: (val: QuestionResponseValue) => void;
 		onnext: () => void;
+		allResponses?: Record<string, QuestionResponseValue>;
 	} = $props();
+
+	// Derive the decedent's gender from the 'gender' question response.
+	let derivedGender = $derived<'male' | 'female'>(
+		allResponses['gender'] === 'Female' ? 'female' : 'male'
+	);
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
@@ -298,6 +305,9 @@
 			Add Heir
 		</button>
 	</div>
+
+{:else if question.type === 'heirs-calculator'}
+	<HeirsCalculatorInput {value} {onresponse} gender={derivedGender} />
 
 {:else if question.type === 'charities'}
 	{@const selectedCharities = getCharities()}

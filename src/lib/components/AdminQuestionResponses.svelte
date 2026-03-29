@@ -6,6 +6,7 @@
 		type ChildResponse,
 		type HeirResponse,
 		type CharityResponse,
+		type HeirsCalculatorResponse,
 		type QuestionResponseValue
 	} from '$lib/config';
 	import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
@@ -162,6 +163,12 @@
 		return getEditCharities(questionId).reduce((sum, c) => sum + (c.percentage || 0), 0);
 	}
 
+	function normalizeHeirsCalculator(value: unknown): HeirsCalculatorResponse | null {
+		if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+		if (!('verified' in value)) return null;
+		return value as HeirsCalculatorResponse;
+	}
+
 	function getRawResponse(responses: TrustResponse[], questionId: string): unknown {
 		const response = responses.find((res) => res.id === questionId);
 		return response?.response ?? null;
@@ -182,6 +189,11 @@
 				return charitiesData.length > 0 ? `${charitiesData.length} charity(ies)` : '—';
 			}
 			return '—';
+		}
+		if (raw && typeof raw === 'object' && 'verified' in raw) {
+			const hc = raw as HeirsCalculatorResponse;
+			if (!hc.verified) return 'Not completed';
+			return `${hc.namedHeirs.length} heir(s) — ${hc.namedHeirs.map(h => h.names.join(', ')).join('; ')}`;
 		}
 		if (typeof raw === 'boolean') return raw ? 'Yes' : 'No';
 		return String(raw);
@@ -426,9 +438,24 @@
 									</div>
 								{/if}
 							</div>
-						{:else if q.type === 'boolean'}
-							<div class="flex gap-2">
-								{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
+					{:else if q.type === 'heirs-calculator'}
+						{@const hc = normalizeHeirsCalculator(editResponses[q.id])}
+						{#if hc?.verified && hc.namedHeirs.length > 0}
+							<div class="space-y-1">
+								{#each hc.namedHeirs as heir}
+									<div class="text-[12px] text-navy flex items-center gap-2">
+										<span class="font-medium">{heir.names.join(', ')}</span>
+										<span class="text-navy/40">({heir.label} — {heir.totalShare.display})</span>
+									</div>
+								{/each}
+							</div>
+							<p class="text-[11px] text-navy/35 mt-1.5">Edit through the trust questionnaire.</p>
+						{:else}
+							<p class="text-[12px] text-navy/40">Not completed. Edit through the trust questionnaire.</p>
+						{/if}
+					{:else if q.type === 'boolean'}
+						<div class="flex gap-2">
+							{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
 									{@const sel = editResponses[q.id] === opt.value}
 									<button onclick={() => setEditValue(q.id, opt.value)}
 										class="px-3 py-1.5 rounded-lg text-[12px] border transition-all cursor-pointer
@@ -509,12 +536,32 @@
 							{:else}
 								<span class="text-[13px] text-navy/25">—</span>
 							{/if}
+					{:else if q.type === 'heirs-calculator'}
+						{@const hc = normalizeHeirsCalculator(raw)}
+						{#if hc?.verified && hc.namedHeirs.length > 0}
+							<div class="space-y-1.5">
+								{#each hc.namedHeirs as heir}
+									<div class="text-[13px] text-navy font-medium flex items-center gap-2">
+										<span>{heir.names.join(', ')}</span>
+										<span class="text-[11px] text-navy/40 font-normal">({heir.label} — {heir.totalShare.display})</span>
+									</div>
+								{/each}
+								{#if hc.awlApplied || hc.raddApplied}
+									<div class="flex gap-1.5 mt-1">
+										{#if hc.awlApplied}<span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-700">ʿAwl</span>{/if}
+										{#if hc.raddApplied}<span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700">Radd</span>{/if}
+									</div>
+								{/if}
+							</div>
 						{:else}
-							<span class="text-[13px] text-navy font-medium {answer === '—' ? 'text-navy/25' : ''}">{answer}</span>
+							<span class="text-[13px] text-navy/25">—</span>
 						{/if}
+					{:else}
+						<span class="text-[13px] text-navy font-medium {answer === '—' ? 'text-navy/25' : ''}">{answer}</span>
 					{/if}
-				</div>
-			{/each}
+				{/if}
+			</div>
+		{/each}
 		</div>
 	</div>
 </div>

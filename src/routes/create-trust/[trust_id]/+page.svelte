@@ -287,9 +287,9 @@
 			</div>
 
 			<!-- centered question -->
-			<div class="flex-1 flex items-center justify-center px-6 md:px-16">
-				<div class="w-full max-w-lg">
-					<div class="hidden md:flex items-center gap-3 mb-8">
+			<div class="flex-1 flex {currentQuestion.type === 'heirs-calculator' ? 'items-start overflow-y-auto pt-8 pb-4' : 'items-center'} justify-center px-6 md:px-16">
+			<div class="w-full {currentQuestion.type === 'heirs-calculator' ? 'max-w-xl' : 'max-w-lg'}">
+				<div class="hidden md:flex items-center gap-3 mb-8">
 						<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
 							{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}
 						</span>
@@ -301,7 +301,7 @@
 						{currentQuestion.text}
 					</h2>
 
-					<QuestionInput question={currentQuestion} value={currentValue} onresponse={setResponse} onnext={goNext} />
+					<QuestionInput question={currentQuestion} value={currentValue} onresponse={setResponse} onnext={goNext} allResponses={responses} />
 				</div>
 			</div>
 

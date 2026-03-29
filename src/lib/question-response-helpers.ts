@@ -60,10 +60,22 @@ export function isQuestionResponseAnswered(value: unknown): boolean {
 		}
 		return false;
 	}
+	if (value != null && typeof value === 'object' && 'verified' in value) {
+		return (value as { verified: boolean }).verified === true;
+	}
 	return value != null && value !== '';
 }
 
 export function isQuestionResponseComplete(type: Question['type'], value: unknown): boolean {
+	if (type === 'heirs-calculator') {
+		return (
+			value != null &&
+			typeof value === 'object' &&
+			!Array.isArray(value) &&
+			'verified' in value &&
+			(value as { verified: boolean }).verified === true
+		);
+	}
 	if (type === 'children') {
 		return (
 			Array.isArray(value) &&

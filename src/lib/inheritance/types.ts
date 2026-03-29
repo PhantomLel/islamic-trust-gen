@@ -2,6 +2,14 @@ import type { Fraction } from './Fraction';
 
 export type DecedentGender = 'male' | 'female';
 
+/** Serialised form of a Fraction (as returned by Fraction.toJSON() and the API). */
+export type FractionValue = {
+	numerator: number;
+	denominator: number;
+	display: string;
+	decimal: number;
+};
+
 /**
  * Structured input for the inheritance calculator.
  * Each field represents the count or presence of a specific heir category.
@@ -73,6 +81,30 @@ export type CalculationResult = {
 	blockedHeirs: BlockedHeir[];
 	totalFixedShares: Fraction;
 	residual: Fraction;
+	awlApplied: boolean;
+	raddApplied: boolean;
+	dhawulArhamNeeded: boolean;
+	notes: string[];
+	error?: string;
+};
+
+/** HeirAllocation with Fraction instances replaced by their serialised FractionValue form. */
+export type HeirAllocationJSON = {
+	heirType: HeirType;
+	label: string;
+	count: number;
+	totalShare: FractionValue;
+	perPersonShare: FractionValue;
+	shareType: ShareType;
+	reasons: string[];
+};
+
+/** CalculationResult with Fraction instances replaced by FractionValue (as returned by the API). */
+export type CalculationResultJSON = {
+	heirs: HeirAllocationJSON[];
+	blockedHeirs: BlockedHeir[];
+	totalFixedShares: FractionValue;
+	residual: FractionValue;
 	awlApplied: boolean;
 	raddApplied: boolean;
 	dhawulArhamNeeded: boolean;
