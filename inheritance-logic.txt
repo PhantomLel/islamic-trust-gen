@@ -1,0 +1,175 @@
+Fixed-Share Inheritors (‘Aṣḥāb al-Furūḍ’)
+
+Section 2.1: The Scenarios of Fixed-Share Distribution
+	The fixed-share inheritors are eleven: the father, paternal grandfather, maternal siblings, husband, wife, direct daughter, son’s daughter, full sister, paternal sister, mother, and grandmother. Each of these heirs has specific shares that vary according to circumstances, with the total number of scenarios amounting to forty-two, according to this count. These scenarios form the core structure of the discipline and must be committed to memory for mastery. While this may seem formidable, Inheritance Law is a practical discipline that can only be fully understood through the guidance of a teacher and numerous examples, which are not included here for brevity. This text serves only as a blueprint. The scenarios are listed below, with important points noted as they arise.
+
+ The father (of the deceased):
+Receives one-sixth in the presence of a son, son’s son, or onwards (son’s son’s son—only through the males)
+Receives one-sixth plus residuary share (any surplus) in the presence of a daughter, son’s daughter, or onwards (e.g. son’s son’s daughter—male line), and the absence of a son, son’s son, and onwards (a)
+Receives residuary share, whether all or only surplus, in the absence of direct children (i.e. son or daughter, whether one or more), son’s children, and onwards (son’s son’s children—male line) (a / b)
+
+Some points: 
+All the words used for the inheritors are in relation to the deceased—the father and paternal grandfather of the deceased, the husband or wife of the deceased, 
+the direct or son’s children of the deceased
+“In the presence of” and “in the absence of” have both been used as conditions for the inheritor to receive that specific share 
+Any other inheritors not mentioned in the condition of presence or absence are irrelevant to the inheritor in question receiving that specific share 
+The usage of “or” and “and” is deliberate—when “or” is used, the presence of any of the inheritors mentioned will fulfill the condition, but when “and” is used, it means all must be absent to fulfill the condition
+Some Technical Terms: When “son”, for example, is mentioned in the conditions, it includes the son’s son and the son’s son’s son, and so on. Similarly, when “father” is mentioned in the conditions, it includes the father’s father and the father’s father’s father, and so on. Likewise is ”daughter”—it includes the son’s daughter and the son’s son’s daughter. This is the general logic throughout the chapter—that other higher or lower generations through male links are also meant, unless specified otherwise 
+A letter has been placed in between parentheses after each condition of absence. What this means is that should those inheritors be present, the scenario referenced will apply instead. For example, in scenario ‘b.’, if there is a son present alongside the daughter, the share will instead be that of scenario ‘a.’
+When “children” is used, it does not mean there has to be many; it just means the child/ children could be either male or female, even if just one
+
+ The paternal grandfather:
+Receives one-sixth in the presence of a son or son’s son, and the absence of the father (d)
+Receives one-sixth plus residuary share in the presence of a daughter or son’s daughter, and the absence of a son, son’s son (a), and the father (d)
+Receives residuary share in the absence of direct children, son’s children (a / b), and the father (d)
+Blocked, receives nothing in the presence of the father
+
+Some points:
+“Paternal grandfather” only refers to the grandfather who does not have a female link between him and the deceased
+In scenario ‘d.’, this is a complete Blockage of shares due to the presence of a stronger inheritor, known as ‘Ḥajb Ḥirmān’. ‘Ḥajb’ can also be partial. An example will follow
+
+ The maternal siblings (male or female):
+If there is one, they receive one-sixth in the absence of direct children and son’s children (c), and the father, the paternal grandfather, and onwards (paternal great-grandfather—father’s father’s father) (c)
+If there are two or more, they receive one-third to be split equally amongst themselves in the absence of direct children and son’s children (c), and the father, the paternal grandfather, and onwards (c)
+Blocked, receives nothing in the presence of direct children, son’s children, the father, or the paternal grandfather—father’s father
+
+ The husband: 
+Receives one-half in the absence of direct children and son’s children (b)
+Partially blocked, receives one-fourth in the presence of direct children or son’s children
+
+An important point:
+Scenario ‘b.’ is an example of partial Blockage—called Ḥajb Nuqṣān—where the children block half the original share of the husband 
+
+ The wife:
+Receives one-fourth in the absence of direct children and son’s children (b)
+Partially blocked, receives one-eighth in the presence of direct children or son’s children
+
+ The direct daughter: 
+If there is one, she receives one-half in the absence of a direct son (c)
+If there are two or more, they receive two-thirds to be divided equally amongst themselves in the absence of a direct son (c)
+Derivative residuary, receives half of whatever the direct son receives in his presence
+
+ The son’s daughter onwards (son’s son’s daughter, etc.):
+If there is one, she receives one-half in the absence of a (single) daughter/ son’s daughter who is from a higher generation (d), many daughters/ son’s daughters who are from a higher generation (e), a son/ son’s son who is from a higher generation (f), and a son’s son who is from the same generation (c)
+If there are two or more, they receive two-thirds in the absence of a daughter (d), many daughters (e), a son (f), and a son’s son (c)
+Derivative residuary, receives half of whatever the son’s son receives in his presence, provided he is from the same generation as her or lower, and the absence of a son (f)
+Partially blocked, receives one-sixth in the presence of a (single) daughter, and the absence of a son (f) or a son’s son who is specifically from the same generation as her (c)
+Blocked, receives nothing in the presence of two daughters, and the absence of a son’s son in the same generation as her or lower (c)
+Blocked, receives nothing in the presence of a son 
+
+Some essential points:
+As has been alluded to in the conditions of scenario ‘a.’, “son” and “daughter” here include any son’s son or son’s daughter that is from a generation above the son’s daughter in question. It follows, then, that “son’s son” and “son’s daughter” does not necessarily only refer to the second generation; it includes lower generations as well, such as the son’s son’s daughter, provided they are from the same generation or lower
+Regarding scenarios ‘c.’ and ‘d.’, the son’s daughter only becomes a derivative residuary through a son’s son if he is in the same generation as her or lower. However, if there is also a direct daughter/ son’s daughter who is from a higher generation present, then if the son’s son is in the same generation as her, he will still make her a derivative residuary. But if he is in a lower generation, he will only make her a derivative residuary if there are two or more daughters above her—since she won’t be receiving any share already. If there is only one, she will already be receiving a sixth, so he will not make her a derivative residuary
+
+ The full sister:
+If there is one, she receives one-half in the absence of a full brother (c), daughter/ son’s daughter (d), son/ son’s son (e), and father/ father’s father (e)
+If there are two or more, they receive two-thirds to be divided equally amongst themselves in the absence of a full brother (c), daughter (d), son (e), and father (e)
+Derivative residuary, receives half of whatever the full brother receives in his presence, and the absence of a son (e) and the father (e)
+Joint residuary, receives any surplus in the presence of a daughter, and the absence of a full brother (c), son (e), and father (e)
+Blocked, receives nothing in the presence of a son or father
+
+Reminder:
+Here, “daughter” includes direct daughters and son’s daughters. “Son” includes direct sons and son’s sons. “Father” includes the father and father’s father, and so on. 
+
+ The paternal sister:
+If there is one, she receives one-half in the absence of a (single) full sister (c), many full sisters (f), a full brother (h), a paternal brother (d), a daughter/ son’s daughter (e), a son/ son’s son (g), and the father/ father’s father (g)
+If there are two or more, they receive two–thirds to be divided equally amongst themselves in the absence of a (single) full sister (c), many full sisters (f), a full brother (h), a paternal brother (d), a daughter (e), a son (g), and the father (g)
+Partially blocked, receives one-sixth in the presence of a (single) full sister, and the absence of a full brother (h), a paternal brother (d), a daughter (e), a son (g), and the father (g)
+Derivative residuary, receives half of what the paternal brother receives in his presence, and the absence of a full brother (h), a son (g), and the father (g)
+Joint residuary, receives any surplus in the presence of a daughter, and the absence of a full sister (h), a full brother (h), a paternal brother (d), a son (g), and the father (g)
+Blocked, receives nothing in the presence of two full sisters, and the absence of a paternal brother (d)
+Blocked, receives nothing in the presence of a son or the father
+Blocked; all paternal siblings (both male and female) receive nothing in the presence of a full brother, or a full sister when she is a joint residuary
+
+Reminder:
+Here as well, “daughter” includes direct daughters and son’s daughters. “Son” includes direct sons and son’s sons. “Father” includes the father and father’s father, and so on. 
+
+The Mother:
+Partially blocked, receives one-sixth in the presence of children/ son’s children or two or more siblings, regardless of whether full, paternal, or maternal
+Receives one-third in the absence of children/ son’s children and two or more siblings (a)
+Receives one-third of the whatever remains after the spouse’s share and before the father’s (not of the entire estate, nor of whatever remains after the father’s share as well), in the presence of a spouse (of the deceased) and the father 
+
+An important point:
+In scenario ‘c.’, the reason for the third being from the remainder after the spouse’s share and not from the entire estate is so the share of the mother does not exceed the share of the father. By this reasoning, the ruling would seem to extend to the paternal grandfather as well, but this is not the case, by consensus. Therefore, if the deceased leaves behind a wife, paternal grandfather, and mother, then the mother will be entitled to a third of the entire estate
+
+The grandmother
+Receives one-sixth, whether paternal or maternal (male line not a condition), and whether one or more, as long as there is no grandfather between them and the deceased who is related to the deceased through a female link, and as long as they are all from the same generation 
+Blocked, receives nothing in the presence of a grandmother who is from a lower generation, regardless of whether she inherits or is blocked herself, or in the presence of the mother
+Blocked; all paternal grandmothers are blocked in the presence of the father or a grandfather (being linked through only males not a condition here), provided the grandfather is related to them by kinship, not marriage (for example, the father’s mother will still inherit in the presence of the father’s father, because their relationship is that of marriage, not kinship)
+
+
+
+These are the forty-two scenarios of the fixed-share inheritors. The father has three scenarios, the paternal grandfather has four, the maternal siblings have three, the husband and wife each have two, the daughter has three, the son’s daughter has six, the full sister has five, the paternal sister has eight, the mother has three, and the grandmother has three. As noted above, special care has been taken to include all conditions required for an inheritor to receive a specific share, and to indicate the share they will receive if any of the absence conditions are not met. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Section 2.2: Proportionate Reduction (‘ʿAwl’)
+	Sometimes, when certain fixed-share inheritors are present simultaneously, the total of their combined shares exceeds the number of shares in the estate. For example, if the deceased is survived by both parents, a wife, and two daughters, then their shares according to the scenarios discussed above would be: one-sixth for each of the parents, one-eighth for the wife, and two-thirds to be split between the daughters. The least common denominator of six, eight, and three is twenty-four. Thus, each parent would receive four shares, the wife would receive three shares, and the daughters would receive sixteen shares—eight each. The total  adds up to twenty-seven out of twenty-four. To resolve this, the denominator is increased from twenty-four to twenty-seven, adjusting the total number of shares. This is what is known as Proportionate Reduction. Although each inheritor’s share is slightly reduced, the ratios remain the same, so no one’s right is diminished by another. 
+
+	In short, Proportionate Reduction (‘Awl) may be defined as the reduction of all inheritors’ shares when they exceed the estate—while maintaining the same ratios—by increasing the total number of shares in the estate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Section 2.3: Correction of Shares (‘Taṣḥīḥ’)
+Sometimes, after solving, the number of shares allocated to a number of people within a single category cannot be distributed among them in whole numbers and would instead require breaking the shares into decimals. For example, if the deceased is (hypothetically) survived by four wives, two grandmothers, and twelve uncles, then out of twelve shares, the wives receive three, the grandmothers two, and the uncles the remaining seven (see following chapter on residuaries) (originally ¼, ⅙, and surplus). However, three shares cannot be divided by four and seven shares cannot be divided by twelve without fragmentation. 
+
+The method that resolves this issue consistently is as follows: after solving the equation as normal, take the legal headcount of the people in only those categories (whether one or more) where the shares don't divide wholly. (In derivative residuary cases, the males and females are one category, so their headcounts will simply be added together. Additionally, the males legally count as two people in such cases, hence the qualification of “legal” headcount.) Then, find the LCM of those headcounts (assuming there is more than one category, otherwise just the one headcount/ legal male-female sum by itself), and use it to multiply both the numerator (the number of shares for each category) and the denominator (the total number of shares in the estate). This process is termed Taṣḥīḥ.
+
+In our example, the categories where the shares weren't dividing wholly were that of the wives (3 to 4) and the uncles (7 to 12). The grandmothers category (2 to 2) did not contain this issue, so it will be put aside. Now, the legal headcount of the wives and uncles categories is 4 and 12, respectively. The LCM of 4 and 12 is 12. Thus, the entire equation will be multiplied by 12. Now, the estate will comprise 144 shares, with 36 going to the four wives (9 each), 24 to the two grandmothers (12 each), and 84 to the seven uncles (12 each).
+
+The difference between Taṣḥīḥ and ‘Awl is that in ‘Awl, only the denominator is raised to match the sum of the shares, whereas in Taṣḥīḥ, all of the numerators and the denominator are multiplied proportionately.
+Chapter 3:
+Residuary Inheritors (‘ʿAṣabāt’)
+
+	The definition and division of residuary inheritors were discussed above in the section on the order of recipients. It was noted there that, when the term ‘residuary inheritor’ is used, it usually refers to independent residuaries—rather than derivative and joint ones—who are connected to the deceased through kinship—rather than through manumission or contract. This chapter aims to elaborate specifically on independent residuaries related by kinship and the order of inheritance amongst them. Derivative and joint residuaries can be found in the scenarios of fixed-share inheritors, namely, scenarios 6c, 7c, 8c, and 9d for derivative residuaries, and scenarios 8d and 9e for joint ones. As for residuaries connected through manumission or contract, though they are independent to some degree, they are not discussed. Further details regarding them can be found in other works of Fiqh. 
+
+Independent Residuaries:
+
+The term independent residuary is defined as any male relative connected to the deceased through a continuous male-only line, with no females intervening. Independent residuaries fall into four categories. They are, in order of closeness to the deceased: the offspring of the deceased (son, son’s son, etc.), the ancestors of the deceased (father, father’s father), the offspring of a closer ancestor (father’s son i.e. brother), and the offspring of a further ancestor (father’s father’s son i.e. uncle). The last two categories are relative to each other. For example, if there is a father’s father’s son (uncle) and a father’s father’s father’s son (great-uncle), the former will fall into the third category, while the latter into the fourth. It should be noted that the sons of those in each category are included in the same category. 
+These four constitute the first layer of succession. Accordingly, an individual from a closer category will take precedence over someone from a further category. For example, someone from category one will be more eligible to inherit than someone from category three and four, and will block them. 
+
+If there are multiple people from one category, then precedence will be given to the one closer to the deceased in generation. For example, a father’s son (brother) will be more eligible than a father’s son’s son (nephew). This constitutes the second layer of succession.
+
+If there are multiple people of the same category and the same generation, precedence will be given to the one with more ties to the deceased. For example, a father’s son from the same mother as the deceased (full brother) will be more eligible than a father’s son from a different wife (paternal brother). This constitutes the third layer of succession. 
+
+After this, there will be no more blocking, as there is legally no way to give precedence. Therefore, if there are multiple father’s sons (full brothers), they will all receive the residuary share to be split equally amongst themselves. So, to summarize, the order of succession in independent residuaries is: 1. Category 2. Generation 3. More ties. 
+
+
+
+	It must be noted that derivative and joint residuaries, though originally fixed-share inheritors, take the ruling of independent residuaries with regards to the order of succession. For example, a full sister who becomes a residuary in the presence of a direct or paternal daughter will be more eligible than a paternal brother due to: legally being of the same category (offspring of closer ancestor), being of the same generation, and having more ties to the deceased. Thus, she will block him. 

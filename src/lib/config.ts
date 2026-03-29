@@ -10,14 +10,16 @@ export const screeningQuestions = [
 	{ id: 'taxable_estate', text: 'Is your estate at risk of exceeding the taxable-estate threshold?', subtext: 'Federal estate tax only applies to very large estates (generally many millions of dollars per individual). Most families will not owe federal estate tax. If you believe your estate may require advanced tax planning, a consultation is recommended.' },
 ];
 
+export type QuestionDependency = { field: string; eq: string | boolean };
+
 export type Question = {
 	id: string;
 	text: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'charities';
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities';
 	required: boolean;
 	bucket: string;
 	options?: string[];
-	depends?: { field: string; eq: string | boolean };
+	depends?: QuestionDependency | QuestionDependency[];
 	defaultWhen?: { field: string; eq: string | boolean; value: string | boolean };
 };
 
@@ -27,12 +29,17 @@ export type ChildResponse = {
 	dob: string;
 };
 
+export type HeirResponse = {
+	firstName: string;
+	lastName: string;
+};
+
 export type CharityResponse = {
 	charityId: string;
 	percentage: number;
 };
 
-export type QuestionResponseValue = string | boolean | ChildResponse[] | CharityResponse[] | null;
+export type QuestionResponseValue = string | boolean | ChildResponse[] | HeirResponse[] | CharityResponse[] | null;
 
 export const buckets: Record<string, { label: string; icon: string }> = {
 	personal: { label: 'Personal Info', icon: 'user' },
@@ -106,11 +113,59 @@ export const questions: Question[] = [
 		depends: { field: 'married', eq: true },
 	},
 	{
-		id: 'children-sons',
-		text: 'Do you have any sons?',
+		id: 'father-alive',
+		text: 'Is your father alive?',
 		type: 'boolean',
 		required: true,
 		bucket: 'family',
+
+	},
+	{
+		id: 'father-name',
+		text: 'What is the full name of your father?',
+		type: 'text',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'father-alive', eq: true },
+	},
+
+	{
+		id: 'mother-alive',
+		text: 'Is your mother alive?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+	},
+	{
+		id: 'mother-name',
+		text: 'What is the full name of your mother?',
+		type: 'text',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'mother-alive', eq: true },
+	},
+	{
+		id: 'children-sons',
+		text: 'Do you have any living sons?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+	},
+	{
+		id: 'grandchildren-sons-predeceased',
+		text: 'Do you have any grandsons through a predeceased son?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'children-sons', eq: false },
+	},
+	{
+		id: 'grandchildren-data-sons-predeceased',
+		text: 'Add the full names of your grandsons (through sons)',
+		type: 'heir',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'grandchildren-sons-predeceased', eq: true },
 	},
 	{
 		id: 'children-data-sons',
@@ -137,14 +192,228 @@ export const questions: Question[] = [
 		depends: { field: 'children-daughters', eq: true },
 	},
 	{
-		id: 'grandchildren',
-		text: 'Do you have any grandchildren?',
+		id: 'grandchildren-sons-daughters',
+		text: 'Do you have any granddaughters through your sons?',
 		type: 'boolean',
 		required: true,
 		bucket: 'family',
-		depends: { field: 'children', eq: true },
-		defaultWhen: { field: 'children', eq: false, value: false },
+		depends: { field: 'children-sons-predeceased', eq: true },
 	},
+	{
+		id: 'grandchildren-data-sons-daughters',
+		text: 'Add the full names of your granddaughters (through sons)',
+		type: 'heir',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'grandchildren-sons-daughters', eq: true },
+	},
+
+	{
+		id: 'grandfather-paternal-alive',
+		text: 'Is your paternal grandfather (father’s father) alive?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'father-alive', eq: false },
+	},
+	{
+		id: 'grandfather-paternal-name',
+		text: 'What is the full name of your paternal grandfather?',
+		type: 'text',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'grandfather-paternal-alive', eq: true },
+	},
+	{
+		id: 'grandmother-maternal-alive',
+		text: 'Is your maternal grandmother (mother’s mother) alive?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'mother-alive', eq: false },
+	},
+	{
+		id: 'grandmother-maternal-name',
+		text: 'What is the full name of your maternal grandmother?',
+		type: 'text',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'grandmother-maternal-alive', eq: true },
+	},
+
+	{
+		id: 'grandmother-paternal-alive',
+		text: 'Is your paternal grandmother (father’s mother) alive?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: [{ field: 'father-alive', eq: false }, { field: 'mother-alive', eq: false }, { field: 'grandfather-paternal-alive', eq: false }],
+	},
+	{
+		id: 'grandmother-paternal-name',
+		text: 'What is the full name of your paternal grandmother?',
+		type: 'text',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'grandmother-paternal-alive', eq: true },
+	},
+
+	{
+		id: 'siblings-full-brothers',
+		text: 'Do you have any full brothers?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: [
+			{ field: 'father-alive', eq: false },
+			{ field: 'grandfather-paternal-alive', eq: false },
+			{ field: 'children-sons', eq: false },
+			{ field: 'children-sons-predeceased', eq: false },
+		]
+	},
+	{
+		id: 'siblings-data-full-brothers',
+		text: 'Add the full names of your full brothers',
+		type: 'heir',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'siblings-full-brothers', eq: true },
+	},
+
+	{
+		id: 'siblings-full-sisters',
+		text: 'Do you have any full sisters?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: [
+			{ field: 'father-alive', eq: false },
+			{ field: 'grandfather-paternal-alive', eq: false },
+			{ field: 'children-sons', eq: false },
+			{ field: 'children-sons-predeceased', eq: false },
+		]
+	},
+	{
+		id: 'siblings-data-full-sisters',
+		text: 'Add the full names of your full sisters',
+		type: 'heir',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'siblings-full-sisters', eq: true },
+	},
+	{
+		id: 'siblings-paternal-brothers',
+		text: 'Do you have any paternal half brothers (same father, different mother)?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: [
+			{ field: 'father-alive', eq: false },
+			{ field: 'grandfather-paternal-alive', eq: false },
+			{ field: 'children-sons', eq: false },
+			{ field: 'grandchildren-sons-predeceased', eq: false },
+			{ field: 'siblings-full-brothers', eq: false },
+		]
+	},
+	{
+		id: 'siblings-data-paternal-brothers',
+		text: 'Add the full names of your paternal half brothers',
+		type: 'heir',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'siblings-paternal-brothers', eq: true },
+	},
+	{
+		id: 'siblings-paternal-sisters',
+		text: 'Do you have any paternal half sisters (same father, different mother)?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: [
+			{ field: 'father-alive', eq: false },
+			{ field: 'grandfather-paternal-alive', eq: false },
+			{ field: 'children-sons', eq: false },
+			{ field: 'grandchildren-sons-predeceased', eq: false },
+			{ field: 'siblings-full-brothers', eq: false },
+		]
+	},
+	{
+		id: 'siblings-data-paternal-sisters',
+		text: 'Add the full names of your paternal half sisters',
+		type: 'heir',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'siblings-paternal-sisters', eq: true },
+	},
+	{
+		id: 'siblings-maternal-brothers',
+		text: 'Do you have any maternal half brothers (same mother, different father)?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: [
+			{ field: 'father-alive', eq: false },
+			{ field: 'grandfather-paternal-alive', eq: false },
+			{ field: 'children-sons', eq: false },
+			{ field: 'children-daughters', eq: false },
+			{ field: 'grandchildren-sons-predeceased', eq: false },
+			{ field: 'grandchildren-sons-daughters', eq: false },
+		]
+	},
+	{
+		id: 'siblings-data-maternal-brothers',
+		text: 'Add the full names of your maternal half brothers',
+		type: 'heir',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'siblings-maternal-brothers', eq: true },
+	},
+	{
+		id: 'siblings-maternal-sisters',
+		text: 'Do you have any maternal half sisters (same mother, different father)?',
+		type: 'boolean',
+		required: true,
+		bucket: 'family',
+		depends: [
+			{ field: 'father-alive', eq: false },
+			{ field: 'grandfather-paternal-alive', eq: false },
+			{ field: 'children-sons', eq: false },
+			{ field: 'children-daughters', eq: false },
+			{ field: 'grandchildren-sons-predeceased', eq: false },
+			{ field: 'grandchildren-sons-daughters', eq: false },
+		]
+	},
+	{
+		id: 'siblings-data-maternal-sisters',
+		text: 'Add the full names of your maternal half sisters',
+		type: 'heir',
+		required: true,
+		bucket: 'family',
+		depends: { field: 'siblings-maternal-sisters', eq: true },
+	},
+	{
+        id: 'paternal-uncles-full',
+        text: 'Do you have any living full paternal uncles (your father’s brothers from the same parents)?',
+        type: 'boolean',
+        required: true,
+        bucket: 'family',
+        depends: [
+            { field: 'children-sons', eq: false },
+            { field: 'grandchildren-sons-predeceased', eq: false },
+            { field: 'father-alive', eq: false },
+            { field: 'grandfather-paternal-alive', eq: false },
+            { field: 'siblings-full-brothers', eq: false },
+            { field: 'siblings-paternal-brothers', eq: false }
+        ]
+    },
+    {
+        id: 'paternal-uncles-full-data',
+        text: 'Add the full names of your paternal uncles',
+        type: 'heir',
+        required: true,
+        bucket: 'family',
+        depends: { field: 'paternal-uncles-full', eq: true },
+    },
 	{
 		id: "has-house",
 		text: "Do you own a house?",
@@ -162,11 +431,11 @@ export const questions: Question[] = [
 	},
 	{
 		id: "house-deed-retrieval",
-		text: "Would you like us to retrieve the deed for you?",
+		text: "Would you like us to retrieve the deed for you? ($30 retrieval fee)",
 		type: 'boolean',
 		required: true,
 		bucket: 'property',
-		depends: { field: 'house-deed', eq: false},
+		depends: { field: 'house-deed', eq: false },
 
 	},
 	{

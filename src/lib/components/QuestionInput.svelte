@@ -1,5 +1,11 @@
 <script lang="ts">
-	import type { ChildResponse, CharityResponse, Question, QuestionResponseValue } from '$lib/config';
+	import type {
+		ChildResponse,
+		CharityResponse,
+		HeirResponse,
+		Question,
+		QuestionResponseValue
+	} from '$lib/config';
 	import { charities } from '$lib/config';
 
 	let { question, value, onresponse, onnext }: {
@@ -47,6 +53,16 @@
 			}));
 	}
 
+	function getHeirs(): HeirResponse[] {
+		if (!Array.isArray(value)) return [];
+		return value
+			.filter((item): item is HeirResponse => !!item && typeof item === 'object' && 'firstName' in item)
+			.map((heir) => ({
+				firstName: heir.firstName ?? '',
+				lastName: heir.lastName ?? ''
+			}));
+	}
+
 	function updateChild(index: number, field: keyof ChildResponse, fieldValue: string) {
 		const next = getChildren();
 		next[index] = {
@@ -65,6 +81,24 @@
 
 	function removeChild(index: number) {
 		const next = getChildren().filter((_, i) => i !== index);
+		onresponse(next.length > 0 ? next : null);
+	}
+
+	function updateHeir(index: number, field: keyof HeirResponse, fieldValue: string) {
+		const next = getHeirs();
+		next[index] = {
+			...next[index],
+			[field]: fieldValue
+		};
+		onresponse(next);
+	}
+
+	function addHeir() {
+		onresponse([...getHeirs(), { firstName: '', lastName: '' }]);
+	}
+
+	function removeHeir(index: number) {
+		const next = getHeirs().filter((_, i) => i !== index);
 		onresponse(next.length > 0 ? next : null);
 	}
 
@@ -215,9 +249,61 @@
 		</button>
 	</div>
 
+{:else if question.type === 'heir'}
+	{@const heirs = getHeirs()}
+	<div class="space-y-2.5">
+		{#if heirs.length === 0}
+			<div class="rounded-lg border border-dashed border-navy/15 bg-white/60 px-4 py-3 text-sm text-navy/45">
+				No heirs added yet.
+			</div>
+		{/if}
+
+		{#each heirs as heir, index}
+			<div class="rounded-lg border border-navy/10 bg-white p-2.5">
+				<div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-center">
+					<input
+						type="text"
+						value={heir.firstName}
+						oninput={(e) => updateHeir(index, 'firstName', e.currentTarget.value)}
+						placeholder="First name"
+						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
+					/>
+					<input
+						type="text"
+						value={heir.lastName}
+						oninput={(e) => updateHeir(index, 'lastName', e.currentTarget.value)}
+						placeholder="Last name"
+						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
+					/>
+					<button
+						type="button"
+						onclick={() => removeHeir(index)}
+						class="h-[38px] px-3 rounded-md border border-navy/10 text-xs text-navy/50 hover:text-navy hover:border-navy/20 transition-colors cursor-pointer whitespace-nowrap"
+						aria-label={`Remove heir ${index + 1}`}
+					>
+						Remove
+					</button>
+				</div>
+			</div>
+		{/each}
+
+		<button
+			type="button"
+			onclick={addHeir}
+			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-emerald-accent/25 text-sm font-medium text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 transition-all cursor-pointer"
+		>
+			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+			</svg>
+			Add Heir
+		</button>
+	</div>
+
 {:else if question.type === 'charities'}
 	{@const selectedCharities = getCharities()}
 	<div class="space-y-3">
+		<p class="text-sm text-navy/70">Get a discount of $200 by selecting a charity.</p>
+
 		{#each charities as charity}
 			{@const selected = isCharitySelected(charity.id)}
 			{@const charityData = selectedCharities.find((c) => c.charityId === charity.id)}
@@ -310,5 +396,6 @@
 				<p class="text-xs text-navy/40 text-center">Select one or more charities above to allocate a percentage of your wasiyyah</p>
 			{/if}
 		</div>
+
 	</div>
 {/if}

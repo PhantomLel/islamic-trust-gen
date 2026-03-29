@@ -4,6 +4,7 @@
 		questions,
 		charities,
 		type ChildResponse,
+		type HeirResponse,
 		type CharityResponse,
 		type QuestionResponseValue
 	} from '$lib/config';
@@ -60,6 +61,23 @@
 		return normalizeChildren(editResponses[questionId]);
 	}
 
+	function normalizeHeirs(value: unknown): HeirResponse[] {
+		if (!Array.isArray(value)) return [];
+		return value
+			.filter((heir) => !!heir && typeof heir === 'object')
+			.map((heir) => {
+				const entry = heir as Partial<HeirResponse>;
+				return {
+					firstName: typeof entry.firstName === 'string' ? entry.firstName : '',
+					lastName: typeof entry.lastName === 'string' ? entry.lastName : ''
+				};
+			});
+	}
+
+	function getEditHeirs(questionId: string): HeirResponse[] {
+		return normalizeHeirs(editResponses[questionId]);
+	}
+
 	function updateEditChild(questionId: string, index: number, field: keyof ChildResponse, value: string) {
 		const next = getEditChildren(questionId);
 		next[index] = {
@@ -78,6 +96,24 @@
 
 	function removeEditChild(questionId: string, index: number) {
 		const next = getEditChildren(questionId).filter((_, i) => i !== index);
+		setEditValue(questionId, next.length > 0 ? next : null);
+	}
+
+	function updateEditHeir(questionId: string, index: number, field: keyof HeirResponse, value: string) {
+		const next = getEditHeirs(questionId);
+		next[index] = {
+			...next[index],
+			[field]: value
+		};
+		setEditValue(questionId, next);
+	}
+
+	function addEditHeir(questionId: string) {
+		setEditValue(questionId, [...getEditHeirs(questionId), { firstName: '', lastName: '' }]);
+	}
+
+	function removeEditHeir(questionId: string, index: number) {
+		const next = getEditHeirs(questionId).filter((_, i) => i !== index);
 		setEditValue(questionId, next.length > 0 ? next : null);
 	}
 
@@ -277,6 +313,48 @@
 									Add Child
 								</button>
 							</div>
+						{:else if q.type === 'heir'}
+							{@const heirs = getEditHeirs(q.id)}
+							<div class="space-y-2">
+								{#if heirs.length === 0}
+									<div class="rounded-md border border-dashed border-navy/15 bg-white/60 px-3 py-2 text-[12px] text-navy/40">
+										No heirs added.
+									</div>
+								{/if}
+								{#each heirs as heir, idx}
+									<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 items-center rounded-md border border-navy/10 bg-white p-2">
+										<input
+											type="text"
+											value={heir.firstName}
+											oninput={(e) => updateEditHeir(q.id, idx, 'firstName', e.currentTarget.value)}
+											placeholder="First name"
+											class="px-2.5 py-1.5 rounded-md text-[12px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40"
+										/>
+										<input
+											type="text"
+											value={heir.lastName}
+											oninput={(e) => updateEditHeir(q.id, idx, 'lastName', e.currentTarget.value)}
+											placeholder="Last name"
+											class="px-2.5 py-1.5 rounded-md text-[12px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40"
+										/>
+										<button
+											onclick={() => removeEditHeir(q.id, idx)}
+											class="h-[31px] px-2.5 rounded-md border border-navy/10 text-[11px] text-navy/50 hover:text-navy hover:border-navy/20 transition-colors cursor-pointer justify-self-start sm:col-span-2 xl:col-span-1 xl:justify-self-auto"
+										>
+											Remove
+										</button>
+									</div>
+								{/each}
+								<button
+									onclick={() => addEditHeir(q.id)}
+									class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] border border-emerald-accent/25 text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 transition-all cursor-pointer"
+								>
+									<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+									</svg>
+									Add Heir
+								</button>
+							</div>
 						{:else if q.type === 'charities'}
 							{@const editChars = getEditCharities(q.id)}
 							<div class="space-y-2">
@@ -389,6 +467,19 @@
 										<div class="text-[13px] text-navy font-medium">
 											{getChildDisplayName(child)}
 											<span class="text-navy/35 font-normal"> — {child.dob ? formatDob(child.dob) : 'No DOB provided'}</span>
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<span class="text-[13px] text-navy/25">—</span>
+							{/if}
+						{:else if q.type === 'heir'}
+							{@const heirs = normalizeHeirs(raw)}
+							{#if heirs.length > 0}
+								<div class="space-y-1.5">
+									{#each heirs as heir}
+										<div class="text-[13px] text-navy font-medium">
+											{`${heir.firstName} ${heir.lastName}`.trim() || 'Unnamed heir'}
 										</div>
 									{/each}
 								</div>
