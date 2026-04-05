@@ -1,13 +1,18 @@
 <script lang="ts">
-	import { siteName, questions } from '$lib/config';
+	import { siteName, allIntakeQuestions } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
+	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data } = $props();
 
+	let editingInvoiceId = $state<number | null>(null);
+	let editAmount = $state('');
+
 	function getProgress(responses: { id: string; response: unknown }[]): number {
-		if (questions.length === 0) return 0;
+		if (allIntakeQuestions.length === 0) return 0;
 		const answered = responses.filter((r) => r.response != null && r.response !== '').length;
-		return Math.round((answered / questions.length) * 100);
+		return Math.round((answered / allIntakeQuestions.length) * 100);
 	}
 
 	function formatDate(iso: string): string {
@@ -21,10 +26,20 @@
 
 	function getStatus(trust: typeof data.trusts[number] & { awaitingPayment?: boolean }): { label: string; color: string } {
 		if (trust.awaitingPayment) return { label: 'Awaiting Payment', color: 'bg-amber-400' };
-		if (trust.complete ) return { label: 'Approved', color: 'bg-emerald-accent' };
+		if (trust.complete) return { label: 'Approved', color: 'bg-emerald-accent' };
 		if (trust.isEligible === false) return { label: 'Ineligible', color: 'bg-black/[0.04]' };
 		if (trust.isEligible === true) return { label: 'Eligible', color: 'bg-emerald-accent/60' };
 		return { label: 'Not Screened', color: 'bg-navy/10' };
+	}
+
+	function startEditInvoice(invoiceId: number, currentAmount: number) {
+		editingInvoiceId = invoiceId;
+		editAmount = String(currentAmount);
+	}
+
+	function cancelEditInvoice() {
+		editingInvoiceId = null;
+		editAmount = '';
 	}
 </script>
 
@@ -63,9 +78,8 @@
 					{@const status = getStatus(t)}
 					{@const awaitingPayment = 'awaitingPayment' in t && t.awaitingPayment}
 
-					<a href="/admin/user/{t.user.id}"
-						class="block rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden transition-all duration-200 hover:bg-white hover:shadow-lg hover:shadow-navy/[0.04] hover:-translate-y-0.5">
-
+					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden transition-all duration-200 hover:bg-white hover:shadow-lg hover:shadow-navy/[0.04] hover:-translate-y-0.5">
+					<a href="/admin/user/{t.user.id}" class="block">
 						<div class="group w-full flex items-center gap-4 px-6 py-5">
 							<!-- status dot -->
 							<div class="w-2.5 h-2.5 rounded-full shrink-0 {status.color}"></div>
@@ -133,6 +147,56 @@
 							</svg>
 						</div>
 					</a>
+
+					{#if awaitingPayment && t.invoices?.length}
+						<div class="border-t border-navy/[0.06] px-6 py-3 flex items-center gap-4 flex-wrap">
+							{#each t.invoices.filter((i: any) => !i.paid) as inv (inv.id)}
+								<div class="flex items-center gap-2 text-[12px]">
+									<span class="text-navy/50">{inv.name}:</span>
+									{#if editingInvoiceId === inv.id}
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<!-- svelte-ignore a11y_click_events_have_key_events -->
+										<span onclick={(e: MouseEvent) => e.preventDefault()} class="contents">
+											<form
+												method="POST"
+												action="?/updateInvoiceAmount"
+												use:enhance={() => {
+													return async ({ result }) => {
+														if (result.type === 'success') {
+															cancelEditInvoice();
+															await invalidateAll();
+														}
+													};
+												}}
+											>
+												<input type="hidden" name="invoiceId" value={inv.id} />
+												<div class="flex items-center gap-1.5">
+													<span class="text-navy/50">$</span>
+													<input
+														type="number"
+														name="amount"
+														bind:value={editAmount}
+														min="0"
+														class="w-20 px-2 py-0.5 rounded border border-navy/20 text-[12px] text-navy bg-white focus:outline-none focus:border-emerald-accent"
+													/>
+													<button type="submit" class="px-2 py-0.5 rounded bg-emerald-accent text-white text-[11px] font-medium cursor-pointer hover:bg-emerald-accent/90">Save</button>
+													<button type="button" onclick={() => cancelEditInvoice()} class="px-2 py-0.5 rounded bg-navy/10 text-navy/50 text-[11px] font-medium cursor-pointer hover:bg-navy/15">Cancel</button>
+												</div>
+											</form>
+										</span>
+									{:else}
+										<span class="font-medium text-navy tabular-nums">${inv.amount}</span>
+										<button
+											type="button"
+											onclick={(e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); startEditInvoice(inv.id, inv.amount); }}
+											class="text-[11px] text-emerald-accent hover:text-emerald-accent/80 cursor-pointer underline decoration-emerald-accent/30"
+										>edit</button>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
 				{/each}
 			</div>
 		{/if}

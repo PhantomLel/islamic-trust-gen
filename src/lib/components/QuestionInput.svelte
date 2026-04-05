@@ -3,11 +3,14 @@
 		ChildResponse,
 		CharityResponse,
 		HeirResponse,
+		PersonalDataResponse,
 		Question,
 		QuestionResponseValue
 	} from '$lib/config';
 	import { charities } from '$lib/config';
+	import { isPersonalDataShape } from '$lib/question-response-helpers';
 	import HeirsCalculatorInput from './HeirsCalculatorInput.svelte';
+	import CountySelector from './CountySelector.svelte';
 
 	let { question, value, onresponse, onnext, allResponses = {} }: {
 		question: Question;
@@ -17,10 +20,6 @@
 		allResponses?: Record<string, QuestionResponseValue>;
 	} = $props();
 
-	// Derive the decedent's gender from the 'gender' question response.
-	let derivedGender = $derived<'male' | 'female'>(
-		allResponses['gender'] === 'Female' ? 'female' : 'male'
-	);
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
@@ -148,6 +147,21 @@
 	function getTotalCharityPercentage(): number {
 		return getCharities().reduce((sum, c) => sum + (c.percentage || 0), 0);
 	}
+
+	function getPersonalData(): PersonalDataResponse {
+		if (isPersonalDataShape(value)) {
+			return {
+				name: typeof value.name === 'string' ? value.name : '',
+				dob: typeof value.dob === 'string' ? value.dob : '',
+				county: typeof value.county === 'string' ? value.county : ''
+			};
+		}
+		return { name: '', dob: '', county: '' };
+	}
+
+	function patchPersonalData(part: Partial<PersonalDataResponse>) {
+		onresponse({ ...getPersonalData(), ...part });
+	}
 </script>
 
 {#if question.type === 'text'}
@@ -198,6 +212,52 @@
 				{opt.label}
 			</button>
 		{/each}
+	</div>
+
+{:else if question.type === 'personal-data'}
+	{@const pd = getPersonalData()}
+	<div class="space-y-5">
+		{#if question.subtext}
+			<p class="text-sm text-navy/50 font-light leading-relaxed -mt-2 mb-1">{question.subtext}</p>
+		{/if}
+		<div class="space-y-1.5">
+			<label for="pd-name-{question.id}" class="block text-[12px] font-medium text-navy/55 tracking-wide uppercase">
+				Full legal name
+			</label>
+			<input
+				id="pd-name-{question.id}"
+				type="text"
+				autocomplete="name"
+				value={pd.name}
+				oninput={(e) => patchPersonalData({ name: e.currentTarget.value })}
+				onkeydown={handleKeydown}
+				placeholder="As it should appear on documents"
+				class={inputClass}
+			/>
+		</div>
+		<div class="space-y-1.5">
+			<label for="pd-dob-{question.id}" class="block text-[12px] font-medium text-navy/55 tracking-wide uppercase">
+				Date of birth
+			</label>
+			<input
+				id="pd-dob-{question.id}"
+				type="date"
+				value={pd.dob}
+				oninput={(e) => patchPersonalData({ dob: e.currentTarget.value })}
+				onkeydown={handleKeydown}
+				class={inputClass}
+			/>
+		</div>
+		<div class="space-y-1.5">
+			<label class="block text-[12px] font-medium text-navy/55 tracking-wide uppercase">
+				County of residence (Texas)
+			</label>
+			<CountySelector
+				value={pd.county}
+				onchange={(v) => patchPersonalData({ county: v })}
+				placeholder="Search Texas counties…"
+			/>
+		</div>
 	</div>
 
 {:else if question.type === 'children'}
@@ -307,7 +367,7 @@
 	</div>
 
 {:else if question.type === 'heirs-calculator'}
-	<HeirsCalculatorInput {value} {onresponse} gender={derivedGender} />
+	<HeirsCalculatorInput {value} {onresponse} questionId={question.id} {allResponses} />
 
 {:else if question.type === 'charities'}
 	{@const selectedCharities = getCharities()}

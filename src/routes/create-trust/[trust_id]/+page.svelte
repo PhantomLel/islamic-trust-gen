@@ -1,7 +1,8 @@
 <script lang="ts">
 	import {
 		siteName,
-		questions,
+		prePaymentQuestions,
+		postPaymentQuestions,
 		buckets,
 		type QuestionResponseValue
 	} from '$lib/config';
@@ -16,16 +17,25 @@
 	import QuestionnaireSidebar from '$lib/components/QuestionnaireSidebar.svelte';
 	import ScreeningStep from '$lib/components/ScreeningStep.svelte';
 
+	/** Set to `true` to show the individual vs joint trust picker again. */
+	const showTrustTypeSelection = false;
+
 	let completing = $state(false);
 
 	let { data } = $props();
 
 	let firstName = $derived(data.userName?.split(' ')[0] ?? 'there');
 	let userEmail = $derived(data.userEmail ?? '');
+	let hasPaidInvoice = $derived(data.hasPaidInvoice);
+	let intakeQuestions = $derived(
+		hasPaidInvoice ? postPaymentQuestions : prePaymentQuestions
+	);
 	let step = $derived<'screening' | 'type' | 'questionnaire'>(
-		data.trust.isEligible === null ? 'screening' :
-		data.trust.joint === null ? 'type' :
-		'questionnaire'
+		data.trust.isEligible === null
+			? 'screening'
+			: showTrustTypeSelection && data.trust.joint === null
+				? 'type'
+				: 'questionnaire'
 	);
 
 	async function handleScreeningSubmit(eligible: boolean, county: string) {
@@ -47,7 +57,7 @@
 	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// ── active questions (dependency-aware) ──
-	let activeResult = $derived(getActiveQuestions(responses));
+	let activeResult = $derived(getActiveQuestions(responses, intakeQuestions));
 	let activeQuestions = $derived(activeResult.active);
 
 	$effect(() => {
@@ -110,6 +120,11 @@
 		updateHash();
 	}
 
+	function goToQuestionById(questionId: string) {
+		const idx = activeQuestions.findIndex((q) => q.id === questionId);
+		if (idx >= 0) goToQuestion(idx);
+	}
+
 	function goNext() {
 		if (!canGoNext) return;
 		if (!isLast) goToQuestion(currentIndex + 1);
@@ -117,11 +132,20 @@
 
 	async function completeIntake() {
 		completing = true;
-		if (saveTimer) clearTimeout(saveTimer);
-		await doSave();
-		const form = new FormData();
-		await fetch('?/complete', { method: 'POST', body: form });
-		goto('/dashboard');
+		try {
+			if (saveTimer) clearTimeout(saveTimer);
+			await doSave();
+			const form = new FormData();
+			if (hasPaidInvoice) {
+				await fetch('?/completePostPayment', { method: 'POST', body: form });
+				await goto('/dashboard');
+			} else {
+				await fetch('?/completePrePayment', { method: 'POST', body: form });
+				await goto(`/create-trust/${data.trust.id}/payment`);
+			}
+		} finally {
+			completing = false;
+		}
 	}
 
 	function goBack() {
@@ -160,7 +184,7 @@
 <ScreeningStep {firstName} {userEmail} trustId={data.trust.id} onsubmit={handleScreeningSubmit} />
 
 {:else if step === 'type'}
-<!-- ─── TRUST TYPE SELECTION ─── -->
+<!-- ─── TRUST TYPE SELECTION (only when showTrustTypeSelection is true; otherwise joint defaults to true on server) ─── -->
 <div class="h-screen w-screen overflow-hidden bg-cream font-sans flex flex-col relative">
 	<div class="absolute inset-0 pointer-events-none"
 		style="background:
@@ -269,7 +293,15 @@
 
 	<div class="relative z-10 flex-1 flex overflow-hidden">
 
-		<QuestionnaireSidebar {currentIndex} {responses} {activeQuestions} onnavigate={goToQuestion} />
+		<QuestionnaireSidebar
+			{currentIndex}
+			{responses}
+			{activeQuestions}
+			preQuestions={prePaymentQuestions}
+			postQuestions={postPaymentQuestions}
+			{hasPaidInvoice}
+			onnavigate={goToQuestionById}
+		/>
 
 		<main class="flex-1 flex flex-col overflow-hidden">
 			<!-- mobile progress -->
@@ -300,6 +332,9 @@
 					<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
 						{currentQuestion.text}
 					</h2>
+					{#if currentQuestion.subtext}
+						<p class="text-navy/50 text-base font-light max-w-md auto mb-8">{currentQuestion.subtext}</p>
+					{/if}
 
 					<QuestionInput question={currentQuestion} value={currentValue} onresponse={setResponse} onnext={goNext} allResponses={responses} />
 				</div>

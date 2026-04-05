@@ -18,7 +18,8 @@ export type QuestionDependency = { field: string; eq: string | boolean };
 export type Question = {
 	id: string;
 	text: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator';
+	subtext?: string;
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data';
 	required: boolean;
 	bucket: string;
 	options?: string[];
@@ -65,11 +66,19 @@ export type HeirsCalculatorResponse = {
 	verified: boolean;
 };
 
-export type QuestionResponseValue = string | boolean | ChildResponse[] | HeirResponse[] | CharityResponse[] | HeirsCalculatorResponse | null;
+export type PersonalDataResponse = {
+	name: string;
+	dob: string;
+	county: string; // texas county
+};
+
+export type QuestionResponseValue = string | boolean | ChildResponse[] | HeirResponse[] | CharityResponse[] | HeirsCalculatorResponse | null | PersonalDataResponse;
 
 export const buckets: Record<string, { label: string; icon: string }> = {
 	personal: { label: 'Personal Info', icon: 'user' },
 	family: { label: 'Family', icon: 'users' },
+	property: { label: 'Property', icon: 'home' },
+	trust: { label: 'Trust', icon: 'scroll' },
 };
 
 export type Charity = {
@@ -100,41 +109,51 @@ export const charities: Charity[] = [
 	},
 ];
 
-export const questions: Question[] = [
+export const prePaymentQuestions: Question[] = [
 	{
-		id: 'phone',
-		text: 'What is your phone number?',
-		type: 'tel',
+		id: "husband-data",
+		text: "First, the husband.",
+		type: 'personal-data',
 		required: true,
 		bucket: 'personal',
 	},
 	{
-		id: 'date_of_birth',
-		text: 'What is your date of birth?',
+		id: "wife-data",
+		text: "Now, the wife.",
+		type: 'personal-data',
+		required: true,
+		bucket: 'personal',
+	},
+	{
+		id: "marriage-date",
+		text: "When were you married",
+		subtext: "If you had both a nikah and a civil ceremony on different dates, enter the date of your civil marriage — the one that was legally registered. If your nikah and civil marriage were on the same day, just enter that date",
 		type: 'date',
 		required: true,
 		bucket: 'personal',
 	},
-	{
-		id: 'gender',
-		text: 'What is your gender?',
-		type: 'select',
-		required: true,
-		options: ['Male', 'Female'],
-		bucket: 'personal',
-	},
-
 	// ── HEIRS ──────────────────────────────────────────────────────────────
 	// All individual family/heir questions replaced with a single
 	// heirs-calculator question using the Islamic inheritance calculator UI.
 	{
-		id: 'heirs',
-		text: 'Who are your heirs?',
+		id: 'husband-heirs',
+		text: 'On the husband\'s side, who are your heirs?',
 		type: 'heirs-calculator',
 		required: true,
 		bucket: 'family',
 	},
+	{
+		id: 'wife-heirs',
+		text: 'On the wife\'s side, who are your heirs?',
+		type: 'heirs-calculator',
+		required: true,
+		bucket: 'family',
+	},
+	
+];
 
+/** Shown only after the user has at least one paid invoice (see create-trust server). */
+export const postPaymentQuestions: Question[] = [
 	{
 		id: "has-house",
 		text: "Do you own a house?",
@@ -161,7 +180,7 @@ export const questions: Question[] = [
 	},
 	{
 		id: "charities",
-		text: "Would you like to any of these charities to receive a portion of your wasiyyah?",
+		text: "Would you like any of these charities to receive a portion of your wasiyyah?",
 		type: 'charities',
 		required: false,
 		bucket: 'trust',
@@ -196,3 +215,6 @@ export const questions: Question[] = [
 		bucket: 'trust',
 	}
 ];
+
+/** Full questionnaire (pre- + post-payment); use pre/post arrays when gating by payment. */
+export const allIntakeQuestions: Question[] = [...prePaymentQuestions, ...postPaymentQuestions];

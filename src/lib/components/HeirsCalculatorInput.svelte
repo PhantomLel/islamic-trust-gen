@@ -1,19 +1,34 @@
 <script lang="ts">
 	import type {
 		HeirsCalculatorResponse,
+		PersonalDataResponse,
 		QuestionResponseValue,
 	} from "$lib/config";
+	import { isPersonalDataShape } from "$lib/question-response-helpers";
 	import type { CalculationResultJSON } from "$lib/inheritance/types";
 
 	let {
 		value,
 		onresponse,
-		gender = 'male',
-	}: {
+		questionId = '',
+		allResponses = {},
+	} = $props<{
 		value: QuestionResponseValue;
 		onresponse: (val: QuestionResponseValue) => void;
-		gender?: 'male' | 'female';
-	} = $props();
+		questionId?: string;
+		allResponses?: Record<string, QuestionResponseValue>;
+	}>();
+
+	/**
+	 * For husband-heirs the decedent is the husband, so the spouse heir is the wife —
+	 * pre-fill from the wife-data response, and vice-versa.
+	 */
+	function getSpouseAutoName(): string {
+		const sourceId = questionId === 'husband-heirs' ? 'wife-data' : 'husband-data';
+		const raw = allResponses[sourceId];
+		if (isPersonalDataShape(raw)) return (raw as PersonalDataResponse).name.trim();
+		return '';
+	}
 
 	// ── Parse existing saved response ─────────────────────────────────────────
 
@@ -38,9 +53,13 @@
 
 	// ── Estate input state ────────────────────────────────────────────────────
 
-	// Always derived from the questionnaire gender question — not user-selectable here.
-	let decedentGender = $derived<'male' | 'female'>(gender);
-	let spouse = $state(existing?.estateInput?.spouse ?? false);
+	// Derive gender from question ID: husband-heirs → male, wife-heirs → female.
+	let decedentGender = $derived<'male' | 'female'>(
+		questionId === 'wife-heirs' ? 'female' : 'male'
+	);
+
+	// Spouse is always present in a joint trust — auto-check for fresh responses.
+	let spouse = $state(existing?.estateInput?.spouse ?? true);
 	let fatherAlive = $state(existing?.estateInput?.fatherAlive ?? false);
 	let motherAlive = $state(existing?.estateInput?.motherAlive ?? false);
 	let sons = $state(existing?.estateInput?.sons ?? 0);
@@ -108,12 +127,23 @@
 	let names = $state<Record<string, string[]>>({});
 
 	function initNames(heirs: CalculationResultJSON["heirs"]) {
+		const spouseHeirType = decedentGender === 'male' ? 'wife' : 'husband';
+		const spouseAutoName = getSpouseAutoName();
+
 		const n: Record<string, string[]> = {};
 		for (const heir of heirs) {
 			const existing_names = names[heir.heirType];
 			n[heir.heirType] = Array.from(
 				{ length: heir.count },
-				(_, i) => existing_names?.[i] ?? "",
+				(_, i) => {
+					// Prefer already-entered name, then auto-fill spouse name.
+					const saved = existing_names?.[i] ?? '';
+					if (saved !== '') return saved;
+					if (heir.heirType === spouseHeirType && i === 0 && spouseAutoName !== '') {
+						return spouseAutoName;
+					}
+					return '';
+				},
 			);
 		}
 		names = n;

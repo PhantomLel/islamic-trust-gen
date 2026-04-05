@@ -1,11 +1,23 @@
 import {
-	questions,
 	type ChildResponse,
 	type CharityResponse,
 	type HeirResponse,
+	type PersonalDataResponse,
 	type Question,
 	type QuestionResponseValue
 } from '$lib/config';
+
+export function isPersonalDataShape(value: unknown): value is PersonalDataResponse {
+	return (
+		value != null &&
+		typeof value === 'object' &&
+		!Array.isArray(value) &&
+		'name' in value &&
+		'dob' in value &&
+		'county' in value &&
+		!('verified' in value)
+	);
+}
 
 export function isChildResponseComplete(child: Partial<ChildResponse>): boolean {
 	return (
@@ -63,6 +75,11 @@ export function isQuestionResponseAnswered(value: unknown): boolean {
 	if (value != null && typeof value === 'object' && 'verified' in value) {
 		return (value as { verified: boolean }).verified === true;
 	}
+	if (isPersonalDataShape(value)) {
+		return [value.name, value.dob, value.county].some(
+			(s) => typeof s === 'string' && s.trim() !== ''
+		);
+	}
 	return value != null && value !== '';
 }
 
@@ -99,14 +116,26 @@ export function isQuestionResponseComplete(type: Question['type'], value: unknow
 	if (type === 'tel') {
 		return typeof value === 'string' && value.replace(/\D/g, '').length === 10;
 	}
+	if (type === 'personal-data') {
+		if (!isPersonalDataShape(value)) return false;
+		return (
+			typeof value.name === 'string' &&
+			value.name.trim() !== '' &&
+			typeof value.dob === 'string' &&
+			value.dob.trim() !== '' &&
+			typeof value.county === 'string' &&
+			value.county.trim() !== ''
+		);
+	}
 	return isQuestionResponseAnswered(value);
 }
 
 export function getActiveQuestions(
-	responses: Record<string, QuestionResponseValue>
+	responses: Record<string, QuestionResponseValue>,
+	questionList: Question[]
 ): { active: Question[]; autoValues: Record<string, string | boolean> } {
 	const autoValues: Record<string, string | boolean> = {};
-	const active = questions.filter((q) => {
+	const active = questionList.filter((q) => {
 		if (q.defaultWhen && responses[q.defaultWhen.field] === q.defaultWhen.eq) {
 			autoValues[q.id] = q.defaultWhen.value;
 			return false;

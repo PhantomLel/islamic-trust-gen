@@ -9,14 +9,17 @@
 	let t = $derived(data.trust);
 	let paid = $derived(data.paid);
 
+	let preIntakeDone = $derived(t.status !== 'started' || t.complete || paid);
+
 	// timeline steps derived from trust state
 	let steps = $derived([
 		{ label: 'Account Created', done: true },
 		{ label: 'Eligibility Screening', done: t.isEligible !== null },
 		{ label: 'Trust Type Selected', done: t.joint !== null },
-		{ label: 'Intake Complete', done: t.complete },
+		{ label: 'Initial questionnaire', done: preIntakeDone },
 		{ label: 'Payment', done: paid },
-		{ label: 'Under Review', done: paid && t.approved },
+		{ label: 'Trust details', done: t.complete },
+		{ label: 'Under Review', done: paid && t.complete && t.approved },
 		{ label: 'Documents Delivered', done: t.fileUrls.length > 0 },
 	]);
 
@@ -26,9 +29,10 @@
 	let statusLabel = $derived(
 		t.fileUrls.length > 0 ? 'Documents Delivered' :
 		t.approved ? 'Approved — Awaiting Documents' :
-		paid ? 'Under Review' :
-		t.complete ? 'Awaiting Payment' :
-		t.joint !== null ? 'Intake In Progress' :
+		paid && t.complete ? 'Under Review' :
+		paid && !t.complete ? 'Trust details in progress' :
+		t.awaitingPayment ? 'Awaiting Payment' :
+		t.joint !== null ? 'Intake in progress' :
 		t.isEligible !== null ? 'Select Trust Type' :
 		'Getting Started'
 	);
@@ -36,10 +40,28 @@
 	// action items
 	let actions = $derived(
 		[
-			!t.complete && t.joint !== null && { label: 'Complete Intake', href: `/create-trust/${t.id}`, desc: `${t.questionnaireProgress}% done`, progress: t.questionnaireProgress },
-			!t.complete && t.joint === null && t.isEligible === true && { label: 'Select Trust Type', href: `/create-trust/${t.id}`, desc: 'Choose individual or joint' },
-			t.complete && !paid && { label: 'Make Payment', href: '#', desc: 'Complete payment to finalize your trust' },
-			t.approved && t.fileUrls.length === 0 && { label: 'Schedule Notarization', href: '#', desc: 'Book an appointment', external: true },
+			t.awaitingPayment && {
+				label: 'Complete payment',
+				href: `/create-trust/${t.id}/payment`,
+				desc: 'Pay the preparation fee to unlock trust and property questions',
+			},
+			!t.complete && t.joint !== null && {
+				label: 'Continue questionnaire',
+				href: `/create-trust/${t.id}`,
+				desc: `${t.questionnaireProgress}% done`,
+				progress: t.questionnaireProgress,
+			},
+			!t.complete && t.joint === null && t.isEligible === true && {
+				label: 'Select Trust Type',
+				href: `/create-trust/${t.id}`,
+				desc: 'Choose individual or joint',
+			},
+			t.approved && t.fileUrls.length === 0 && {
+				label: 'Schedule Notarization',
+				href: '#',
+				desc: 'Book an appointment',
+				external: true,
+			},
 		].filter(Boolean) as { label: string; href: string; desc: string; external?: boolean; progress?: number }[]
 	);
 
@@ -135,7 +157,7 @@
 
 				<!-- edit responses -->
 				{#if t.joint !== null}
-					<a href="/create-trust/{t.id}"
+					<a href={`/create-trust/${t.id}`}
 						class="block rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6
 							   hover:bg-white hover:border-emerald-accent/20 hover:shadow-sm transition-all group">
 						<div class="flex items-center justify-between">

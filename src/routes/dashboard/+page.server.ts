@@ -2,7 +2,9 @@ import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { invoice, trust } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { questions } from '$lib/config';
+import { allIntakeQuestions } from '$lib/config';
+import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
+import { TrustStatus } from '$lib/server/db/schema';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
 import type { Actions, PageServerLoad } from './$types';
@@ -42,21 +44,38 @@ export const load: PageServerLoad = async ({ locals }) => {
 	
 	if (existing.isEligible === null) throw redirect(302, `/create-trust/${existing.id}`);
 
+	// Match create-trust: joint/individual picker is hidden; default to joint.
+	if (existing.isEligible === true && existing.joint === null) {
+		await db
+			.update(trust)
+			.set({ joint: true, updatedAt: new Date() })
+			.where(and(eq(trust.id, existing.id), eq(trust.userId, locals.user.id)));
+		existing.joint = true;
+	}
+
 	const responses = (existing.responses ?? []) as { id: string; response: unknown }[];
-	const answered = responses.filter((r) => r.response != null && r.response !== '').length;
-	const questionnaireProgress = questions.length > 0 ? Math.round((answered / questions.length) * 100) : 0;
+	const intakeIds = new Set(allIntakeQuestions.map((q) => q.id));
+	const answered = responses.filter(
+		(r) => intakeIds.has(r.id) && isQuestionResponseAnswered(r.response)
+	).length;
+	const questionnaireProgress =
+		allIntakeQuestions.length > 0
+			? Math.round((answered / allIntakeQuestions.length) * 100)
+			: 0;
 	const hasHouse = responses.find((r) => r.id === 'has-house')?.response === true;
 	const invoices = await db.query.invoice.findMany({
 		where: eq(invoice.userId, locals.user.id),
 		columns: { paid: true },
 	});
-	const paid = !invoices.some((i) => !i.paid);
+	const hasPaidInvoice = invoices.some((i) => i.paid);
+	const awaitingPayment =
+		existing.status === TrustStatus.AwaitingPayment && !hasPaidInvoice;
 
 	return {
 		userId: locals.user.id,
 		userName: locals.user.name,
 		requestedConsultation: (locals.user as any).requestedConsultationAt != null,
-		paid,
+		paid: hasPaidInvoice,
 		trust: {
 			id: existing.id,
 			createdAt: existing.createdAt.toISOString(),
@@ -64,11 +83,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 			isEligible: existing.isEligible,
 			joint: existing.joint,
 			complete: existing.complete,
+			status: existing.status,
 			approved: existing.approved,
 			fileUrls: existing.file_urls ?? [],
 			houseDeedUrl: existing.house_deed_url,
 			hasHouse,
 			questionnaireProgress,
+			awaitingPayment,
 		},
 	};
 };

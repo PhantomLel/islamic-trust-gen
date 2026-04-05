@@ -15,6 +15,16 @@ enum Charities {
 	AmericanCancerSociety = 'american-cancer-society',
 }
 
+export enum TrustStatus {
+	Started = 'started', // trust has been created, but the pre-payment intake has not been completed yet
+	AwaitingPayment = 'awaiting-payment', // pre-payment intake has been completed and now the user must pay
+	AwaitingAnswers = 'awaiting-answers', // user has paid but the main intake has not been completed yet
+	RequiresReview = 'review', // user has paid and all the information from the main intake is complete, now the trust is being reviewed by the admin
+	NotarizationPending = 'notarization-pending', // trust has been reviewed and is awaiting notarization
+	Completed = 'completed', // trust has been notarized - everything is done at this point
+
+}
+
 export const task = pgTable('task', {
 	id: serial('id').primaryKey(),
 	title: text('title').notNull(),
@@ -30,11 +40,13 @@ export const trust = pgTable('trust', {
 	joint: boolean('joint'),
 	responses: jsonb('responses').$type<Response[]>(),
 	complete: boolean('complete').notNull().default(false),
+	status: text('status').notNull().default(TrustStatus.Started),
 	approved: boolean('approved').notNull().default(false),
 	file_urls: text('file_urls').array(),
 	house_deed_url: text('house_deed_url'),
-	donate_percentage: integer('donate_percentage').notNull().default(0), // the amount from the wasiyyah that the user decides to give away
 	charities: jsonb('charities').$type<string[]>(),
+	selectedPlan: text('selected_plan'), // 'full' or 'discounted'
+	deedRetrievalRequested: boolean('deed_retrieval_requested').notNull().default(false),
 });
 
 export const invoice = pgTable('invoice', {
@@ -46,6 +58,7 @@ export const invoice = pgTable('invoice', {
 	paid: boolean('paid').notNull().default(false),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	paidAt: timestamp('paid_at'),
+	stripeCheckoutSessionId: text('stripe_checkout_session_id'),
 });
 
 

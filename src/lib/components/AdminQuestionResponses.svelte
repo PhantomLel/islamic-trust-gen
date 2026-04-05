@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import {
-		questions,
+		allIntakeQuestions,
 		charities,
 		type ChildResponse,
 		type HeirResponse,
 		type CharityResponse,
 		type HeirsCalculatorResponse,
+		type PersonalDataResponse,
 		type QuestionResponseValue
 	} from '$lib/config';
-	import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
+	import { isPersonalDataShape, isQuestionResponseAnswered } from '$lib/question-response-helpers';
 
 	type TrustResponse = { id: string; response: unknown };
 	type TrustDetails = {
@@ -163,6 +164,22 @@
 		return getEditCharities(questionId).reduce((sum, c) => sum + (c.percentage || 0), 0);
 	}
 
+	function normalizePersonalData(value: unknown): PersonalDataResponse {
+		if (isPersonalDataShape(value)) {
+			return {
+				name: typeof value.name === 'string' ? value.name : '',
+				dob: typeof value.dob === 'string' ? value.dob : '',
+				county: typeof value.county === 'string' ? value.county : ''
+			};
+		}
+		return { name: '', dob: '', county: '' };
+	}
+
+	function updateEditPersonal(questionId: string, part: Partial<PersonalDataResponse>) {
+		const next = { ...normalizePersonalData(editResponses[questionId]), ...part };
+		setEditValue(questionId, next);
+	}
+
 	function normalizeHeirsCalculator(value: unknown): HeirsCalculatorResponse | null {
 		if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
 		if (!('verified' in value)) return null;
@@ -195,14 +212,20 @@
 			if (!hc.verified) return 'Not completed';
 			return `${hc.namedHeirs.length} heir(s) — ${hc.namedHeirs.map(h => h.names.join(', ')).join('; ')}`;
 		}
+		if (isPersonalDataShape(raw)) {
+			const p = normalizePersonalData(raw);
+			if (!p.name.trim() && !p.dob.trim() && !p.county.trim()) return '—';
+			const dobLabel = p.dob ? formatDob(p.dob) : '—';
+			return `${p.name.trim() || '—'} · DOB ${dobLabel} · ${p.county.trim() || '—'} County`;
+		}
 		if (typeof raw === 'boolean') return raw ? 'Yes' : 'No';
 		return String(raw);
 	}
 
 	function getProgress(responses: TrustResponse[]): number {
-		if (questions.length === 0) return 0;
+		if (allIntakeQuestions.length === 0) return 0;
 		const answered = responses.filter((r) => isQuestionResponseAnswered(r.response)).length;
-		return Math.round((answered / questions.length) * 100);
+		return Math.round((answered / allIntakeQuestions.length) * 100);
 	}
 
 	function formatDob(dob: string): string {
@@ -222,7 +245,7 @@
 
 	async function saveEdit() {
 		saving = true;
-		const responses = questions.map((q) => ({
+		const responses = allIntakeQuestions.map((q) => ({
 			id: q.id,
 			response: editResponses[q.id] ?? null
 		}));
@@ -271,7 +294,7 @@
 
 	<div class="border-t border-navy/[0.06] px-6 py-5">
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
-			{#each questions as q}
+			{#each allIntakeQuestions as q}
 				{@const raw = getRawResponse(trust.responses, q.id)}
 				{@const answer = getAnswer(trust.responses, q.id)}
 				<div class="flex flex-col gap-1.5 py-1 min-w-0">
@@ -438,6 +461,40 @@
 									</div>
 								{/if}
 							</div>
+						{:else if q.type === 'personal-data'}
+							{@const epd = normalizePersonalData(editResponses[q.id])}
+							<div class="space-y-2 max-w-md">
+								<div>
+									<label class="block text-[11px] text-navy/45 mb-1" for="edit-pd-name-{q.id}">Full legal name</label>
+									<input
+										id="edit-pd-name-{q.id}"
+										type="text"
+										value={epd.name}
+										oninput={(e) => updateEditPersonal(q.id, { name: e.currentTarget.value })}
+										class="w-full px-2.5 py-1.5 rounded-md text-[12px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40"
+									/>
+								</div>
+								<div>
+									<label class="block text-[11px] text-navy/45 mb-1" for="edit-pd-dob-{q.id}">Date of birth</label>
+									<input
+										id="edit-pd-dob-{q.id}"
+										type="date"
+										value={epd.dob}
+										oninput={(e) => updateEditPersonal(q.id, { dob: e.currentTarget.value })}
+										class="w-full px-2.5 py-1.5 rounded-md text-[12px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40 max-w-[200px]"
+									/>
+								</div>
+								<div>
+									<label class="block text-[11px] text-navy/45 mb-1" for="edit-pd-county-{q.id}">Texas county</label>
+									<input
+										id="edit-pd-county-{q.id}"
+										type="text"
+										value={epd.county}
+										oninput={(e) => updateEditPersonal(q.id, { county: e.currentTarget.value })}
+										class="w-full px-2.5 py-1.5 rounded-md text-[12px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40"
+									/>
+								</div>
+							</div>
 					{:else if q.type === 'heirs-calculator'}
 						{@const hc = normalizeHeirsCalculator(editResponses[q.id])}
 						{#if hc?.verified && hc.namedHeirs.length > 0}
@@ -532,6 +589,17 @@
 											Total: <span class="font-semibold {totalViewPercentage > 100 ? 'text-red-500' : 'text-emerald-accent'}">{totalViewPercentage.toFixed(1)}%</span>
 										</div>
 									</div>
+								</div>
+							{:else}
+								<span class="text-[13px] text-navy/25">—</span>
+							{/if}
+						{:else if q.type === 'personal-data'}
+							{@const vp = normalizePersonalData(raw)}
+							{#if vp.name.trim() || vp.dob.trim() || vp.county.trim()}
+								<div class="text-[13px] text-navy space-y-0.5">
+									{#if vp.name.trim()}<div><span class="text-navy/45">Name</span> {vp.name}</div>{/if}
+									{#if vp.dob.trim()}<div><span class="text-navy/45">DOB</span> {formatDob(vp.dob)}</div>{/if}
+									{#if vp.county.trim()}<div><span class="text-navy/45">County</span> {vp.county}</div>{/if}
 								</div>
 							{:else}
 								<span class="text-[13px] text-navy/25">—</span>

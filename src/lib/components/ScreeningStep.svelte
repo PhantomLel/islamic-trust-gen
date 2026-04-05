@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { siteName, screeningQuestions } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
+	import CountySelector from './CountySelector.svelte';
 
 	let { firstName, userEmail, trustId, onsubmit: onsubmitProp }: {
 		firstName: string;
@@ -17,60 +18,6 @@
 	let county = $state('');
 	let screeningConfirmed = $state(false);
 	const totalSteps = screeningQuestions.length + 1;
-
-	const texasCounties = [
-		'Harris County',
-		'Dallas County',
-		'Tarrant County',
-		'Bexar County',
-		'Travis County',
-		'Collin County',
-		'Denton County',
-		'Fort Bend County',
-		'Williamson County',
-		'El Paso County',
-		'Hidalgo County',
-		'Cameron County',
-		'Nueces County',
-		'Lubbock County',
-		'Brazoria County',
-		'Galveston County',
-		'Bell County',
-		'Montgomery County',
-		'Brazos County',
-		'Webb County',
-		'McLennan County',
-		'Comal County',
-		'Guadalupe County',
-		'Jefferson County',
-		'Smith County',
-		'Rockwall County',
-		'Tom Green County',
-		'Hays County',
-		'Johnson County',
-		'Ector County',
-		'Midland County',
-		'Potter County',
-		'Randall County',
-		'Wichita County',
-		'Bowie County',
-		'Grayson County',
-		'Gregg County',
-		'Kaufman County',
-		'Ellis County',
-		'Parker County',
-		'Hunt County',
-		'Victoria County',
-		'Orange County',
-		'San Patricio County',
-		'Kerr County',
-		'Walker County',
-		'Liberty County',
-		'Bastrop County',
-		'Burnet County',
-		'Fannin County',
-		'Navarro County'
-	];
 
 	let hasCounty = $derived(county.trim().length > 0);
 
@@ -150,18 +97,11 @@
 					Which county in Texas do you live in?
 				</h2>
 				<div class="mb-8">
-					<input
-						id="county"
-						list="texas-counties"
+					<CountySelector
 						bind:value={county}
-						placeholder="Start typing to search counties"
-						class="w-full px-4 py-3 rounded-xl border border-navy/10 bg-white text-navy text-sm outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/15"
+						placeholder="Search Texas counties…"
+						inputClass="w-full px-4 py-3 rounded-xl border border-navy/10 bg-white text-navy text-sm outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/15"
 					/>
-					<datalist id="texas-counties">
-						{#each texasCounties as countyName}
-							<option value={countyName}></option>
-						{/each}
-					</datalist>
 				</div>
 			{:else}
 				<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
