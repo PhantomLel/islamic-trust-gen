@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { trust, user, invoice, TrustStatus } from '$lib/server/db/schema';
+import { trust, user, TrustStatus } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { prePaymentQuestions, postPaymentQuestions } from '$lib/config';
@@ -57,11 +57,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!existing) throw error(404, 'Trust not found');
 	if (existing.isEligible === false) throw redirect(302, `/consultation/${trustId}`);
 
-	const invoices = await db.query.invoice.findMany({
-		where: eq(invoice.userId, locals.user.id),
-		columns: { paid: true },
-	});
-	const hasPaidInvoice = invoices.some((i) => i.paid);
+	const hasPaidInvoice = existing.selectedPlan !== null;
 
 	if (existing.status === TrustStatus.AwaitingPayment && hasPaidInvoice) {
 		await db
@@ -87,6 +83,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			joint: existing.joint,
 			complete: existing.complete,
 			status: existing.status,
+			selectedPlan: existing.selectedPlan ?? null,
 			responses: (existing.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
 		},
 		userName: locals.user.name,
@@ -154,11 +151,7 @@ export const actions: Actions = {
 		});
 		if (!currentTrust) throw error(404, 'Trust not found');
 
-		const inv = await db.query.invoice.findMany({
-			where: eq(invoice.userId, locals.user.id),
-			columns: { paid: true },
-		});
-		const hasPaidInvoice = inv.some((i) => i.paid);
+		const hasPaidInvoice = currentTrust.selectedPlan !== null;
 
 		const formData = await request.formData();
 		const responsesRaw = formData.get('responses');
@@ -220,15 +213,11 @@ export const actions: Actions = {
 
 		const currentTrust = await db.query.trust.findFirst({
 			where: and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)),
-			columns: { responses: true },
+			columns: { responses: true, selectedPlan: true },
 		});
 		if (!currentTrust) throw error(404, 'Trust not found');
 
-		const inv = await db.query.invoice.findMany({
-			where: eq(invoice.userId, locals.user.id),
-			columns: { paid: true },
-		});
-		if (!inv.some((i) => i.paid)) throw error(403, 'Payment required');
+		if (currentTrust.selectedPlan === null) throw error(403, 'Payment required');
 
 		const record = responsesToRecord((currentTrust.responses ?? []) as { id: string; response: unknown }[]);
 		if (!isPhaseComplete(record, prePaymentQuestions)) {

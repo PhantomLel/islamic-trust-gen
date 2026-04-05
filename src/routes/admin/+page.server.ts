@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	return {
 		trusts: trusts.map((t: (typeof trusts)[number]) => {
-			const hasUnpaidInvoice = t.user.invoices.some((i: (typeof t.user.invoices)[number]) => !i.paid);
+			const hasPaid = t.selectedPlan !== null;
 
 			return {
 				id: t.id,
@@ -25,22 +25,19 @@ export const load: PageServerLoad = async ({ locals }) => {
 				complete: t.complete,
 				isEligible: t.isEligible,
 				status: t.status,
-				awaitingPayment:
-					t.status === TrustStatus.AwaitingPayment ||
-					(t.complete && hasUnpaidInvoice),
+				awaitingPayment: t.status === TrustStatus.AwaitingPayment && !hasPaid,
 				responses: (t.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
 				invoices: t.user.invoices.map((i) => ({
 					id: i.id,
 					name: i.name,
 					amount: i.amount,
-					paid: i.paid,
 				})),
 				user: {
 					id: t.user.id,
 					name: t.user.name,
 					email: t.user.email,
 					requestedConsultation: t.user.requestedConsultationAt != null,
-					paid: !hasUnpaidInvoice,
+					paid: hasPaid,
 				},
 			};
 		}),
@@ -62,11 +59,10 @@ export const actions: Actions = {
 
 		const existing = await db.query.invoice.findFirst({
 			where: eq(invoice.id, invoiceId),
-			columns: { id: true, paid: true },
+			columns: { id: true },
 		});
 
 		if (!existing) throw error(404, 'Invoice not found');
-		if (existing.paid) throw error(400, 'Cannot modify a paid invoice');
 
 		await db
 			.update(invoice)

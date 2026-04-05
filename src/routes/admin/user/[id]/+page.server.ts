@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { trust, user } from '$lib/server/db/schema';
+import { trust, user, TrustStatus } from '$lib/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -10,7 +10,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const targetUser = await db.query.user.findFirst({
 		where: eq(user.id, params.id),
-		with: { invoices: true },
 	});
 
 	if (!targetUser) throw error(404, 'User not found');
@@ -19,7 +18,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		where: eq(trust.userId, params.id),
 		orderBy: [desc(trust.createdAt)],
 	});
-	const hasUnpaidInvoice = targetUser.invoices.some((i) => !i.paid);
+	const hasPaid = trusts.some((t) => t.selectedPlan !== null);
 
 	return {
 		targetUser: {
@@ -29,7 +28,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			createdAt: targetUser.createdAt.toISOString(),
 			role: targetUser.role,
 			requestedConsultation: targetUser.requestedConsultationAt != null,
-			paid: !hasUnpaidInvoice,
+			paid: hasPaid,
 		},
 		trusts: trusts.map((t) => ({
 			id: t.id,
@@ -38,7 +37,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			joint: t.joint,
 			complete: t.complete,
 			isEligible: t.isEligible,
-			awaitingPayment: t.complete && hasUnpaidInvoice,
+			awaitingPayment: t.status === TrustStatus.AwaitingPayment && t.selectedPlan === null,
 			responses: (t.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
 		})),
 	};

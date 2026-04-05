@@ -3,6 +3,7 @@
 		siteName,
 		prePaymentQuestions,
 		postPaymentQuestions,
+		allIntakeQuestions,
 		buckets,
 		type QuestionResponseValue
 	} from '$lib/config';
@@ -26,9 +27,12 @@
 
 	let firstName = $derived(data.userName?.split(' ')[0] ?? 'there');
 	let userEmail = $derived(data.userEmail ?? '');
-	let hasPaidInvoice = $derived(data.hasPaidInvoice);
+	let selectedPlan = $derived(data.trust.selectedPlan);
+	let hasPaidInvoice = $derived(selectedPlan !== null);
+	// After payment, include pre-payment questions in the active flow so the user
+	// can navigate back to them freely from the sidebar.
 	let intakeQuestions = $derived(
-		hasPaidInvoice ? postPaymentQuestions : prePaymentQuestions
+		selectedPlan !== null ? allIntakeQuestions : prePaymentQuestions
 	);
 	let step = $derived<'screening' | 'type' | 'questionnaire'>(
 		data.trust.isEligible === null
@@ -299,7 +303,7 @@
 			{activeQuestions}
 			preQuestions={prePaymentQuestions}
 			postQuestions={postPaymentQuestions}
-			{hasPaidInvoice}
+			selectedPlan={data.trust.selectedPlan}
 			onnavigate={goToQuestionById}
 		/>
 

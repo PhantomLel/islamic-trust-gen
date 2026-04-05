@@ -8,7 +8,7 @@
 		activeQuestions,
 		preQuestions,
 		postQuestions,
-		hasPaidInvoice,
+		selectedPlan,
 		onnavigate,
 	}: {
 		currentIndex: number;
@@ -16,7 +16,7 @@
 		activeQuestions: Question[];
 		preQuestions: Question[];
 		postQuestions: Question[];
-		hasPaidInvoice: boolean;
+		selectedPlan: string | null;
 		onnavigate: (questionId: string) => void;
 	} = $props();
 
@@ -47,9 +47,10 @@
 		if (idx >= 0) onnavigate(activeQuestions[idx].id);
 	}
 
-	/** After payment the main flow is post-only; pre items stay visible but are not navigable. */
-	let preSectionLocked = $derived(hasPaidInvoice);
-	let postSectionLocked = $derived(!hasPaidInvoice);
+	// Pre questions are always navigable — users can revisit them after payment.
+	// Post questions are locked until the user has selected a payment plan (i.e. clicked Pay).
+	let preSectionLocked = $derived(false);
+	let postSectionLocked = $derived(selectedPlan === null);
 
 	let overallProgress = $derived(
 		allSidebarQuestions.length === 0

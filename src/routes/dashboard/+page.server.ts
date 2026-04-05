@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { invoice, trust } from '$lib/server/db/schema';
+import { trust } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { allIntakeQuestions } from '$lib/config';
 import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
@@ -63,19 +63,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 			? Math.round((answered / allIntakeQuestions.length) * 100)
 			: 0;
 	const hasHouse = responses.find((r) => r.id === 'has-house')?.response === true;
-	const invoices = await db.query.invoice.findMany({
-		where: eq(invoice.userId, locals.user.id),
-		columns: { paid: true },
-	});
-	const hasPaidInvoice = invoices.some((i) => i.paid);
+	const hasPaid = existing.selectedPlan !== null;
 	const awaitingPayment =
-		existing.status === TrustStatus.AwaitingPayment && !hasPaidInvoice;
+		existing.status === TrustStatus.AwaitingPayment && !hasPaid;
 
 	return {
 		userId: locals.user.id,
 		userName: locals.user.name,
 		requestedConsultation: (locals.user as any).requestedConsultationAt != null,
-		paid: hasPaidInvoice,
+		paid: hasPaid,
 		trust: {
 			id: existing.id,
 			createdAt: existing.createdAt.toISOString(),
