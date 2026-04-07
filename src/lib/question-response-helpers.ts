@@ -70,7 +70,17 @@ export function isQuestionResponseAnswered(value: unknown): boolean {
 		if (first && typeof first === 'object' && 'charityId' in first) {
 			return value.some((charity) => !!charity && typeof charity === 'object' && isCharityResponseComplete(charity));
 		}
+		if (first && typeof first === 'object' && 'assetName' in first) {
+			return value.some((entry) => typeof entry?.assetName === 'string' && entry.assetName.trim() !== '');
+		}
+		if (first && typeof first === 'object' && 'fullName' in first && 'relationship' in first) {
+			return value.some((entry) => typeof entry?.fullName === 'string' && entry.fullName.trim() !== '');
+		}
 		return false;
+	}
+	if (value != null && typeof value === 'object' && !Array.isArray(value) && 'husbandConfirmation' in value) {
+		const heba = value as { husbandConfirmation: string | null; wifeConfirmation: string | null };
+		return heba.husbandConfirmation !== null || heba.wifeConfirmation !== null;
 	}
 	if (value != null && typeof value === 'object' && 'verified' in value) {
 		return (value as { verified: boolean }).verified === true;
@@ -115,6 +125,36 @@ export function isQuestionResponseComplete(type: Question['type'], value: unknow
 	}
 	if (type === 'tel') {
 		return typeof value === 'string' && value.replace(/\D/g, '').length === 10;
+	}
+	if (type === 'heba') {
+		if (value == null || typeof value !== 'object' || Array.isArray(value)) return false;
+		if (!('husbandConfirmation' in value)) return false;
+		const heba = value as { husbandConfirmation: string | null; wifeConfirmation: string | null };
+		return heba.husbandConfirmation !== null && heba.wifeConfirmation !== null;
+	}
+	if (type === 'separate-property') {
+		return true; // optional — user can leave it blank
+	}
+	if (type === 'trustee-on-first-death') {
+		return value === 'survivor-serves' || value === 'survivor-skipped';
+	}
+	if (type === 'successor-trustees') {
+		if (!Array.isArray(value) || value.length === 0) return false;
+		const valid = value.filter(
+			(e) => e && typeof e === 'object' && typeof e.fullName === 'string' && e.fullName.trim() !== '' && typeof e.relationship === 'string' && e.relationship.trim() !== ''
+		);
+		return valid.length >= 2;
+	}
+	if (type === 'assets') {
+		if (!Array.isArray(value) || value.length === 0) return false;
+		return value.every(
+			(entry) =>
+				entry != null &&
+				typeof entry === 'object' &&
+				typeof entry.assetName === 'string' &&
+				entry.assetName.trim() !== '' &&
+				['husband', 'wife', '50-50'].includes(entry.spouse)
+		);
 	}
 	if (type === 'personal-data') {
 		if (!isPersonalDataShape(value)) return false;

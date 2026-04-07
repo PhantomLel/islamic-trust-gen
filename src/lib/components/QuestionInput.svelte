@@ -5,12 +5,18 @@
 		HeirResponse,
 		PersonalDataResponse,
 		Question,
-		QuestionResponseValue
+		QuestionResponseValue,
 	} from '$lib/config';
 	import { charities } from '$lib/config';
 	import { isPersonalDataShape } from '$lib/question-response-helpers';
 	import HeirsCalculatorInput from './HeirsCalculatorInput.svelte';
 	import CountySelector from './CountySelector.svelte';
+	import OwnershipAllocationInput from './OwnershipAllocationInput.svelte';
+	import HebaAcknowledgmentInput from './HebaAcknowledgmentInput.svelte';
+	import AssetAllocationInput from './AssetAllocationInput.svelte';
+	import SeparatePropertyInput from './SeparatePropertyInput.svelte';
+	import TrusteeSelectionInput from './TrusteeSelectionInput.svelte';
+	import SuccessorTrusteesInput from './SuccessorTrusteesInput.svelte';
 
 	let { question, value, onresponse, onnext, allResponses = {} }: {
 		question: Question;
@@ -19,7 +25,6 @@
 		onnext: () => void;
 		allResponses?: Record<string, QuestionResponseValue>;
 	} = $props();
-
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
@@ -71,18 +76,12 @@
 
 	function updateChild(index: number, field: keyof ChildResponse, fieldValue: string) {
 		const next = getChildren();
-		next[index] = {
-			...next[index],
-			[field]: fieldValue
-		};
+		next[index] = { ...next[index], [field]: fieldValue };
 		onresponse(next);
 	}
 
 	function addChild() {
-		onresponse([
-			...getChildren(),
-			{ firstName: '', lastName: '', dob: '' }
-		]);
+		onresponse([...getChildren(), { firstName: '', lastName: '', dob: '' }]);
 	}
 
 	function removeChild(index: number) {
@@ -92,10 +91,7 @@
 
 	function updateHeir(index: number, field: keyof HeirResponse, fieldValue: string) {
 		const next = getHeirs();
-		next[index] = {
-			...next[index],
-			[field]: fieldValue
-		};
+		next[index] = { ...next[index], [field]: fieldValue };
 		onresponse(next);
 	}
 
@@ -127,7 +123,6 @@
 	function toggleCharity(charityId: string) {
 		const current = getCharities();
 		const exists = current.some((c) => c.charityId === charityId);
-		
 		if (exists) {
 			const next = current.filter((c) => c.charityId !== charityId);
 			onresponse(next.length > 0 ? next : null);
@@ -138,10 +133,7 @@
 
 	function updateCharityPercentage(charityId: string, percentage: number) {
 		const current = getCharities();
-		const next = current.map((c) => 
-			c.charityId === charityId ? { ...c, percentage } : c
-		);
-		onresponse(next);
+		onresponse(current.map((c) => c.charityId === charityId ? { ...c, percentage } : c));
 	}
 
 	function getTotalCharityPercentage(): number {
@@ -174,7 +166,7 @@
 	<div>
 		<input type="tel" value={value ?? ''} oninput={handlePhoneInput}
 			onkeydown={handleKeydown} placeholder="(555) 123-4567"
-			class="{inputClass} {!isValid ? '!border-red-400 !focus:ring-red-100' : ''}" />
+			class="{inputClass} {!isValid ? 'border-red-400!' : ''}" />
 		{#if !isValid}
 			<p class="text-red-500 text-xs mt-1.5 ml-1">Please enter a valid 10-digit phone number</p>
 		{/if}
@@ -272,43 +264,28 @@
 		{#each children as child, index}
 			<div class="rounded-lg border border-navy/10 bg-white p-2.5">
 				<div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_170px_auto] gap-2 items-center">
-					<input
-						type="text"
-						value={child.firstName}
+					<input type="text" value={child.firstName}
 						oninput={(e) => updateChild(index, 'firstName', e.currentTarget.value)}
 						placeholder="First name"
-						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
-					/>
-					<input
-						type="text"
-						value={child.lastName}
+						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10" />
+					<input type="text" value={child.lastName}
 						oninput={(e) => updateChild(index, 'lastName', e.currentTarget.value)}
 						placeholder="Last name"
-						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
-					/>
-					<input
-						type="date"
-						value={child.dob}
+						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10" />
+					<input type="date" value={child.dob}
 						oninput={(e) => updateChild(index, 'dob', e.currentTarget.value)}
-						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
-					/>
-					<button
-						type="button"
-						onclick={() => removeChild(index)}
+						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10" />
+					<button type="button" onclick={() => removeChild(index)}
 						class="h-[38px] px-3 rounded-md border border-navy/10 text-xs text-navy/50 hover:text-navy hover:border-navy/20 transition-colors cursor-pointer whitespace-nowrap"
-						aria-label={`Remove child ${index + 1}`}
-					>
+						aria-label={`Remove child ${index + 1}`}>
 						Remove
 					</button>
 				</div>
 			</div>
 		{/each}
 
-		<button
-			type="button"
-			onclick={addChild}
-			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-emerald-accent/25 text-sm font-medium text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 transition-all cursor-pointer"
-		>
+		<button type="button" onclick={addChild}
+			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-emerald-accent/25 text-sm font-medium text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 transition-all cursor-pointer">
 			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
 			</svg>
@@ -328,37 +305,25 @@
 		{#each heirs as heir, index}
 			<div class="rounded-lg border border-navy/10 bg-white p-2.5">
 				<div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-center">
-					<input
-						type="text"
-						value={heir.firstName}
+					<input type="text" value={heir.firstName}
 						oninput={(e) => updateHeir(index, 'firstName', e.currentTarget.value)}
 						placeholder="First name"
-						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
-					/>
-					<input
-						type="text"
-						value={heir.lastName}
+						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10" />
+					<input type="text" value={heir.lastName}
 						oninput={(e) => updateHeir(index, 'lastName', e.currentTarget.value)}
 						placeholder="Last name"
-						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
-					/>
-					<button
-						type="button"
-						onclick={() => removeHeir(index)}
+						class="w-full px-3 py-2.5 rounded-md border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10" />
+					<button type="button" onclick={() => removeHeir(index)}
 						class="h-[38px] px-3 rounded-md border border-navy/10 text-xs text-navy/50 hover:text-navy hover:border-navy/20 transition-colors cursor-pointer whitespace-nowrap"
-						aria-label={`Remove heir ${index + 1}`}
-					>
+						aria-label={`Remove heir ${index + 1}`}>
 						Remove
 					</button>
 				</div>
 			</div>
 		{/each}
 
-		<button
-			type="button"
-			onclick={addHeir}
-			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-emerald-accent/25 text-sm font-medium text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 transition-all cursor-pointer"
-		>
+		<button type="button" onclick={addHeir}
+			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-emerald-accent/25 text-sm font-medium text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 transition-all cursor-pointer">
 			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
 			</svg>
@@ -368,6 +333,24 @@
 
 {:else if question.type === 'heirs-calculator'}
 	<HeirsCalculatorInput {value} {onresponse} questionId={question.id} {allResponses} />
+
+{:else if question.type === 'ownership-allocation'}
+	<OwnershipAllocationInput {value} {onresponse} {onnext} />
+
+{:else if question.type === 'heba'}
+	<HebaAcknowledgmentInput {value} {onresponse} {allResponses} />
+
+{:else if question.type === 'assets'}
+	<AssetAllocationInput {value} {onresponse} />
+
+{:else if question.type === 'separate-property'}
+	<SeparatePropertyInput {value} {onresponse} {allResponses} />
+
+{:else if question.type === 'trustee-on-first-death'}
+	<TrusteeSelectionInput {value} {onresponse} />
+
+{:else if question.type === 'successor-trustees'}
+	<SuccessorTrusteesInput {value} {onresponse} />
 
 {:else if question.type === 'charities'}
 	{@const selectedCharities = getCharities()}
@@ -466,6 +449,5 @@
 				<p class="text-xs text-navy/40 text-center">Select one or more charities above to allocate a percentage of your wasiyyah</p>
 			{/if}
 		</div>
-
 	</div>
 {/if}

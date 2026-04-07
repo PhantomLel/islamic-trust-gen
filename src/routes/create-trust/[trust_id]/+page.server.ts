@@ -149,7 +149,7 @@ export const actions: Actions = {
 		const currentTrust = await db.query.trust.findFirst({
 			where: and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)),
 		});
-		if (!currentTrust) throw error(404, 'Trust not found');
+	if (!currentTrust) throw error(404, 'Trust not found');
 
 		const hasPaidInvoice = currentTrust.selectedPlan !== null;
 

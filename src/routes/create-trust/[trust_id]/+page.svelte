@@ -323,8 +323,8 @@
 			</div>
 
 			<!-- centered question -->
-			<div class="flex-1 flex {currentQuestion.type === 'heirs-calculator' ? 'items-start overflow-y-auto pt-8 pb-4' : 'items-center'} justify-center px-6 md:px-16">
-			<div class="w-full {currentQuestion.type === 'heirs-calculator' ? 'max-w-xl' : 'max-w-lg'}">
+		<div class="flex-1 flex {['heirs-calculator', 'ownership-allocation', 'heba', 'assets', 'separate-property', 'trustee-on-first-death', 'successor-trustees'].includes(currentQuestion.type) ? 'items-start overflow-y-auto pt-8 pb-4' : 'items-center'} justify-center px-6 md:px-16">
+		<div class="w-full {currentQuestion.type === 'heirs-calculator' ? 'max-w-xl' : 'max-w-lg'}">
 				<div class="hidden md:flex items-center gap-3 mb-8">
 						<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
 							{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}

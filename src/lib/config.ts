@@ -19,7 +19,7 @@ export type Question = {
 	id: string;
 	text: string;
 	subtext?: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data';
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'assets' | 'separate-property' | 'trustee-on-first-death' | 'successor-trustees';
 	required: boolean;
 	bucket: string;
 	options?: string[];
@@ -72,7 +72,35 @@ export type PersonalDataResponse = {
 	county: string; // texas county
 };
 
-export type QuestionResponseValue = string | boolean | ChildResponse[] | HeirResponse[] | CharityResponse[] | HeirsCalculatorResponse | null | PersonalDataResponse;
+export type HebaResponse = {
+	husbandConfirmation: string | null;
+	wifeConfirmation: string | null;
+};
+
+export type AssetAllocationEntry = {
+	assetName: string;
+	accountId?: string;
+	spouse: 'husband' | 'wife' | '50-50';
+};
+
+export type SeparatePropertyEntry = {
+	assetName: string;
+	accountId?: string;
+	approximateValue?: string;
+};
+
+export type SeparatePropertyResponse = {
+	husband: SeparatePropertyEntry[];
+	wife: SeparatePropertyEntry[];
+};
+
+export type SuccessorTrusteeEntry = {
+	fullName: string;
+	relationship: string;
+	contact?: string;
+};
+
+export type QuestionResponseValue = string | boolean | ChildResponse[] | HeirResponse[] | CharityResponse[] | HeirsCalculatorResponse | null | PersonalDataResponse | HebaResponse | AssetAllocationEntry[] | SeparatePropertyResponse | SuccessorTrusteeEntry[];
 
 export const buckets: Record<string, { label: string; icon: string }> = {
 	personal: { label: 'Personal Info', icon: 'user' },
@@ -149,63 +177,65 @@ export const prePaymentQuestions: Question[] = [
 		required: true,
 		bucket: 'family',
 	},
-	
+
 ];
 
 /** Shown only after the user has at least one paid invoice (see create-trust server). */
 export const postPaymentQuestions: Question[] = [
 	{
-		id: "has-house",
-		text: "Do you own a house?",
-		type: 'boolean',
+		id: "ownership-allocation",
+		text: "How would you like to establish ownership of your marital property?",
+		subtext: "This determines how the Islamic inheritance shares will be applied to your estate. Choose together.",
+		type: 'ownership-allocation',
 		required: true,
 		bucket: 'property',
 	},
 	{
-		id: "house-deed",
-		text: "Do you know where the deed to your house is?",
-		type: 'boolean',
+		id: "heba",
+		text: "Before we continue — please read this carefully. Both of you.",
+		type: 'heba',
 		required: true,
 		bucket: 'property',
-		depends: { field: 'has-house', eq: true },
+		depends: { field: 'ownership-allocation', eq: 'heba' },
 	},
 	{
-		id: "house-deed-retrieval",
-		text: "Would you like us to retrieve the deed for you? ($30 retrieval fee)",
-		type: 'boolean',
+		id: "assets",
+		text: "Let's designate who owns what.",
+		type: 'assets',
 		required: true,
 		bucket: 'property',
-		depends: { field: 'house-deed', eq: false },
+		depends: { field: 'ownership-allocation', eq: 'assets' },
+	},
 
+	{
+		id: "separate-property",
+		text: "Did either of you own property before the marriage, or receive a personal gift or inheritance during the marriage?",
+		type: 'separate-property',
+		required: false,
+		bucket: 'property',
+	},
+
+	{
+		id: "trustee-on-first-death",
+		text: "Who will manage your trust when you are no longer able to?",
+		type: 'trustee-on-first-death',
+		required: true,
+		bucket: 'trust',
+	},
+	{
+		id: "successor-trustees",
+		text: "Please name your successor trustees, in order of preference.",
+		type: 'successor-trustees',
+		required: true,
+		bucket: 'trust',
 	},
 	{
 		id: "charities",
 		text: "Would you like any of these charities to receive a portion of your wasiyyah?",
 		type: 'charities',
 		required: false,
-		bucket: 'trust',
+		bucket: 'property',
 
-	},
-	{
-		id: "trustee-1",
-		text: "Add the full name of the first person you would like to be a trustee",
-		type: 'text',
-		required: true,
-		bucket: 'trust',
-	},
-	{
-		id: "trustee-2",
-		text: "Add the full name of the second person you would like to be a trustee",
-		type: 'text',
-		required: true,
-		bucket: 'trust',
-	},
-	{
-		id: "trustee-3",
-		text: "Add the full name of the third person you would like to be a trustee",
-		type: 'text',
-		required: true,
-		bucket: 'trust',
 	},
 	{
 		id: "trust-name",
