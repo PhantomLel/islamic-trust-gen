@@ -10,7 +10,11 @@
 		type PersonalDataResponse,
 		type QuestionResponseValue
 	} from '$lib/config';
-	import { isPersonalDataShape, isQuestionResponseAnswered } from '$lib/question-response-helpers';
+	import {
+		isNonCharitableBequestsShape,
+		isPersonalDataShape,
+		isQuestionResponseAnswered
+	} from '$lib/question-response-helpers';
 
 	type TrustResponse = { id: string; response: unknown };
 	type TrustDetails = {
@@ -217,6 +221,19 @@
 			if (!p.name.trim() && !p.dob.trim() && !p.county.trim()) return '—';
 			const dobLabel = p.dob ? formatDob(p.dob) : '—';
 			return `${p.name.trim() || '—'} · DOB ${dobLabel} · ${p.county.trim() || '—'} County`;
+		}
+		if (isNonCharitableBequestsShape(raw)) {
+			if (!raw.husbandInterested && !raw.wifeInterested) return 'None';
+			const parts: string[] = [];
+			if (raw.husbandInterested && raw.husbandBequests.length > 0) {
+				parts.push(
+					`Husband: ${raw.husbandBequests.map((b) => `${b.recipientName} (${b.percentage}%)`).join('; ')}`
+				);
+			}
+			if (raw.wifeInterested && raw.wifeBequests.length > 0) {
+				parts.push(`Wife: ${raw.wifeBequests.map((b) => `${b.recipientName} (${b.percentage}%)`).join('; ')}`);
+			}
+			return parts.length > 0 ? parts.join(' · ') : '—';
 		}
 		if (typeof raw === 'boolean') return raw ? 'Yes' : 'No';
 		return String(raw);

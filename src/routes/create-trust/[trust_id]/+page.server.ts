@@ -41,7 +41,7 @@ function isPhaseComplete(
 	questionList: typeof prePaymentQuestions
 ): boolean {
 	const { active } = getActiveQuestions(record, questionList);
-	return active.every((q) => isQuestionResponseComplete(q.type, record[q.id]));
+	return active.every((q) => isQuestionResponseComplete(q.type, record[q.id], record));
 }
 
 export const load: PageServerLoad = async ({ locals, params }) => {

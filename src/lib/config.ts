@@ -19,7 +19,7 @@ export type Question = {
 	id: string;
 	text: string;
 	subtext?: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'assets' | 'separate-property' | 'trustee-on-first-death' | 'successor-trustees';
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'assets' | 'separate-property' | 'trustee-on-first-death' | 'successor-trustees' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests';
 	required: boolean;
 	bucket: string;
 	options?: string[];
@@ -100,7 +100,59 @@ export type SuccessorTrusteeEntry = {
 	contact?: string;
 };
 
-export type QuestionResponseValue = string | boolean | ChildResponse[] | HeirResponse[] | CharityResponse[] | HeirsCalculatorResponse | null | PersonalDataResponse | HebaResponse | AssetAllocationEntry[] | SeparatePropertyResponse | SuccessorTrusteeEntry[];
+/** Wasiyyah to non-heirs; percentages only, combined with charities under one-third of estate. */
+export type NonCharitableBequestEntry = {
+	recipientName: string;
+	relationship: string;
+	percentage: number;
+};
+
+export type NonCharitableBequestsResponse = {
+	husbandInterested: boolean;
+	wifeInterested: boolean;
+	husbandBequests: NonCharitableBequestEntry[];
+	wifeBequests: NonCharitableBequestEntry[];
+};
+
+/** Article Thirteen — minor beneficiary distribution (only one mode is stored for drafting). */
+export type MinorDistributionStaggered = {
+	mode: 'staggered';
+	firstPercent: number;
+	firstAge: number;
+	secondPercent: number;
+	secondAge: number;
+	remainderAge: number;
+};
+
+export type MinorDistributionSingleAge = {
+	mode: 'single-age';
+	age: number;
+};
+
+export type MinorDistributionAgeOfMajority = {
+	mode: 'age-of-majority';
+};
+
+export type MinorDistributionResponse =
+	| MinorDistributionStaggered
+	| MinorDistributionSingleAge
+	| MinorDistributionAgeOfMajority;
+
+export type QuestionResponseValue =
+	| string
+	| boolean
+	| ChildResponse[]
+	| HeirResponse[]
+	| CharityResponse[]
+	| HeirsCalculatorResponse
+	| null
+	| PersonalDataResponse
+	| HebaResponse
+	| AssetAllocationEntry[]
+	| SeparatePropertyResponse
+	| SuccessorTrusteeEntry[]
+	| MinorDistributionResponse
+	| NonCharitableBequestsResponse;
 
 export const buckets: Record<string, { label: string; icon: string }> = {
 	personal: { label: 'Personal Info', icon: 'user' },
@@ -230,12 +282,40 @@ export const postPaymentQuestions: Question[] = [
 		bucket: 'trust',
 	},
 	{
+		id: "madhab",
+		text: "Which school of Islamic jurisprudence do you follow?",
+		type: 'madhab',
+		required: true,
+		bucket: 'trust',
+	},
+	{
+		id: "heir-preview",
+		text: "Here are your heirs and their estimated shares.",
+		type: 'heir-preview',
+		required: true,
+		bucket: 'trust',
+	},
+	{
+		id: "minor-distribution",
+		text: "How should your children receive their inheritance?",
+		type: 'minor-distribution',
+		required: true,
+		bucket: 'trust',
+	},
+	{
 		id: "charities",
 		text: "Would you like any of these charities to receive a portion of your wasiyyah?",
 		type: 'charities',
 		required: false,
 		bucket: 'property',
 
+	},
+	{
+		id: "non-charitable-bequests",
+		text: "Would either of you like to leave something to someone who is not an Islamic heir?",
+		type: 'non-charitable-bequests',
+		required: false,
+		bucket: 'property',
 	},
 	{
 		id: "trust-name",

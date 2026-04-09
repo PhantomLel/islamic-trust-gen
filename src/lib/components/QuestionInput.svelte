@@ -8,7 +8,7 @@
 		QuestionResponseValue,
 	} from '$lib/config';
 	import { charities } from '$lib/config';
-	import { isPersonalDataShape } from '$lib/question-response-helpers';
+	import { isPersonalDataShape, WASIYYAH_THIRD_PERCENT } from '$lib/question-response-helpers';
 	import HeirsCalculatorInput from './HeirsCalculatorInput.svelte';
 	import CountySelector from './CountySelector.svelte';
 	import OwnershipAllocationInput from './OwnershipAllocationInput.svelte';
@@ -17,6 +17,10 @@
 	import SeparatePropertyInput from './SeparatePropertyInput.svelte';
 	import TrusteeSelectionInput from './TrusteeSelectionInput.svelte';
 	import SuccessorTrusteesInput from './SuccessorTrusteesInput.svelte';
+	import MadhabInput from './MadhabInput.svelte';
+	import HeirPreviewScreen from './HeirPreviewScreen.svelte';
+	import MinorDistributionInput from './MinorDistributionInput.svelte';
+	import NonCharitableBequestsInput from './NonCharitableBequestsInput.svelte';
 
 	let { question, value, onresponse, onnext, allResponses = {} }: {
 		question: Question;
@@ -352,6 +356,18 @@
 {:else if question.type === 'successor-trustees'}
 	<SuccessorTrusteesInput {value} {onresponse} />
 
+{:else if question.type === 'madhab'}
+	<MadhabInput {value} {onresponse} {onnext} />
+
+{:else if question.type === 'heir-preview'}
+	<HeirPreviewScreen {value} {onresponse} {allResponses} />
+
+{:else if question.type === 'minor-distribution'}
+	<MinorDistributionInput {value} {onresponse} />
+
+{:else if question.type === 'non-charitable-bequests'}
+	<NonCharitableBequestsInput {value} {onresponse} {allResponses} />
+
 {:else if question.type === 'charities'}
 	{@const selectedCharities = getCharities()}
 	<div class="space-y-3">
@@ -427,10 +443,10 @@
 		<div class="space-y-2 mt-3 pt-3 border-t border-navy/10">
 			{#if selectedCharities.length > 0}
 				{@const totalPercentage = getTotalCharityPercentage()}
-				{@const exceedsLimit = totalPercentage > 100}
+				{@const exceedsLimit = totalPercentage > WASIYYAH_THIRD_PERCENT + 0.01}
 				
 				<div class="flex items-center justify-between px-3 py-2 rounded-lg bg-navy/5">
-					<span class="text-sm font-medium text-navy">Total Allocated:</span>
+					<span class="text-sm font-medium text-navy">Total wasiyyah (max ~33.3%):</span>
 					<span class="text-sm font-semibold {exceedsLimit ? 'text-red-500' : 'text-emerald-accent'}">
 						{totalPercentage.toFixed(1)}%
 					</span>
@@ -441,7 +457,7 @@
 							<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
 						</svg>
 						<p class="text-xs text-red-600 leading-relaxed">
-							Total percentage cannot exceed 100%. Please adjust your allocations.
+							Charitable wasiyyah cannot exceed one-third of your estate. Please adjust your allocations.
 						</p>
 					</div>
 				{/if}
