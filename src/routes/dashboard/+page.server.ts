@@ -66,6 +66,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const hasPaid = existing.selectedPlan !== null;
 	const awaitingPayment =
 		existing.status === TrustStatus.AwaitingPayment && !hasPaid;
+	const intakeUnderReview = existing.status === TrustStatus.RequiresReview;
 
 	return {
 		userId: locals.user.id,
@@ -86,6 +87,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			hasHouse,
 			questionnaireProgress,
 			awaitingPayment,
+			intakeUnderReview,
 		},
 	};
 };

@@ -9,9 +9,14 @@
 	let t = $derived(data.trust);
 	let paid = $derived(data.paid);
 
-	let preIntakeDone = $derived(t.status !== 'started' || t.complete || paid);
+	/** Pre-payment questionnaire finished (user reached the payment step or beyond). */
+	let preIntakeDone = $derived(t.status !== 'started');
 
-	// timeline steps derived from trust state
+	let pastReview = $derived(
+		t.status === 'notarization-pending' || t.status === 'completed'
+	);
+
+	// Timeline aligned with TrustStatus; notarization + completed are future stages.
 	let steps = $derived([
 		{ label: 'Account Created', done: true },
 		{ label: 'Eligibility Screening', done: t.isEligible !== null },
@@ -19,22 +24,26 @@
 		{ label: 'Initial questionnaire', done: preIntakeDone },
 		{ label: 'Payment', done: paid },
 		{ label: 'Trust details', done: t.complete },
-		{ label: 'Under Review', done: paid && t.complete && t.approved },
-		{ label: 'Documents Delivered', done: t.fileUrls.length > 0 },
+		{
+			label: 'Under review',
+			done: pastReview,
+		},
+		{ label: 'Documents delivered', done: t.status === 'completed' || t.fileUrls.length > 0 },
 	]);
 
 	let currentStepIndex = $derived(steps.findIndex((s) => !s.done));
 	let overallPct = $derived(steps.filter((s) => s.done).length / steps.length * 100);
 	let doneCount = $derived(steps.filter((s) => s.done).length);
 	let statusLabel = $derived(
-		t.fileUrls.length > 0 ? 'Documents Delivered' :
-		t.approved ? 'Approved — Awaiting Documents' :
-		paid && t.complete ? 'Under Review' :
-		paid && !t.complete ? 'Trust details in progress' :
-		t.awaitingPayment ? 'Awaiting Payment' :
-		t.joint !== null ? 'Intake in progress' :
-		t.isEligible !== null ? 'Select Trust Type' :
-		'Getting Started'
+		t.status === 'completed' ? 'Completed' :
+		t.status === 'notarization-pending' ? 'Notarization pending' :
+		t.intakeUnderReview ? 'Under review' :
+		t.status === 'awaiting-answers' && !t.complete ? 'Trust details in progress' :
+		t.status === 'awaiting-payment' && paid ? 'Payment received — continue your questionnaire' :
+		t.awaitingPayment ? 'Awaiting payment' :
+		t.status === 'started' && t.joint !== null ? 'Intake in progress' :
+		t.isEligible !== null ? 'Select trust type' :
+		'Getting started'
 	);
 
 	// action items
@@ -45,7 +54,10 @@
 				href: `/create-trust/${t.id}/payment`,
 				desc: 'Pay the preparation fee to unlock trust and property questions',
 			},
-			!t.complete && t.joint !== null && {
+			!t.complete &&
+			!t.intakeUnderReview &&
+			(t.status === 'started' || t.status === 'awaiting-answers') &&
+			t.joint !== null && {
 				label: 'Continue questionnaire',
 				href: `/create-trust/${t.id}`,
 				desc: `${t.questionnaireProgress}% done`,

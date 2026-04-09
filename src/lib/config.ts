@@ -320,6 +320,8 @@ export const postPaymentQuestions: Question[] = [
 	{
 		id: "trust-name",
 		text: "What would you like to call your trust?",
+		subtext:
+			'You can name your trust quite literally anything. It could be personal, such as "The Khan Family Trust" or "The Sarah and Ahmed Trust." It could also be Islamic, such as "The Bismillah Trust." There are no requirements as to how you name your trust. It is simply a marker.',
 		type: 'text',
 		required: true,
 		bucket: 'trust',

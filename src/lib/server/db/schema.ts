@@ -16,13 +16,18 @@ enum Charities {
 }
 
 export enum TrustStatus {
-	Started = 'started', // trust has been created, but the pre-payment intake has not been completed yet
-	AwaitingPayment = 'awaiting-payment', // pre-payment intake has been completed and now the user must pay
-	AwaitingAnswers = 'awaiting-answers', // user has paid but the main intake has not been completed yet
-	RequiresReview = 'review', // user has paid and all the information from the main intake is complete, now the trust is being reviewed by the admin
-	NotarizationPending = 'notarization-pending', // trust has been reviewed and is awaiting notarization
-	Completed = 'completed', // trust has been notarized - everything is done at this point
-
+	/** Trust exists; user is still on pre-payment screening + questionnaire (has not reached the payment step). */
+	Started = 'started',
+	/** Pre-payment questionnaire is complete; user must complete Stripe checkout before post-payment questions unlock. */
+	AwaitingPayment = 'awaiting-payment',
+	/** Checkout succeeded (webhook); post-payment questionnaire in progress until the user submits the full intake. */
+	AwaitingAnswers = 'awaiting-answers',
+	/** Full intake submitted; awaiting admin review. Current final stage in the product workflow. */
+	RequiresReview = 'review',
+	/** (Future) Admin approved; trust awaits notarization. */
+	NotarizationPending = 'notarization-pending',
+	/** (Future) Notarization complete. */
+	Completed = 'completed',
 }
 
 export const task = pgTable('task', {

@@ -41,7 +41,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 		}
 
-		// Advance trust status from AwaitingPayment to AwaitingAnswers
+		// Unlock post-payment intake: AwaitingPayment → AwaitingAnswers after successful checkout
 		if (trustId && !isNaN(trustId)) {
 			const existing = await db.query.trust.findFirst({
 				where: eq(trust.id, trustId),

@@ -57,6 +57,15 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!existing) throw error(404, 'Trust not found');
 	if (existing.isEligible === false) throw redirect(302, `/consultation/${trustId}`);
 
+	// Intake is closed after submission; user continues from the dashboard.
+	if (
+		existing.status === TrustStatus.RequiresReview ||
+		existing.status === TrustStatus.NotarizationPending ||
+		existing.status === TrustStatus.Completed
+	) {
+		throw redirect(302, '/dashboard');
+	}
+
 	const hasPaidInvoice = existing.selectedPlan !== null;
 
 	if (existing.status === TrustStatus.AwaitingPayment && hasPaidInvoice) {
@@ -149,7 +158,15 @@ export const actions: Actions = {
 		const currentTrust = await db.query.trust.findFirst({
 			where: and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)),
 		});
-	if (!currentTrust) throw error(404, 'Trust not found');
+		if (!currentTrust) throw error(404, 'Trust not found');
+
+		if (
+			currentTrust.status === TrustStatus.RequiresReview ||
+			currentTrust.status === TrustStatus.NotarizationPending ||
+			currentTrust.status === TrustStatus.Completed
+		) {
+			throw error(403, 'This intake has already been submitted');
+		}
 
 		const hasPaidInvoice = currentTrust.selectedPlan !== null;
 
@@ -190,8 +207,12 @@ export const actions: Actions = {
 		if (!currentTrust) throw error(404, 'Trust not found');
 
 		if (currentTrust.status === TrustStatus.AwaitingPayment) {
-			// Already completed — just redirect to payment page.
+			// Already at payment gate — client redirects to payment.
 			return { completedPre: true };
+		}
+
+		if (currentTrust.status !== TrustStatus.Started) {
+			throw error(400, 'Pre-payment phase is not open for this trust');
 		}
 
 		const record = responsesToRecord((currentTrust.responses ?? []) as { id: string; response: unknown }[]);
@@ -213,9 +234,21 @@ export const actions: Actions = {
 
 		const currentTrust = await db.query.trust.findFirst({
 			where: and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)),
-			columns: { responses: true, selectedPlan: true },
+			columns: { responses: true, selectedPlan: true, status: true },
 		});
 		if (!currentTrust) throw error(404, 'Trust not found');
+
+		if (currentTrust.status === TrustStatus.RequiresReview) {
+			return { completedPost: true };
+		}
+
+		const postIntakeUnlocked =
+			currentTrust.status === TrustStatus.AwaitingAnswers ||
+			(currentTrust.status === TrustStatus.AwaitingPayment && currentTrust.selectedPlan !== null);
+
+		if (!postIntakeUnlocked) {
+			throw error(400, 'Full intake can only be submitted after payment, while your trust is open for answers');
+		}
 
 		if (currentTrust.selectedPlan === null) throw error(403, 'Payment required');
 
