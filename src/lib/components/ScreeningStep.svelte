@@ -49,7 +49,7 @@
 	}
 </script>
 
-<div class="h-screen w-screen overflow-hidden bg-cream font-sans flex flex-col relative">
+<div class="h-dvh max-h-dvh w-screen overflow-hidden bg-cream font-sans flex flex-col relative">
 	<div class="absolute inset-0 pointer-events-none"
 		style="background:
 			radial-gradient(ellipse 80% 60% at 50% 40%, rgba(74,124,111,0.07) 0%, transparent 70%),
@@ -67,93 +67,103 @@
 		</div>
 	</nav>
 
-	<div class="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center overflow-y-auto px-6 py-16">
-		<div class="text-center mb-10">
-			<div class="flex items-center justify-center gap-4 mb-5">
-				<span class="w-8 h-px bg-emerald-accent/60"></span>
-				<span class="text-emerald-accent text-[11px] tracking-[0.3em] uppercase font-medium">Before We Begin</span>
-				<span class="w-8 h-px bg-emerald-accent/60"></span>
+	<div class="relative z-10 flex min-h-0 flex-1 flex-col">
+		<div
+			class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] px-6 py-10 md:py-16 max-md:pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]"
+		>
+			<div class="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-start md:justify-center">
+				<div class="text-center mb-10 w-full">
+					<div class="flex items-center justify-center gap-4 mb-5">
+						<span class="w-8 h-px bg-emerald-accent/60"></span>
+						<span class="text-emerald-accent text-[11px] tracking-[0.3em] uppercase font-medium">Before We Begin</span>
+						<span class="w-8 h-px bg-emerald-accent/60"></span>
+					</div>
+					<h1 class="text-3xl md:text-4xl font-semibold text-navy tracking-tight mb-3">Welcome, {firstName}</h1>
+					<p class="text-navy/50 text-base font-light max-w-md mx-auto leading-relaxed">
+						Please answer a few quick questions so we can determine the best path for your estate plan.
+					</p>
+				</div>
+
+				<div class="w-full max-w-lg">
+					<!-- progress -->
+					<div class="flex items-center justify-between mb-2">
+						<span class="text-[11px] text-navy/40 tracking-wider uppercase font-medium">Eligibility Check</span>
+						<span class="text-[11px] text-navy/35">{screeningIndex + 1} of {totalSteps}</span>
+					</div>
+					<div class="w-full h-1 rounded-full bg-navy/[0.06] overflow-hidden mb-10">
+						<div class="h-full rounded-full bg-emerald-accent transition-all duration-500 ease-out"
+							style="width: {((screeningIndex + 1) / totalSteps) * 100}%"></div>
+					</div>
+
+					<!-- question -->
+					{#if isCountyStep}
+						<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
+							Which county in Texas do you live in?
+						</h2>
+						<div class="mb-8">
+							<CountySelector
+								bind:value={county}
+								placeholder="Search Texas counties…"
+								inputClass="w-full px-4 py-3 rounded-xl border border-navy/10 bg-white text-navy text-sm outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/15"
+							/>
+						</div>
+					{:else}
+						<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
+							{currentQ?.text}
+						</h2>
+						{#if currentQ?.subtext}
+							<p class="text-sm text-navy/55 leading-relaxed -mt-4 mb-6">
+								{currentQ.subtext}
+							</p>
+						{/if}
+
+						<div class="flex gap-3 mb-8">
+							{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
+								{@const sel = currentQ ? screeningAnswers[currentQ.id] === opt.value : false}
+								<button onclick={() => currentQ && answer(currentQ.id, opt.value)}
+									class="flex-1 px-5 py-4 rounded-xl border text-center transition-all duration-200 cursor-pointer
+										   {sel ? 'bg-emerald-accent/8 border-emerald-accent/30 text-navy font-medium' : 'bg-white border-navy/10 text-navy/70 hover:border-navy/20'}">
+									{opt.label}
+								</button>
+							{/each}
+						</div>
+
+						{#if finalQuestionAnswered}
+							<div class="mb-8 rounded-xl border border-navy/10 bg-white/70 p-4 md:p-5">
+								<ul class="list-disc pl-5 space-y-3 text-[13px] text-navy/65 leading-relaxed">
+									<li>
+										I confirm my situation fits this online plan (Texas resident, one primary residence, no business ownership, no blended-family or special needs planning). If my situation is more complex, I understand I should schedule a consultation instead.
+									</li>
+									<li>
+										I understand this trust is structured in accordance with established Islamic inheritance principles. The prescribed shares are not customizable.
+									</li>
+									<li>
+										I understand Amana Legacy provides detailed, attorney-prepared guidance for securing my Texas homestead exemption, but does not file the exemption application on my behalf.
+									</li>
+								</ul>
+
+								<label class="mt-4 flex items-start gap-3 cursor-pointer">
+									<input
+										type="checkbox"
+										bind:checked={screeningConfirmed}
+										class="mt-1 h-4 w-4 rounded border-navy/20 text-emerald-accent focus:ring-emerald-accent/30"
+									/>
+									<span class="text-sm text-navy/70 leading-relaxed">
+										I have read and agree to the statements above.
+									</span>
+								</label>
+							</div>
+						{/if}
+					{/if}
+				</div>
 			</div>
-			<h1 class="text-3xl md:text-4xl font-semibold text-navy tracking-tight mb-3">Welcome, {firstName}</h1>
-			<p class="text-navy/50 text-base font-light max-w-md mx-auto leading-relaxed">
-				Please answer a few quick questions so we can determine the best path for your estate plan.
-			</p>
 		</div>
 
-		<div class="w-full max-w-lg">
-			<!-- progress -->
-			<div class="flex items-center justify-between mb-2">
-				<span class="text-[11px] text-navy/40 tracking-wider uppercase font-medium">Eligibility Check</span>
-				<span class="text-[11px] text-navy/35">{screeningIndex + 1} of {totalSteps}</span>
-			</div>
-			<div class="w-full h-1 rounded-full bg-navy/[0.06] overflow-hidden mb-10">
-				<div class="h-full rounded-full bg-emerald-accent transition-all duration-500 ease-out"
-					style="width: {((screeningIndex + 1) / totalSteps) * 100}%"></div>
-			</div>
-
-			<!-- question -->
-			{#if isCountyStep}
-				<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
-					Which county in Texas do you live in?
-				</h2>
-				<div class="mb-8">
-					<CountySelector
-						bind:value={county}
-						placeholder="Search Texas counties…"
-						inputClass="w-full px-4 py-3 rounded-xl border border-navy/10 bg-white text-navy text-sm outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/15"
-					/>
-				</div>
-			{:else}
-				<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
-					{currentQ?.text}
-				</h2>
-				{#if currentQ?.subtext}
-					<p class="text-sm text-navy/55 leading-relaxed -mt-4 mb-6">
-						{currentQ.subtext}
-					</p>
-				{/if}
-
-				<div class="flex gap-3 mb-8">
-					{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
-						{@const sel = currentQ ? screeningAnswers[currentQ.id] === opt.value : false}
-						<button onclick={() => currentQ && answer(currentQ.id, opt.value)}
-							class="flex-1 px-5 py-4 rounded-xl border text-center transition-all duration-200 cursor-pointer
-								   {sel ? 'bg-emerald-accent/8 border-emerald-accent/30 text-navy font-medium' : 'bg-white border-navy/10 text-navy/70 hover:border-navy/20'}">
-							{opt.label}
-						</button>
-					{/each}
-				</div>
-
-				{#if finalQuestionAnswered}
-					<div class="mb-8 rounded-xl border border-navy/10 bg-white/70 p-4 md:p-5">
-						<ul class="list-disc pl-5 space-y-3 text-[13px] text-navy/65 leading-relaxed">
-							<li>
-								I confirm my situation fits this online plan (Texas resident, one primary residence, no business ownership, no blended-family or special needs planning). If my situation is more complex, I understand I should schedule a consultation instead.
-							</li>
-							<li>
-								I understand this trust is structured in accordance with established Islamic inheritance principles. The prescribed shares are not customizable.
-							</li>
-							<li>
-								I understand Amana Legacy provides detailed, attorney-prepared guidance for securing my Texas homestead exemption, but does not file the exemption application on my behalf.
-							</li>
-						</ul>
-
-						<label class="mt-4 flex items-start gap-3 cursor-pointer">
-							<input
-								type="checkbox"
-								bind:checked={screeningConfirmed}
-								class="mt-1 h-4 w-4 rounded border-navy/20 text-emerald-accent focus:ring-emerald-accent/30"
-							/>
-							<span class="text-sm text-navy/70 leading-relaxed">
-								I have read and agree to the statements above.
-							</span>
-						</label>
-					</div>
-				{/if}
-			{/if}
-
-			<!-- nav -->
-			<div class="flex items-center justify-between">
+		<!-- nav: outside scroll + fixed on small viewports -->
+		<div
+			class="shrink-0 border-t border-navy/[0.06] bg-cream px-6 py-4 md:py-5 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:bg-cream/95 max-md:backdrop-blur-md max-md:pb-[max(1rem,env(safe-area-inset-bottom,0px))] max-md:shadow-[0_-10px_40px_rgba(15,23,42,0.07)]"
+		>
+			<div class="mx-auto flex max-w-lg items-center justify-between">
 				<button onclick={() => { if (screeningIndex > 0) screeningIndex--; }}
 					disabled={screeningIndex === 0}
 					class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm text-navy/60

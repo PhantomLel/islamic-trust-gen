@@ -299,7 +299,7 @@
 
 {:else if step === 'type'}
 <!-- ─── TRUST TYPE SELECTION (only when showTrustTypeSelection is true; otherwise joint defaults to true on server) ─── -->
-<div class="h-screen w-screen overflow-hidden bg-cream font-sans flex flex-col relative">
+<div class="h-dvh max-h-dvh w-screen overflow-hidden bg-cream font-sans flex flex-col relative">
 	<div class="absolute inset-0 pointer-events-none"
 		style="background:
 			radial-gradient(ellipse 80% 60% at 50% 40%, rgba(74,124,111,0.07) 0%, transparent 70%),
@@ -388,7 +388,7 @@
 
 {:else if step === 'questionnaire'}
 <!-- ─── QUESTIONNAIRE ─── -->
-<div class="h-screen w-screen overflow-hidden bg-cream font-sans flex flex-col relative">
+<div class="h-dvh max-h-dvh w-screen overflow-hidden bg-cream font-sans flex flex-col relative">
 	<div class="absolute inset-0 pointer-events-none"
 		style="background: radial-gradient(ellipse 80% 60% at 60% 40%, rgba(74,124,111,0.05) 0%, transparent 70%);">
 	</div>
@@ -417,7 +417,7 @@
 			onnavigate={goToQuestionById}
 		/>
 
-		<main class="flex min-h-0 flex-1 flex-col overflow-hidden">
+		<main class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
 			<!-- mobile progress -->
 			<div class="shrink-0 md:hidden px-6 pt-5 pb-3">
 				<div class="flex items-center justify-between mb-2">
@@ -434,7 +434,7 @@
 
 			<!-- Scrollable question body: min-h-0 + overflow-y-auto required for flex children on mobile -->
 			<div
-				class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+				class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] max-md:pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]"
 			>
 				{#if showingVideo && currentQuestion.videoUrl}
 					<!-- ── VIDEO INTERSTITIAL SCREEN ── -->
@@ -516,8 +516,10 @@
 				{/if}
 			</div>
 
-			<!-- back / next -->
-			<div class="shrink-0 border-t border-navy/[0.06] px-6 py-5 md:px-16 flex flex-col gap-3">
+			<!-- back / next: fixed on small screens so Chrome mobile toolbar / 100vh mismatch cannot hide the bar -->
+			<div
+				class="shrink-0 border-t border-navy/[0.06] bg-cream px-6 py-5 md:px-16 flex flex-col gap-3 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:bg-cream/95 max-md:backdrop-blur-md max-md:pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] max-md:shadow-[0_-10px_40px_rgba(15,23,42,0.07)]"
+			>
 				{#if completeBlockedMessage}
 					<div
 						class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900"
