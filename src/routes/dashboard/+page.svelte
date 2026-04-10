@@ -9,27 +9,27 @@
 	let t = $derived(data.trust);
 	let paid = $derived(data.paid);
 
-	/** Pre-payment questionnaire finished (user reached the payment step or beyond). */
-	let preIntakeDone = $derived(t.status !== 'started');
+	/** Ordered lifecycle; `done` is derived only from `t.status` (see TrustStatus in schema). */
+	const TRUST_STATUS_PIPELINE = [
+		{ status: 'started', label: 'Pre-payment questionnaire' },
+		{ status: 'awaiting-payment', label: 'Payment' },
+		{ status: 'awaiting-answers', label: 'Trust details' },
+		{ status: 'review', label: 'Under review' },
+		{ status: 'notarization-pending', label: 'Notarization' },
+		{ status: 'completed', label: 'Documents delivered' },
+	] as const;
 
-	let pastReview = $derived(
-		t.status === 'notarization-pending' || t.status === 'completed'
+	let trustStatusIndex = $derived(
+		TRUST_STATUS_PIPELINE.findIndex((s) => s.status === t.status)
 	);
+	let statusIdx = $derived(trustStatusIndex === -1 ? 0 : trustStatusIndex);
 
-	// Timeline aligned with TrustStatus; notarization + completed are future stages.
-	let steps = $derived([
-		{ label: 'Account Created', done: true },
-		{ label: 'Eligibility Screening', done: t.isEligible !== null },
-		{ label: 'Trust Type Selected', done: t.joint !== null },
-		{ label: 'Initial questionnaire', done: preIntakeDone },
-		{ label: 'Payment', done: paid },
-		{ label: 'Trust details', done: t.complete },
-		{
-			label: 'Under review',
-			done: pastReview,
-		},
-		{ label: 'Documents delivered', done: t.status === 'completed' || t.fileUrls.length > 0 },
-	]);
+	let steps = $derived(
+		TRUST_STATUS_PIPELINE.map((step, i) => ({
+			label: step.label,
+			done: i < statusIdx || t.status === 'completed',
+		}))
+	);
 
 	let currentStepIndex = $derived(steps.findIndex((s) => !s.done));
 	let overallPct = $derived(steps.filter((s) => s.done).length / steps.length * 100);
@@ -135,6 +135,27 @@
 					</div>
 				</div>
 
+				{#if t.intakeUnderReview}
+					<div class="rounded-2xl border border-emerald-accent/15 from-white/90 to-emerald-accent/[0.04] backdrop-blur-sm p-6 md:p-7 shadow-sm">
+						<div class="flex flex-col sm:flex-row sm:items-start gap-4">
+							<div class="shrink-0 w-11 h-11 rounded-xl bg-emerald-accent/10 flex items-center justify-center">
+								<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+							</div>
+							<div class="min-w-0 space-y-3">
+								<p class="text-[11px] text-emerald-accent/90 tracking-wider uppercase font-medium">Under review</p>
+								<p class="text-[15px] md:text-base text-navy leading-relaxed font-medium">
+									Give us a few days for our legal team to draft and review your documents.
+								</p>
+								<p class="text-[13px] text-navy/55 leading-relaxed">
+									Once your documents are ready, we will notify you with how to notarize them using our online notarization.
+								</p>
+							</div>
+						</div>
+					</div>
+				{/if}
+
 				<!-- action items -->
 				{#if actions.length > 0}
 					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6">
@@ -168,7 +189,7 @@
 				{/if}
 
 				<!-- edit responses -->
-				{#if t.joint !== null}
+				<!-- {#if t.joint !== null}
 					<a href={`/create-trust/${t.id}`}
 						class="block rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6
 							   hover:bg-white hover:border-emerald-accent/20 hover:shadow-sm transition-all group">
@@ -181,8 +202,8 @@
 								<path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
 							</svg>
 						</div>
-					</a>
-				{/if}
+					</a> -->
+				<!-- {/if} -->
 
 				{#if t.hasHouse}
 					<HouseDeedUploadCard

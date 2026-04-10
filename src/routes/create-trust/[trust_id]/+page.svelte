@@ -10,7 +10,8 @@
 	import {
 		getActiveQuestions,
 		isQuestionResponseAnswered,
-		isQuestionResponseComplete
+		isQuestionResponseComplete,
+		meetsDiscountedCharityPledge
 	} from '$lib/question-response-helpers';
 	import { authClient } from '$lib/auth-client';
 	import { invalidateAll, goto } from '$app/navigation';
@@ -59,6 +60,7 @@
 	);
 	let saving = $state(false);
 	let saveTimer: ReturnType<typeof setTimeout> | null = null;
+	let completeBlockedMessage = $state<string | null>(null);
 
 	// ── active questions (dependency-aware) ──
 	let activeResult = $derived(getActiveQuestions(responses, intakeQuestions));
@@ -90,7 +92,9 @@
 
 	function isCurrentQuestionComplete(): boolean {
 		if (!currentQuestion) return false;
-		return isQuestionResponseComplete(currentQuestion.type, currentValue, responses);
+		return isQuestionResponseComplete(currentQuestion.type, currentValue, responses, {
+			selectedPlan: data.trust.selectedPlan
+		});
 	}
 
 	let canGoNext = $derived(isCurrentQuestionComplete());
@@ -135,13 +139,28 @@
 	}
 
 	async function completeIntake() {
+		completeBlockedMessage = null;
+		if (
+			hasPaidInvoice &&
+			selectedPlan === 'discounted' &&
+			!meetsDiscountedCharityPledge(responses['charities'])
+		) {
+			completeBlockedMessage =
+				'You chose the discounted wasiyyah pledge. Allocate at least 1% of your wasiyyah to one of the listed charities before continuing.';
+			return;
+		}
 		completing = true;
 		try {
 			if (saveTimer) clearTimeout(saveTimer);
 			await doSave();
 			const form = new FormData();
 			if (hasPaidInvoice) {
-				await fetch('?/completePostPayment', { method: 'POST', body: form });
+				const res = await fetch('?/completePostPayment', { method: 'POST', body: form });
+				if (!res.ok) {
+					completeBlockedMessage =
+						'We could not finalize your intake. If you are on the discounted plan, confirm at least 1% to one charity.';
+					return;
+				}
 				await goto('/dashboard');
 			} else {
 				await fetch('?/completePrePayment', { method: 'POST', body: form });
@@ -180,6 +199,19 @@
 		if (hash) {
 			const idx = activeQuestions.findIndex((q) => q.id === hash);
 			if (idx >= 0) currentIndex = idx;
+		}
+	});
+
+	// Force-flush to DB when user reaches the summary screen so it shows the latest data.
+	let lastFlushedForSummary = $state(false);
+	$effect(() => {
+		if (currentQuestion?.type === 'summary-review' && !lastFlushedForSummary) {
+			lastFlushedForSummary = true;
+			if (saveTimer) clearTimeout(saveTimer);
+			doSave();
+		}
+		if (currentQuestion?.type !== 'summary-review') {
+			lastFlushedForSummary = false;
 		}
 	});
 </script>
@@ -323,8 +355,8 @@
 			</div>
 
 			<!-- centered question -->
-		<div class="flex-1 flex {['heirs-calculator', 'ownership-allocation', 'heba', 'assets', 'separate-property', 'trustee-on-first-death', 'successor-trustees', 'madhab', 'heir-preview', 'minor-distribution', 'non-charitable-bequests'].includes(currentQuestion.type) ? 'items-start overflow-y-auto pt-8 pb-4' : 'items-center'} justify-center px-6 md:px-16">
-		<div class="w-full {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'}">
+		<div class="flex-1 flex {['heirs-calculator', 'ownership-allocation', 'heba', 'assets', 'separate-property', 'personal-property', 'trustee-on-first-death', 'successor-trustees', 'madhab', 'heir-preview', 'minor-distribution', 'non-charitable-bequests', 'house-deed', 'summary-review'].includes(currentQuestion.type) ? 'items-start overflow-y-auto pt-8 pb-4' : 'items-center'} justify-center px-6 md:px-16">
+		<div class="w-full {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'summary-review'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'}">
 				<div class="hidden md:flex items-center gap-3 mb-8">
 						<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
 							{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}
@@ -340,12 +372,36 @@
 						<p class="text-navy/50 text-base font-light max-w-md auto mb-8">{currentQuestion.subtext}</p>
 					{/if}
 
-					<QuestionInput question={currentQuestion} value={currentValue} onresponse={setResponse} onnext={goNext} allResponses={responses} />
+					<QuestionInput
+						question={currentQuestion}
+						value={currentValue}
+						onresponse={setResponse}
+						onnext={goNext}
+						allResponses={responses}
+						onnavigate={goToQuestionById}
+						oncomplete={completeIntake}
+						{completing}
+						trustId={data.trust.id}
+						userId={data.userId}
+						userCounty={data.userCounty}
+						houseDeedUrl={data.trust.houseDeedUrl}
+						deedRetrievalRequested={data.trust.deedRetrievalRequested}
+						selectedPlan={data.trust.selectedPlan}
+					/>
 				</div>
 			</div>
 
 			<!-- back / next -->
-			<div class="shrink-0 px-6 md:px-16 py-5 border-t border-navy/[0.06] flex items-center justify-between">
+			<div class="shrink-0 px-6 md:px-16 py-5 border-t border-navy/[0.06] flex flex-col gap-3">
+				{#if completeBlockedMessage}
+					<div
+						class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900"
+						role="alert"
+					>
+						{completeBlockedMessage}
+					</div>
+				{/if}
+				<div class="flex items-center justify-between">
 				<button onclick={goBack} disabled={isFirst}
 					class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm text-navy/60
 						   transition-all hover:text-navy hover:bg-navy/[0.04]
@@ -355,7 +411,7 @@
 					</svg>
 					Back
 				</button>
-				{#if isLast}
+				{#if isLast && currentQuestion.type !== 'summary-review'}
 					<button onclick={completeIntake} disabled={completing}
 						class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-emerald-accent
 							   transition-all duration-200 hover:bg-emerald-accent/90 hover:shadow-lg hover:shadow-emerald-accent/15
@@ -365,6 +421,8 @@
 							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 						</svg>
 					</button>
+				{:else if currentQuestion.type === 'summary-review'}
+					<div></div>
 				{:else}
 					<button onclick={goNext} disabled={!canGoNext}
 						class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy
@@ -376,6 +434,7 @@
 						</svg>
 					</button>
 				{/if}
+				</div>
 			</div>
 		</main>
 	</div>

@@ -1,4 +1,5 @@
 import {
+	charities as configuredCharities,
 	type ChildResponse,
 	type CharityResponse,
 	type HeirResponse,
@@ -12,6 +13,31 @@ import {
 
 /** Islamic wasiyyah cap: one-third of the estate (charitable + non-charitable combined). */
 export const WASIYYAH_THIRD_PERCENT = 100 / 3;
+
+const CHARITY_ID_SET = new Set(configuredCharities.map((c) => c.id));
+
+/** Minimum charitable wasiyyah to one listed charity when the user chose the discounted (pledge) plan. */
+export const DISCOUNTED_CHARITY_MIN_PCT = 1;
+
+/** True when at least one configured charity has a wasiyyah allocation at or above the discounted-plan minimum. */
+export function meetsDiscountedCharityPledge(charitiesValue: unknown): boolean {
+	if (!Array.isArray(charitiesValue)) return false;
+	return charitiesValue.some((raw) => {
+		if (!raw || typeof raw !== 'object' || !('charityId' in raw)) return false;
+		const c = raw as CharityResponse;
+		return (
+			typeof c.charityId === 'string' &&
+			CHARITY_ID_SET.has(c.charityId) &&
+			typeof c.percentage === 'number' &&
+			!Number.isNaN(c.percentage) &&
+			c.percentage >= DISCOUNTED_CHARITY_MIN_PCT - 1e-6
+		);
+	});
+}
+
+export type QuestionCompletionContext = {
+	selectedPlan?: string | null;
+};
 
 export function isNonCharitableBequestsShape(value: unknown): value is NonCharitableBequestsResponse {
 	return (
@@ -189,6 +215,9 @@ export function isQuestionResponseAnswered(value: unknown): boolean {
 		if (first && typeof first === 'object' && 'fullName' in first && 'relationship' in first) {
 			return value.some((entry) => typeof entry?.fullName === 'string' && entry.fullName.trim() !== '');
 		}
+		if (first && typeof first === 'object' && 'itemDescription' in first) {
+			return value.some((entry) => typeof entry?.itemDescription === 'string' && entry.itemDescription.trim() !== '');
+		}
 		return false;
 	}
 	if (value != null && typeof value === 'object' && !Array.isArray(value) && 'husbandConfirmation' in value) {
@@ -215,7 +244,8 @@ export function isQuestionResponseAnswered(value: unknown): boolean {
 export function isQuestionResponseComplete(
 	type: Question['type'],
 	value: unknown,
-	allResponses?: Record<string, QuestionResponseValue>
+	allResponses?: Record<string, QuestionResponseValue>,
+	context?: QuestionCompletionContext
 ): boolean {
 	if (type === 'heirs-calculator') {
 		return (
@@ -241,10 +271,15 @@ export function isQuestionResponseComplete(
 		);
 	}
 	if (type === 'charities') {
-		if (!Array.isArray(value) || value.length === 0) return true;
+		const discounted = context?.selectedPlan === 'discounted';
+		if (!Array.isArray(value) || value.length === 0) {
+			return !discounted;
+		}
 		const allComplete = value.every((charity) => !!charity && typeof charity === 'object' && isCharityResponseComplete(charity));
 		const totalPercentage = getTotalCharityPercentage(value);
-		return allComplete && totalPercentage <= WASIYYAH_THIRD_PERCENT + 1e-6;
+		if (!allComplete || totalPercentage > WASIYYAH_THIRD_PERCENT + 1e-6) return false;
+		if (discounted && !meetsDiscountedCharityPledge(value)) return false;
+		return true;
 	}
 	if (type === 'tel') {
 		return typeof value === 'string' && value.replace(/\D/g, '').length === 10;
@@ -258,6 +293,12 @@ export function isQuestionResponseComplete(
 	if (type === 'separate-property') {
 		return true; // optional — user can leave it blank
 	}
+	if (type === 'personal-property') {
+		return true; // optional — user can skip if no high-value items
+	}
+	if (type === 'house-deed') {
+		return true; // optional — upload goes directly to trust.house_deed_url, not responses
+	}
 	if (type === 'trustee-on-first-death') {
 		return value === 'survivor-serves' || value === 'survivor-skipped';
 	}
@@ -268,7 +309,15 @@ export function isQuestionResponseComplete(
 		);
 		return valid.length >= 2;
 	}
-	if (type === 'heir-preview') {
+	if (type === 'heir-preview' || type === 'summary-review') {
+		if (
+			type === 'summary-review' &&
+			context?.selectedPlan === 'discounted' &&
+			allResponses &&
+			!meetsDiscountedCharityPledge(allResponses['charities'])
+		) {
+			return false;
+		}
 		return value === true;
 	}
 	if (type === 'minor-distribution') {

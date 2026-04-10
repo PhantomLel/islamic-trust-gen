@@ -53,6 +53,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 		existing.joint = true;
 	}
 
+	if (
+		existing.status === TrustStatus.Started ||
+		existing.status === TrustStatus.AwaitingPayment ||
+		existing.status === TrustStatus.AwaitingAnswers
+	) {
+		throw redirect(302, `/create-trust/${existing.id}`);
+	}
+
 	const responses = (existing.responses ?? []) as { id: string; response: unknown }[];
 	const intakeIds = new Set(allIntakeQuestions.map((q) => q.id));
 	const answered = responses.filter(

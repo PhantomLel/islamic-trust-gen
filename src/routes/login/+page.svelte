@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { deserialize } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import { authClient } from '$lib/auth-client';
 
 	let email = $state('');
@@ -11,14 +13,36 @@
 		loading = true;
 		error = '';
 
-		const { error: err } = await authClient.signIn.magicLink({ email, callbackURL: '/dashboard' });
+		const formData = new FormData();
+		formData.set('email', email.trim());
 
+		const response = await fetch('?/signInMagicLink', {
+			method: 'POST',
+			body: formData,
+		});
+
+		const result = deserialize(await response.text());
 		loading = false;
-		if (err) {
-			error = err.message ?? 'Something went wrong. Please try again.';
-		} else {
-			magicLinkSent = true;
+
+		if (result.type === 'failure') {
+			error =
+				typeof result.data?.message === 'string'
+					? result.data.message
+					: 'Something went wrong. Please try again.';
+			return;
 		}
+
+		if (result.type === 'success' && result.data?.needsSignup) {
+			await goto(`/signup?email=${encodeURIComponent(email.trim())}`);
+			return;
+		}
+
+		if (result.type === 'success' && result.data?.sent) {
+			magicLinkSent = true;
+			return;
+		}
+
+		error = 'Something went wrong. Please try again.';
 	}
 
 	async function handleGoogle() {

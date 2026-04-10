@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { buckets, type Question, type QuestionResponseValue } from '$lib/config';
-	import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
+	import { isQuestionResponseAnswered, meetsDiscountedCharityPledge } from '$lib/question-response-helpers';
 
 	let {
 		currentIndex,
@@ -35,16 +35,26 @@
 		return -1;
 	}
 
+	/** While the discounted pledge is unmet, do not skip ahead of the charities step. */
+	let firstBlockedNavIndex = $derived.by(() => {
+		if (selectedPlan !== 'discounted') return Infinity;
+		if (meetsDiscountedCharityPledge(responses['charities'])) return Infinity;
+		const i = activeQuestions.findIndex((q) => q.id === 'charities');
+		return i >= 0 ? i + 1 : Infinity;
+	});
+
 	function tryNavigate(questionId: string, sectionLocked: boolean) {
 		if (sectionLocked) return;
 		const idx = activeQuestions.findIndex((aq) => aq.id === questionId);
-		if (idx >= 0) onnavigate(questionId);
+		if (idx < 0 || idx >= firstBlockedNavIndex) return;
+		onnavigate(questionId);
 	}
 
 	function tryNavigateBucket(bucketQs: Question[], sectionLocked: boolean) {
 		if (sectionLocked) return;
 		const idx = firstNavigableIndexInBucket(bucketQs);
-		if (idx >= 0) onnavigate(activeQuestions[idx].id);
+		if (idx < 0 || idx >= firstBlockedNavIndex) return;
+		onnavigate(activeQuestions[idx].id);
 	}
 
 	// Pre questions are always navigable — users can revisit them after payment.

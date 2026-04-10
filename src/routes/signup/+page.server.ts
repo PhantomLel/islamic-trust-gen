@@ -8,5 +8,16 @@ export const load: PageServerLoad = async (event) => {
 		}
 		return redirect(302, '/create-trust');
 	}
-	return {};
+
+	let prefilledEmail = '';
+	const raw = event.url.searchParams.get('email');
+	if (raw) {
+		try {
+			prefilledEmail = decodeURIComponent(raw).trim().slice(0, 320);
+		} catch {
+			prefilledEmail = '';
+		}
+	}
+
+	return { prefilledEmail };
 };

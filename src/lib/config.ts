@@ -19,7 +19,7 @@ export type Question = {
 	id: string;
 	text: string;
 	subtext?: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'assets' | 'separate-property' | 'trustee-on-first-death' | 'successor-trustees' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests';
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'assets' | 'separate-property' | 'personal-property' | 'trustee-on-first-death' | 'successor-trustees' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests' | 'house-deed' | 'summary-review';
 	required: boolean;
 	bucket: string;
 	options?: string[];
@@ -89,6 +89,11 @@ export type SeparatePropertyEntry = {
 	approximateValue?: string;
 };
 
+export type PersonalPropertyEntry = {
+	itemDescription: string;
+	spouse: 'husband' | 'wife' | '50-50';
+};
+
 export type SeparatePropertyResponse = {
 	husband: SeparatePropertyEntry[];
 	wife: SeparatePropertyEntry[];
@@ -150,6 +155,7 @@ export type QuestionResponseValue =
 	| HebaResponse
 	| AssetAllocationEntry[]
 	| SeparatePropertyResponse
+	| PersonalPropertyEntry[]
 	| SuccessorTrusteeEntry[]
 	| MinorDistributionResponse
 	| NonCharitableBequestsResponse;
@@ -170,23 +176,12 @@ export type Charity = {
 
 export const charities: Charity[] = [
 	{
-		id: 'islamic-relief',
-		name: 'Islamic Relief USA',
-		logo: 'https://irusa.org/wp-content/uploads/2022/03/2022-IRUSA-Logo_Blue_IRUSA-stacked-e1771511047826.png',
-		website: 'https://www.irusa.org'
-	},
-	{
-		id: 'helping-hand',
-		name: 'Helping Hand for Relief and Development',
-		logo: 'https://www1.hhrd.org/Portals/0/ThemePluginPro/uploads/2021/11/9/HHRD%20LOGO-h-01.png',
-		website: 'https://hhrd.org'
-	},
-	{
-		id: 'penny-appeal',
-		name: 'Penny Appeal USA',
-		logo: 'https://pennyappeal.org/themes/pennyappeal/assets/images/global/logos/pennyappeal-orange.svg',
-		website: 'https://pennyappeal.org'
-	},
+		id: 'jabal-foundation',
+		name: 'Jabal Foundation',
+		logo: 'https://images.squarespace-cdn.com/content/v1/65d7974e2ed5dc230d92760b/6f02944b-fb31-4cd4-b463-6799ce6fadb8/The-Jabal-Foundation4.png?format=1500w',
+		website: 'https://jabalfoundation.org'
+
+	}
 ];
 
 export const prePaymentQuestions: Question[] = [
@@ -268,6 +263,14 @@ export const postPaymentQuestions: Question[] = [
 	},
 
 	{
+		id: "personal-property",
+		text: "Do you have any high-value personal items to designate?",
+		type: 'personal-property',
+		required: false,
+		bucket: 'property',
+	},
+
+	{
 		id: "trustee-on-first-death",
 		text: "Who will manage your trust when you are no longer able to?",
 		type: 'trustee-on-first-death',
@@ -281,13 +284,7 @@ export const postPaymentQuestions: Question[] = [
 		required: true,
 		bucket: 'trust',
 	},
-	{
-		id: "madhab",
-		text: "Which school of Islamic jurisprudence do you follow?",
-		type: 'madhab',
-		required: true,
-		bucket: 'trust',
-	},
+
 	{
 		id: "heir-preview",
 		text: "Here are your heirs and their estimated shares.",
@@ -318,11 +315,33 @@ export const postPaymentQuestions: Question[] = [
 		bucket: 'property',
 	},
 	{
+		id: "house-deed",
+		text: "Upload Your House Deed",
+		subtext: "If you own a house, please upload a copy of your house deed. This helps us draft your trust accurately.",
+		type: 'house-deed',
+		required: false,
+		bucket: 'property',
+	},
+	{
+		id: "madhab",
+		text: "Which school of Islamic jurisprudence do you follow?",
+		type: 'madhab',
+		required: true,
+		bucket: 'trust',
+	},
+	{
 		id: "trust-name",
 		text: "What would you like to call your trust?",
 		subtext:
 			'You can name your trust quite literally anything. It could be personal, such as "The Khan Family Trust" or "The Sarah and Ahmed Trust." It could also be Islamic, such as "The Bismillah Trust." There are no requirements as to how you name your trust. It is simply a marker.',
 		type: 'text',
+		required: true,
+		bucket: 'trust',
+	},
+	{
+		id: "summary-review",
+		text: "Here is your trust — please review everything before we generate your document.",
+		type: 'summary-review',
 		required: true,
 		bucket: 'trust',
 	}

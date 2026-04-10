@@ -8,26 +8,43 @@
 		QuestionResponseValue,
 	} from '$lib/config';
 	import { charities } from '$lib/config';
-	import { isPersonalDataShape, WASIYYAH_THIRD_PERCENT } from '$lib/question-response-helpers';
+	import {
+		isPersonalDataShape,
+		meetsDiscountedCharityPledge,
+		WASIYYAH_THIRD_PERCENT
+	} from '$lib/question-response-helpers';
 	import HeirsCalculatorInput from './HeirsCalculatorInput.svelte';
 	import CountySelector from './CountySelector.svelte';
 	import OwnershipAllocationInput from './OwnershipAllocationInput.svelte';
 	import HebaAcknowledgmentInput from './HebaAcknowledgmentInput.svelte';
 	import AssetAllocationInput from './AssetAllocationInput.svelte';
 	import SeparatePropertyInput from './SeparatePropertyInput.svelte';
+	import PersonalPropertyInput from './PersonalPropertyInput.svelte';
 	import TrusteeSelectionInput from './TrusteeSelectionInput.svelte';
 	import SuccessorTrusteesInput from './SuccessorTrusteesInput.svelte';
 	import MadhabInput from './MadhabInput.svelte';
 	import HeirPreviewScreen from './HeirPreviewScreen.svelte';
 	import MinorDistributionInput from './MinorDistributionInput.svelte';
 	import NonCharitableBequestsInput from './NonCharitableBequestsInput.svelte';
+	import SummaryReviewScreen from './SummaryReviewScreen.svelte';
+	import HouseDeedQuestionInput from './HouseDeedQuestionInput.svelte';
 
-	let { question, value, onresponse, onnext, allResponses = {} }: {
+	let { question, value, onresponse, onnext, allResponses = {}, onnavigate, oncomplete, completing = false, trustId = 0, userId = '', userCounty = null, houseDeedUrl = null, deedRetrievalRequested = false, selectedPlan = null }: {
 		question: Question;
 		value: QuestionResponseValue;
 		onresponse: (val: QuestionResponseValue) => void;
 		onnext: () => void;
 		allResponses?: Record<string, QuestionResponseValue>;
+		onnavigate?: (questionId: string) => void;
+		oncomplete?: () => void;
+		completing?: boolean;
+		trustId?: number;
+		userId?: string;
+		/** From screening / user profile — pre-fills husband & wife Texas county when empty */
+		userCounty?: string | null;
+		houseDeedUrl?: string | null;
+		deedRetrievalRequested?: boolean;
+		selectedPlan?: string | null;
 	} = $props();
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -158,6 +175,34 @@
 	function patchPersonalData(part: Partial<PersonalDataResponse>) {
 		onresponse({ ...getPersonalData(), ...part });
 	}
+
+	const profileCounty = $derived((userCounty ?? '').trim());
+
+	/** Once per visit to a spouse personal-data step; reset when leaving those steps so returning can pre-fill again. */
+	let countyProfileAutofillConsumed = $state(false);
+
+	$effect(() => {
+		const isSpousePersonal =
+			question.type === 'personal-data' &&
+			(question.id === 'husband-data' || question.id === 'wife-data');
+
+		if (!isSpousePersonal) {
+			countyProfileAutofillConsumed = false;
+			return;
+		}
+
+		const fromProfile = profileCounty;
+		if (!fromProfile || countyProfileAutofillConsumed) return;
+
+		const pd = getPersonalData();
+		if (pd.county.trim()) {
+			countyProfileAutofillConsumed = true;
+			return;
+		}
+
+		patchPersonalData({ county: fromProfile });
+		countyProfileAutofillConsumed = true;
+	});
 </script>
 
 {#if question.type === 'text'}
@@ -350,6 +395,9 @@
 {:else if question.type === 'separate-property'}
 	<SeparatePropertyInput {value} {onresponse} {allResponses} />
 
+{:else if question.type === 'personal-property'}
+	<PersonalPropertyInput {value} {onresponse} />
+
 {:else if question.type === 'trustee-on-first-death'}
 	<TrusteeSelectionInput {value} {onresponse} />
 
@@ -368,10 +416,33 @@
 {:else if question.type === 'non-charitable-bequests'}
 	<NonCharitableBequestsInput {value} {onresponse} {allResponses} />
 
+{:else if question.type === 'house-deed'}
+	<HouseDeedQuestionInput {trustId} {userId} existingUrl={houseDeedUrl} {deedRetrievalRequested} saveActionPath="?/saveHouseDeed" />
+
+{:else if question.type === 'summary-review'}
+	<SummaryReviewScreen {value} {onresponse} {allResponses} {onnavigate} {oncomplete} {completing} {selectedPlan} />
+
 {:else if question.type === 'charities'}
 	{@const selectedCharities = getCharities()}
+	{@const discountedPledgeMet =
+		selectedPlan !== 'discounted' || meetsDiscountedCharityPledge(selectedCharities)}
 	<div class="space-y-3">
 		<p class="text-sm text-navy/70">Get a discount of $200 by selecting a charity.</p>
+		{#if selectedPlan === 'discounted'}
+			<div
+				class="rounded-xl border px-4 py-3 text-[13px] leading-relaxed {discountedPledgeMet
+					? 'border-emerald-accent/25 bg-emerald-accent/5 text-navy/80'
+					: 'border-amber-200 bg-amber-50 text-amber-950'}"
+				role="status"
+			>
+				{#if discountedPledgeMet}
+					Your wasiyyah pledge is satisfied: at least 1% is allocated to a listed charity.
+				{:else}
+					You chose the discounted rate. To continue, allocate <strong>at least 1%</strong> of your wasiyyah to
+					<strong>one</strong> of the charities below.
+				{/if}
+			</div>
+		{/if}
 
 		{#each charities as charity}
 			{@const selected = isCharitySelected(charity.id)}
@@ -458,6 +529,12 @@
 						</svg>
 						<p class="text-xs text-red-600 leading-relaxed">
 							Charitable wasiyyah cannot exceed one-third of your estate. Please adjust your allocations.
+						</p>
+					</div>
+				{:else if selectedPlan === 'discounted' && !discountedPledgeMet}
+					<div class="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+						<p class="text-xs text-amber-900 leading-relaxed font-medium">
+							Enter at least 1% next to one charity to meet your pledge and use Next.
 						</p>
 					</div>
 				{/if}

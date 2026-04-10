@@ -1,9 +1,19 @@
 <script lang="ts">
 	import { authClient } from '$lib/auth-client';
 
+	let { data } = $props();
+
 	let name = $state('');
 	let email = $state('');
+	let prefillApplied = $state(false);
 	let magicLinkSent = $state(false);
+
+	$effect(() => {
+		const p = data.prefilledEmail;
+		if (!p || prefillApplied) return;
+		email = p;
+		prefillApplied = true;
+	});
 	let loading = $state(false);
 	let error = $state('');
 
