@@ -56,7 +56,9 @@
 			radial-gradient(ellipse 40% 40% at 20% 80%, rgba(74,124,111,0.03) 0%, transparent 60%);">
 	</div>
 
-	<nav class="relative z-10 shrink-0 flex items-center justify-between px-8 py-6 max-w-5xl w-full mx-auto">
+	<nav
+		class="relative z-10 shrink-0 flex items-center justify-between px-8 pt-[max(1.5rem,env(safe-area-inset-top,0px))] pb-6 max-w-5xl w-full mx-auto"
+	>
 		<a href="/" class="flex items-center gap-2 text-navy font-semibold text-base tracking-tight">
 			<span class="w-2 h-2 rounded-full bg-emerald-accent"></span>
 			{siteName}
@@ -69,7 +71,7 @@
 
 	<div class="relative z-10 flex min-h-0 flex-1 flex-col">
 		<div
-			class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] px-6 py-10 md:py-16 max-md:pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]"
+			class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] px-6 py-10 md:py-16"
 		>
 			<div class="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-start md:justify-center">
 				<div class="text-center mb-10 w-full">
@@ -159,9 +161,9 @@
 			</div>
 		</div>
 
-		<!-- nav: outside scroll + fixed on small viewports -->
+		<!-- nav: in-flow below scroll so content sits between header and this bar -->
 		<div
-			class="shrink-0 border-t border-navy/[0.06] bg-cream px-6 py-4 md:py-5 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:bg-cream/95 max-md:backdrop-blur-md max-md:pb-[max(1rem,env(safe-area-inset-bottom,0px))] max-md:shadow-[0_-10px_40px_rgba(15,23,42,0.07)]"
+			class="shrink-0 border-t border-navy/[0.06] bg-cream px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] md:py-5"
 		>
 			<div class="mx-auto flex max-w-lg items-center justify-between">
 				<button onclick={() => { if (screeningIndex > 0) screeningIndex--; }}

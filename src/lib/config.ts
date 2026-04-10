@@ -186,7 +186,12 @@ export const charities: Charity[] = [
 		name: 'Jabal Foundation',
 		logo: 'https://images.squarespace-cdn.com/content/v1/65d7974e2ed5dc230d92760b/6f02944b-fb31-4cd4-b463-6799ce6fadb8/The-Jabal-Foundation4.png?format=1500w',
 		website: 'https://jabalfoundation.org'
-
+	},
+	{
+		id: 'annisa',
+		name: 'An-Nisa',
+		logo: 'https://images.squarespace-cdn.com/content/v1/634842f00ac7d355a99ca563/bf7ef8be-ac55-4f31-9958-f0f01d5de279/Horizontal+Logo.png?format=1500w',
+		website: 'https://www.annisa.org/'
 	}
 ];
 

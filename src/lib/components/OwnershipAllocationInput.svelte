@@ -18,22 +18,29 @@
 	let islamicPopout = $state(false);
 </script>
 
+<div class="flex w-full min-w-0 flex-col gap-3 sm:gap-4">
 <!-- Option 1 — Recommended -->
 <button
 	type="button"
 	onclick={() => { onresponse('heba'); onnext(); }}
-	class="w-full text-left rounded-2xl border-2 p-5 transition-all duration-200 cursor-pointer relative overflow-hidden
+	class="w-full min-w-0 text-left rounded-2xl border-2 p-4 sm:p-5 transition-all duration-200 cursor-pointer relative overflow-hidden
 		{selected === 'heba'
 			? 'border-emerald-accent bg-white shadow-md shadow-emerald-accent/10'
 			: 'border-emerald-accent/30 bg-emerald-accent/2 hover:border-emerald-accent/60 hover:bg-white'}"
 >
-	<div class="absolute top-3.5 right-4">
+	<!-- Mobile: badge in document flow so body text can use full width -->
+	<div class="mb-3 md:hidden">
+		<span class="inline-block text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-accent/10 text-emerald-accent">
+			Recommended for most families
+		</span>
+	</div>
+	<div class="absolute top-3.5 right-4 hidden md:block">
 		<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-accent/10 text-emerald-accent">
 			Recommended for most families
 		</span>
 	</div>
 
-	<div class="flex items-start gap-4 pr-44">
+	<div class="flex items-start gap-3 sm:gap-4 min-w-0 md:pr-44">
 		<div class="mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors
 			{selected === 'heba' ? 'border-emerald-accent' : 'border-navy/25'}">
 			{#if selected === 'heba'}
@@ -42,10 +49,10 @@
 		</div>
 		<div class="flex-1 min-w-0">
 			<div class="text-sm font-semibold text-navy mb-1.5">Heba - 50/50 Mutual Gift</div>
-			<p class="text-[13px] text-navy/55 leading-relaxed">
+			<p class="text-[13px] text-navy/55 leading-relaxed text-pretty wrap-break-word">
 				Each spouse gives the other half of everything earned during the marriage. You each end up owning exactly 50% of all marital property. The Islamic shares are then applied to each spouse's 50%.
 			</p>
-			<p class="text-[13px] text-navy/55 leading-relaxed mt-1.5">
+			<p class="text-[13px] text-navy/55 leading-relaxed mt-1.5 text-pretty wrap-break-word">
 				This is the simpler option and works well for the majority of families.
 			</p>
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -67,12 +74,12 @@
 <button
 	type="button"
 	onclick={() => { onresponse('assets'); onnext(); }}
-	class="w-full text-left rounded-2xl border-2 p-5 transition-all duration-200 cursor-pointer
+	class="w-full min-w-0 text-left rounded-2xl border-2 p-4 sm:p-5 transition-all duration-200 cursor-pointer
 		{selected === 'assets'
 			? 'border-navy bg-white shadow-sm'
 			: 'border-navy/8 bg-white/60 hover:border-navy/20 hover:bg-white/80'}"
 >
-	<div class="flex items-start gap-4">
+	<div class="flex items-start gap-3 sm:gap-4 min-w-0">
 		<div class="mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors
 			{selected === 'assets' ? 'border-navy' : 'border-navy/25'}">
 			{#if selected === 'assets'}
@@ -80,10 +87,13 @@
 			{/if}
 		</div>
 		<div class="flex-1 min-w-0">
-			<div class="text-sm font-semibold text-navy mb-1.5">Asset by Asset Allocation
-				<span class="ml-2 text-[11px] font-normal text-navy/40 tracking-wide">(For families with specific ownership concerns)</span>
+			<div class="text-sm font-semibold text-navy mb-1.5">
+				<span class="block sm:inline">Asset by Asset Allocation</span>
+				<span class="mt-1 block text-[11px] font-normal text-navy/40 tracking-wide sm:mt-0 sm:ml-2 sm:inline">
+					(For families with specific ownership concerns)
+				</span>
 			</div>
-			<p class="text-[13px] text-navy/55 leading-relaxed">
+			<p class="text-[13px] text-navy/55 leading-relaxed text-pretty wrap-break-word">
 				You list each significant asset and designate which spouse
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -95,12 +105,13 @@
 				</span>
 				, based on whose income or savings acquired it.
 			</p>
-			<p class="text-[13px] text-navy/55 leading-relaxed mt-1.5">
+			<p class="text-[13px] text-navy/55 leading-relaxed mt-1.5 text-pretty wrap-break-word">
 				This option is more detailed but may be more accurate for your situation.
 			</p>
 		</div>
 	</div>
 </button>
+</div>
 
 <InfoPopout open={hebaPopout} onclose={() => (hebaPopout = false)} title="What is a Mutual Gift (Heba)?" dismissLabel="Understood">
 	<p>In Islamic law, this type of gift is called a <span class="font-medium text-navy/80">heba</span>. It is a lifetime gift — not a provision in a will. It takes effect the moment you sign your trust.</p>

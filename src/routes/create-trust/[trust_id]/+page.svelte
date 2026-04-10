@@ -393,7 +393,9 @@
 		style="background: radial-gradient(ellipse 80% 60% at 60% 40%, rgba(74,124,111,0.05) 0%, transparent 70%);">
 	</div>
 
-	<nav class="relative z-10 shrink-0 flex items-center justify-between px-6 md:px-8 py-5 border-b border-navy/[0.06]">
+	<nav
+		class="relative z-10 shrink-0 flex items-center justify-between px-6 md:px-8 pt-[max(1.25rem,env(safe-area-inset-top,0px))] pb-5 border-b border-navy/[0.06]"
+	>
 		<a href="/" class="flex items-center gap-2 text-navy font-semibold text-base tracking-tight">
 			<span class="w-2 h-2 rounded-full bg-emerald-accent"></span>
 			{siteName}
@@ -417,7 +419,7 @@
 			onnavigate={goToQuestionById}
 		/>
 
-		<main class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+		<main class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 			<!-- mobile progress -->
 			<div class="shrink-0 md:hidden px-6 pt-5 pb-3">
 				<div class="flex items-center justify-between mb-2">
@@ -432,13 +434,15 @@
 				</div>
 			</div>
 
-			<!-- Scrollable question body: min-h-0 + overflow-y-auto required for flex children on mobile -->
+			<!-- Scrollable region: flex-1 + min-h-0 bounds height between progress strip and footer (in-flow, not fixed) -->
 			<div
-				class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] max-md:pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]"
+				class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
 			>
 				{#if showingVideo && currentQuestion.videoUrl}
 					<!-- ── VIDEO INTERSTITIAL SCREEN ── -->
-					<div class="flex min-h-full w-full flex-col items-center justify-center px-6 py-8 md:px-12 md:py-10 lg:px-16">
+					<div
+						class="flex w-full flex-col items-center justify-center px-6 py-8 md:min-h-full md:px-12 md:py-10 lg:px-16"
+					>
 						<div class="w-full max-w-2xl md:max-w-5xl mx-auto">
 							<div class="hidden md:flex items-center gap-3 mb-8">
 								<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
@@ -473,12 +477,12 @@
 				{:else}
 					<!-- ── QUESTION SCREEN ── -->
 					<div
-						class="flex min-h-full w-full flex-col px-6 py-4 pb-6 md:px-16 md:py-8 {tallQuestionLayout
+						class="flex min-h-0 min-w-0 w-full flex-col px-6 py-4 pb-6 md:min-h-full md:px-16 md:py-8 {tallQuestionLayout
 							? 'justify-start'
 							: 'justify-start md:justify-center'}"
 					>
 						<div
-							class="w-full {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'summary-review'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'} mx-auto"
+							class="w-full min-w-0 {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'summary-review', 'heba', 'ownership-allocation'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'} mx-auto"
 						>
 							<div class="hidden md:flex items-center gap-3 mb-8">
 								<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
@@ -516,9 +520,9 @@
 				{/if}
 			</div>
 
-			<!-- back / next: fixed on small screens so Chrome mobile toolbar / 100vh mismatch cannot hide the bar -->
+			<!-- back / next: in-flow so the scroll area height is exactly the space above this bar -->
 			<div
-				class="shrink-0 border-t border-navy/[0.06] bg-cream px-6 py-5 md:px-16 flex flex-col gap-3 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:bg-cream/95 max-md:backdrop-blur-md max-md:pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] max-md:shadow-[0_-10px_40px_rgba(15,23,42,0.07)]"
+				class="shrink-0 border-t border-navy/[0.06] bg-cream px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] md:px-16 md:pb-5 flex flex-col gap-3"
 			>
 				{#if completeBlockedMessage}
 					<div
