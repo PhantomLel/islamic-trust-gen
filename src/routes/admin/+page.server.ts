@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { trust, TrustStatus } from '$lib/server/db/schema';
+import { deviceKindFromUserAgent } from '$lib/userAgent';
 import { desc, eq } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -33,6 +34,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 					id: t.user.id,
 					name: t.user.name,
 					email: t.user.email,
+					lastLoginUserAgent: t.user.lastLoginUserAgent ?? null,
+					lastLoginDeviceKind: deviceKindFromUserAgent(t.user.lastLoginUserAgent),
 				},
 			})),
 	};

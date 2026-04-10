@@ -1,7 +1,7 @@
 import { pgTable, serial, integer, text, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
 import { user, session, account } from './auth.schema';
 import { relations } from 'drizzle-orm';
-import { defaultPrepFee } from '$lib/config';
+import { defaultPrepFee } from '../../config';
 
 type Response = {
 	id: string;

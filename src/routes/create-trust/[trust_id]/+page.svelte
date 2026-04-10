@@ -4,6 +4,7 @@
 		prePaymentQuestions,
 		postPaymentQuestions,
 		allIntakeQuestions,
+		postPaymentEntryQuestionId,
 		buckets,
 		type QuestionResponseValue
 	} from '$lib/config';
@@ -14,6 +15,7 @@
 		meetsDiscountedCharityPledge
 	} from '$lib/question-response-helpers';
 	import { authClient } from '$lib/auth-client';
+	import { page } from '$app/stores';
 	import { invalidateAll, goto } from '$app/navigation';
 	import QuestionInput from '$lib/components/QuestionInput.svelte';
 	import QuestionnaireSidebar from '$lib/components/QuestionnaireSidebar.svelte';
@@ -62,6 +64,8 @@
 	let saving = $state(false);
 	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 	let completeBlockedMessage = $state<string | null>(null);
+	/** After Stripe checkout, jump to property questions once (see payment-return $effects). */
+	let paymentReturnHandled = $state(false);
 
 	// ── active questions (dependency-aware) ──
 	let activeResult = $derived(getActiveQuestions(responses, intakeQuestions));
@@ -233,6 +237,41 @@
 		window.location.href = '/';
 	}
 
+	// Webhook may lag behind the Stripe redirect — refresh until payment unlocks post-payment questions.
+	$effect(() => {
+		if ($page.url.searchParams.get('payment') !== 'success') return;
+		if (step !== 'questionnaire') return;
+		if (hasPaidInvoice) return;
+
+		const id = setInterval(() => {
+			void invalidateAll();
+		}, 2000);
+		const stop = setTimeout(() => clearInterval(id), 90_000);
+		return () => {
+			clearInterval(id);
+			clearTimeout(stop);
+		};
+	});
+
+	// Land on the first property (post-payment) step instead of question 1 after checkout.
+	$effect(() => {
+		if (paymentReturnHandled) return;
+		if (step !== 'questionnaire') return;
+		if ($page.url.searchParams.get('payment') !== 'success') return;
+		if (!hasPaidInvoice) return;
+
+		const idx = activeQuestions.findIndex((q) => q.id === postPaymentEntryQuestionId);
+		if (idx < 0) return;
+
+		paymentReturnHandled = true;
+		currentIndex = idx;
+		history.replaceState(
+			null,
+			'',
+			`/create-trust/${data.trust.id}#${postPaymentEntryQuestionId}`
+		);
+	});
+
 	$effect(() => {
 		const hash = window.location.hash.slice(1);
 		if (hash) {
@@ -399,8 +438,8 @@
 			>
 				{#if showingVideo && currentQuestion.videoUrl}
 					<!-- ── VIDEO INTERSTITIAL SCREEN ── -->
-					<div class="flex min-h-full w-full flex-col items-center justify-center px-6 py-8 md:px-16 md:py-10">
-						<div class="w-full max-w-2xl mx-auto">
+					<div class="flex min-h-full w-full flex-col items-center justify-center px-6 py-8 md:px-12 md:py-10 lg:px-16">
+						<div class="w-full max-w-2xl md:max-w-5xl mx-auto">
 							<div class="hidden md:flex items-center gap-3 mb-8">
 								<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
 									{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}

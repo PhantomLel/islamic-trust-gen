@@ -96,6 +96,7 @@
 						<thead>
 							<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
 								<th class="px-4 py-3 font-medium">User</th>
+								<th class="px-4 py-3 font-medium">Last device</th>
 								<th class="px-4 py-3 font-medium">Status</th>
 								<th class="px-4 py-3 font-medium">Type</th>
 								<th class="px-4 py-3 font-medium">Plan</th>
@@ -117,6 +118,19 @@
 									<td class="px-4 py-3">
 										<div class="font-medium text-navy">{t.user.name}</div>
 										<div class="text-[11px] text-navy/40">{t.user.email}</div>
+									</td>
+
+									<td class="px-4 py-3 text-navy/60 text-[12px]">
+										{#if t.user.lastLoginDeviceKind}
+											<span
+												class="cursor-default border-b border-dotted border-navy/25"
+												title={t.user.lastLoginUserAgent ?? ''}
+											>
+												{t.user.lastLoginDeviceKind === 'mobile' ? 'Mobile' : 'Desktop'}
+											</span>
+										{:else}
+											<span class="text-navy/30">—</span>
+										{/if}
 									</td>
 
 									<!-- Status -->

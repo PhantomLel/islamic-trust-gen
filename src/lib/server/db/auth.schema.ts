@@ -18,7 +18,9 @@ export const user = pgTable("user", {
   banned: boolean("banned").default(false),
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires"),
-files: jsonb("files").$type<{ url: string; name: string; id: string; }[]>(),
+  /** User-Agent string from the client when their newest session was created (last sign-in device). */
+  lastLoginUserAgent: text("last_login_user_agent"),
+  files: jsonb("files").$type<{ url: string; name: string; id: string; }[]>(),
 });
 
 export const session = pgTable(

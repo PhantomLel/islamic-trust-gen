@@ -5,7 +5,7 @@ import { trust, invoice, TrustStatus } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { stripe } from '$lib/server/stripe';
 import type { PageServerLoad, Actions } from './$types';
-import { defaultPrepFee } from '$lib/config';
+import { defaultPrepFee, postPaymentEntryQuestionId } from '$lib/config';
 
 const CHARITY_DISCOUNT = 200;
 const DEED_RETRIEVAL_FEE = 35;
@@ -110,7 +110,7 @@ export const actions: Actions = {
 				selectedPlan,
 				addDeedRetrieval: String(addDeedRetrieval),
 			},
-			success_url: `${env.ORIGIN}/create-trust/${trustId}?payment=success`,
+			success_url: `${env.ORIGIN}/create-trust/${trustId}?payment=success#${postPaymentEntryQuestionId}`,
 			cancel_url: `${env.ORIGIN}/create-trust/${trustId}/payment?cancelled=true`,
 		});
 

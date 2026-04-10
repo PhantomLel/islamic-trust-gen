@@ -355,5 +355,8 @@ export const postPaymentQuestions: Question[] = [
 	}
 ];
 
+/** First question after payment (property / marital ownership); used when returning from checkout. */
+export const postPaymentEntryQuestionId = postPaymentQuestions[0]!.id;
+
 /** Full questionnaire (pre- + post-payment); use pre/post arrays when gating by payment. */
 export const allIntakeQuestions: Question[] = [...prePaymentQuestions, ...postPaymentQuestions];

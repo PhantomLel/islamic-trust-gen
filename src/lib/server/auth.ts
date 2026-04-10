@@ -6,6 +6,8 @@ import { admin } from 'better-auth/plugins/admin';
 import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 import { db } from '$lib/server/db';
+import { user } from '$lib/server/db/auth.schema';
+import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
 import { siteName } from '$lib/config';
 import { magicLinkEmail } from '$lib/server/emails/magicLink';
@@ -16,6 +18,20 @@ export const auth = betterAuth({
 	baseURL: env.ORIGIN,
 	secret: env.BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, { provider: 'pg' }),
+	databaseHooks: {
+		session: {
+			create: {
+				after: async (created) => {
+					const ua = created.userAgent;
+					if (!created.userId || typeof ua !== 'string' || !ua.trim()) return;
+					await db
+						.update(user)
+						.set({ lastLoginUserAgent: ua })
+						.where(eq(user.id, created.userId));
+				},
+			},
+		},
+	},
 	emailAndPassword: { enabled: true },
 	socialProviders: {
 		google: {

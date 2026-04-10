@@ -18,7 +18,7 @@
 	let videoEl: HTMLVideoElement;
 	let player: Player | null = null;
 	let mounted = false;
-	/** width / height — used on md+ to cap width so portrait video fits within 50vh without clipping */
+	/** width / height — used on md+ to cap width so portrait video fits within the viewport height budget without clipping */
 	let videoAspect = $state(9 / 16);
 
 	$effect(() => {
@@ -99,7 +99,7 @@
 	{/if}
 
 	<div
-		class="relative w-full max-w-full rounded-xl overflow-hidden shadow-md border border-navy/[0.08] md:mx-auto md:max-w-[min(100%,calc(50vh*var(--video-aspect)))]"
+		class="relative w-full max-w-full rounded-xl overflow-hidden shadow-md border border-navy/[0.08] md:mx-auto md:max-w-[min(100%,calc(72vh*var(--video-aspect)))]"
 		style="--video-aspect: {videoAspect}"
 	>
 		<!-- svelte-ignore a11y_media_has_caption -->

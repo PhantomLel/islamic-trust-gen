@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { Resend } from 'resend';
-import { siteName } from '$lib/config';
+import { postPaymentEntryQuestionId, siteName } from '$lib/config';
 import { stripe } from '$lib/server/stripe';
 import { db } from '$lib/server/db';
 import { invoice, trust, TrustStatus } from '$lib/server/db/schema';
@@ -84,7 +84,7 @@ export const POST: RequestHandler = async ({ request }) => {
 								selectedPlan,
 								deedRetrievalRequested,
 								amountTotalCents: session.amount_total,
-								continueUrl: `${env.ORIGIN}/create-trust/${trustId}`,
+								continueUrl: `${env.ORIGIN}/create-trust/${trustId}#${postPaymentEntryQuestionId}`,
 							}),
 						});
 					} catch (err) {
