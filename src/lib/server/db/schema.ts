@@ -1,6 +1,7 @@
 import { pgTable, serial, integer, text, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
 import { user, session, account } from './auth.schema';
 import { relations } from 'drizzle-orm';
+import { defaultPrepFee } from '$lib/config';
 
 type Response = {
 	id: string;
@@ -52,7 +53,7 @@ export const trust = pgTable('trust', {
 	charities: jsonb('charities').$type<string[]>(),
 	selectedPlan: text('selected_plan'), // 'full' or 'discounted'
 	deedRetrievalRequested: boolean('deed_retrieval_requested').notNull().default(false),
-	customPrice: integer('custom_price'), // admin-set override for the base $799 fee (in whole dollars)
+	customPrice: integer('custom_price'), // admin-set override for the base $849 fee (in whole dollars)
 });
 
 export const invoice = pgTable('invoice', {
@@ -60,7 +61,7 @@ export const invoice = pgTable('invoice', {
 	userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
 	name: text('name').notNull(), // the reason for the invoice
 	description: text('description').notNull(),
-	amount: integer('amount').notNull().default(799),
+	amount: integer('amount').notNull().default(defaultPrepFee),
 	paid: boolean('paid').notNull().default(false),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	paidAt: timestamp('paid_at'),

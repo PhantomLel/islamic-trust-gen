@@ -4,6 +4,8 @@ export type { EstateInput, BlockedHeir, FractionValue, HeirType, ShareType };
 export const siteName = 'Amana Trust';
 export const siteTagline = 'Texas Estate Planning';
 export const consultationBookingUrl = 'https://mcdaniel.cliogrow.com/book/504611575cd41f17542e14c8c9c0dbde';
+export const defaultPrepFee = 849;
+
 
 export const screeningQuestions = [
 	{ id: 'business_ownership', text: 'Do you own a business?' },

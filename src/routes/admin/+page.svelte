@@ -3,13 +3,13 @@
 	import { authClient } from '$lib/auth-client';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { defaultPrepFee } from '$lib/config';
 
 	let { data } = $props();
 
 	let editingTrustId = $state<number | null>(null);
 	let editPrice = $state('');
 
-	const DEFAULT_PRICE = 799;
 
 	function getProgress(responses: { id: string; response: unknown }[]): number {
 		if (allIntakeQuestions.length === 0) return 0;
@@ -57,7 +57,7 @@
 
 	function startEdit(trustId: number, currentPrice: number | null) {
 		editingTrustId = trustId;
-		editPrice = String(currentPrice ?? DEFAULT_PRICE);
+		editPrice = String(currentPrice ?? defaultPrepFee);
 	}
 
 	function cancelEdit() {
@@ -109,8 +109,8 @@
 						<tbody>
 							{#each data.trusts as t}
 								{@const progress = getProgress(t.responses)}
-								{@const effectivePrice = t.customPrice ?? DEFAULT_PRICE}
-								{@const isCustom = t.customPrice !== null && t.customPrice !== DEFAULT_PRICE}
+								{@const effectivePrice = t.customPrice ?? defaultPrepFee}
+								{@const isCustom = t.customPrice !== null && t.customPrice !== defaultPrepFee}
 								{@const hasPaid = t.selectedPlan !== null}
 								<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
 									<!-- User -->

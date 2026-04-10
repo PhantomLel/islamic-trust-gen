@@ -5,10 +5,10 @@ import { trust, invoice, TrustStatus } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { stripe } from '$lib/server/stripe';
 import type { PageServerLoad, Actions } from './$types';
+import { defaultPrepFee } from '$lib/config';
 
 const CHARITY_DISCOUNT = 200;
 const DEED_RETRIEVAL_FEE = 35;
-const DEFAULT_PREP_FEE = 799;
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) throw redirect(302, '/login');
@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	return {
 		trustId,
-		amountUsd: existing.customPrice ?? DEFAULT_PREP_FEE,
+		amountUsd: existing.customPrice ?? defaultPrepFee,
 		userEmail: locals.user.email,
 		userName: locals.user.name,
 	};
@@ -54,7 +54,7 @@ export const actions: Actions = {
 		const selectedPlan = formData.get('selectedPlan') === 'discounted' ? 'discounted' : 'full';
 		const addDeedRetrieval = formData.get('addDeedRetrieval') === 'true';
 
-		const baseAmount = existing.customPrice ?? DEFAULT_PREP_FEE;
+		const baseAmount = existing.customPrice ?? defaultPrepFee;
 		const trustFeeAmount = selectedPlan === 'discounted'
 			? Math.max(0, baseAmount - CHARITY_DISCOUNT)
 			: baseAmount;
