@@ -7,6 +7,7 @@ import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 import { db } from '$lib/server/db';
 import { Resend } from 'resend';
+import { magicLinkEmail } from '$lib/server/emails/magicLink';
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -33,14 +34,13 @@ export const auth = betterAuth({
 				await resend.emails.send({
 					from: env.FROM_EMAIL,
 					to: email,
-					subject: 'Your magic link',
-					html: `<p>Click <a href="${url}">here</a> to sign in</p>`,
+					subject: 'Your sign-in link for Islamic Trust Generator',
+					html: magicLinkEmail(url),
 				}).then(() => {
 					console.log(`[Magic Link] Successfully sent to ${email}: ${url}`);
 				}).catch((error) => {
 					console.error(`[Magic Link] Error sending to ${email}: ${error}`);
 				});
-				console.log(`[Magic Link] Send to ${email}: ${url}`);
 			},
 		}),
 		sveltekitCookies(getRequestEvent),

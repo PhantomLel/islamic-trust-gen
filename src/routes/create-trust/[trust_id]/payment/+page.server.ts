@@ -139,17 +139,9 @@ export const actions: Actions = {
 			});
 		}
 
-		// Persist plan selection and add-on choice on the trust.
-		await db
-			.update(trust)
-			.set({
-				selectedPlan,
-				deedRetrievalRequested: addDeedRetrieval,
-				updatedAt: new Date(),
-			})
-			.where(eq(trust.id, trustId));
-
 		// Store invoice ID in Stripe session metadata for webhook reconciliation.
+		// selectedPlan and deedRetrievalRequested are intentionally NOT written here;
+		// the webhook sets them on confirmed payment so they act as a payment verification flag.
 		await stripe.checkout.sessions.update(session.id, {
 			metadata: {
 				trustId: String(trustId),

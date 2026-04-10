@@ -18,7 +18,7 @@
 		isNonCharitableBequestsShape,
 		meetsDiscountedCharityPledge,
 	} from '$lib/question-response-helpers';
-	import WhatsAppHelpLink from './WhatsAppHelpLink.svelte';
+	import WhatsAppHelpLink from '$lib/components/WhatsAppHelpLink.svelte';
 
 	let {
 		value,

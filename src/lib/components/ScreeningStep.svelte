@@ -67,7 +67,7 @@
 		</div>
 	</nav>
 
-	<div class="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-16">
+	<div class="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center overflow-y-auto px-6 py-16">
 		<div class="text-center mb-10">
 			<div class="flex items-center justify-center gap-4 mb-5">
 				<span class="w-8 h-px bg-emerald-accent/60"></span>

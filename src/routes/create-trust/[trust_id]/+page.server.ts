@@ -81,14 +81,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const hasPaidInvoice = existing.selectedPlan !== null;
 
-	if (existing.status === TrustStatus.AwaitingPayment && hasPaidInvoice) {
-		await db
-			.update(trust)
-			.set({ status: TrustStatus.AwaitingAnswers, updatedAt: new Date() })
-			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
-		existing.status = TrustStatus.AwaitingAnswers;
-	}
-
 	// Joint trust by default when the type picker is hidden (see +page.svelte).
 	if (existing.isEligible === true && existing.joint === null) {
 		await db
@@ -260,9 +252,7 @@ export const actions: Actions = {
 			return { completedPost: true };
 		}
 
-		const postIntakeUnlocked =
-			currentTrust.status === TrustStatus.AwaitingAnswers ||
-			(currentTrust.status === TrustStatus.AwaitingPayment && currentTrust.selectedPlan !== null);
+		const postIntakeUnlocked = currentTrust.status === TrustStatus.AwaitingAnswers;
 
 		if (!postIntakeUnlocked) {
 			throw error(400, 'Full intake can only be submitted after payment, while your trust is open for answers');

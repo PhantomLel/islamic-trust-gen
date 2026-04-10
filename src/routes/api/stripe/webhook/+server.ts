@@ -41,8 +41,14 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 		}
 
-		// Unlock post-payment intake: AwaitingPayment → AwaitingAnswers after successful checkout
+		// Unlock post-payment intake: AwaitingPayment → AwaitingAnswers after successful checkout.
+		// selectedPlan and deedRetrievalRequested are set here (not at checkout creation) so that
+		// a non-null selectedPlan can be used as reliable proof of payment.
 		if (trustId && !isNaN(trustId)) {
+			const selectedPlan =
+				session.metadata?.selectedPlan === 'discounted' ? 'discounted' : 'full';
+			const deedRetrievalRequested = session.metadata?.addDeedRetrieval === 'true';
+
 			const existing = await db.query.trust.findFirst({
 				where: eq(trust.id, trustId),
 				columns: { status: true },
@@ -51,7 +57,12 @@ export const POST: RequestHandler = async ({ request }) => {
 			if (existing?.status === TrustStatus.AwaitingPayment) {
 				await db
 					.update(trust)
-					.set({ status: TrustStatus.AwaitingAnswers, updatedAt: now })
+					.set({
+						status: TrustStatus.AwaitingAnswers,
+						selectedPlan,
+						deedRetrievalRequested,
+						updatedAt: now,
+					})
 					.where(eq(trust.id, trustId));
 			}
 		}
