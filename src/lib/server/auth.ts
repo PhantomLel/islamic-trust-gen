@@ -7,6 +7,7 @@ import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 import { db } from '$lib/server/db';
 import { Resend } from 'resend';
+import { siteName } from '$lib/config';
 import { magicLinkEmail } from '$lib/server/emails/magicLink';
 
 const resend = new Resend(env.RESEND_API_KEY);
@@ -34,7 +35,7 @@ export const auth = betterAuth({
 				await resend.emails.send({
 					from: env.FROM_EMAIL,
 					to: email,
-					subject: 'Your sign-in link for Islamic Trust Generator',
+					subject: `Your sign-in link for ${siteName}`,
 					html: magicLinkEmail(url),
 				}).then(() => {
 					console.log(`[Magic Link] Successfully sent to ${email}: ${url}`);
