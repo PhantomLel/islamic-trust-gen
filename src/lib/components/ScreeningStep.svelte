@@ -2,6 +2,7 @@
 	import { siteName, screeningQuestions } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import CountySelector from './CountySelector.svelte';
+	import WhatsAppHelpLink from './WhatsAppHelpLink.svelte';
 
 	let { firstName, userEmail, trustId, onsubmit: onsubmitProp }: {
 		firstName: string;
@@ -119,7 +120,7 @@
 							</p>
 						{/if}
 
-						<div class="flex gap-3 mb-8">
+						<div class="flex gap-3 mb-6">
 							{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
 								{@const sel = currentQ ? screeningAnswers[currentQ.id] === opt.value : false}
 								<button onclick={() => currentQ && answer(currentQ.id, opt.value)}
@@ -128,6 +129,10 @@
 									{opt.label}
 								</button>
 							{/each}
+						</div>
+
+						<div class="mb-8 flex justify-center sm:justify-start">
+							<WhatsAppHelpLink message="I'm not sure about this question." />
 						</div>
 
 						{#if finalQuestionAnswered}

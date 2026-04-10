@@ -6,6 +6,7 @@ import { stripe } from '$lib/server/stripe';
 import { db } from '$lib/server/db';
 import { invoice, trust, TrustStatus } from '$lib/server/db/schema';
 import { paymentReceivedEmail } from '$lib/server/emails/paymentReceived';
+import { adminUserUrl, formatStripeAmount, notifyAdmins } from '$lib/server/notifyAdmins';
 import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 import type Stripe from 'stripe';
@@ -90,6 +91,33 @@ export const POST: RequestHandler = async ({ request }) => {
 					} catch (err) {
 						console.error('[Stripe webhook] Payment confirmation email failed:', err);
 					}
+				}
+
+				const trustWithUser = await db.query.trust.findFirst({
+					where: eq(trust.id, trustId),
+					with: { user: true },
+				});
+				const u = trustWithUser?.user;
+				if (u) {
+					await notifyAdmins(
+						`Payment received — trust #${trustId}`,
+						[
+							'Event: Payment received (Stripe checkout completed)',
+							`Trust ID: ${trustId}`,
+							`Trust status: ${TrustStatus.AwaitingAnswers} (post-payment intake unlocked)`,
+							`User ID: ${u.id}`,
+							`User name: ${u.name}`,
+							`User email: ${u.email}`,
+							`User county: ${u.county?.trim() ? u.county : '(not set)'}`,
+							`Joint trust: ${trustWithUser?.joint === null ? 'unknown' : trustWithUser.joint ? 'yes' : 'no'}`,
+							`Selected plan: ${selectedPlan}`,
+							`Deed retrieval add-on: ${deedRetrievalRequested ? 'yes' : 'no'}`,
+							`Stripe checkout session ID: ${sessionId}`,
+							`Amount total: ${formatStripeAmount(session.amount_total)}`,
+							`Checkout customer email: ${customerEmail ?? '(none)'}`,
+							`Open in admin: ${adminUserUrl(u.id)}`,
+						].join('\n')
+					);
 				}
 			}
 		}

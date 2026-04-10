@@ -11,6 +11,7 @@ import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
 import { siteName } from '$lib/config';
 import { magicLinkEmail } from '$lib/server/emails/magicLink';
+import { notifyAdmins } from '$lib/server/notifyAdmins';
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -19,6 +20,23 @@ export const auth = betterAuth({
 	secret: env.BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, { provider: 'pg' }),
 	databaseHooks: {
+		user: {
+			create: {
+				after: async (created) => {
+					if (!created?.id) return;
+					const lines = [
+						'Event: New user signup',
+						`User ID: ${created.id}`,
+						`Name: ${created.name ?? ''}`,
+						`Email: ${created.email ?? ''}`,
+						`Role: ${created.role ?? ''}`,
+						`Email verified: ${created.emailVerified === true ? 'yes' : 'no'}`,
+						`Created at: ${created.createdAt instanceof Date ? created.createdAt.toISOString() : String(created.createdAt ?? '')}`,
+					];
+					await notifyAdmins('New user signup', lines.join('\n'));
+				},
+			},
+		},
 		session: {
 			create: {
 				after: async (created) => {

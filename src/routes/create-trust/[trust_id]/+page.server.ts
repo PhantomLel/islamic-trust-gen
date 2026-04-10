@@ -11,6 +11,7 @@ import {
 } from '$lib/question-response-helpers';
 import type { QuestionResponseValue } from '$lib/config';
 import type { PageServerLoad, Actions } from './$types';
+import { adminUserUrl, notifyAdmins } from '$lib/server/notifyAdmins';
 
 type TrustRow = InferSelectModel<typeof trust>;
 
@@ -282,6 +283,36 @@ export const actions: Actions = {
 				updatedAt: new Date(),
 			})
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
+
+		const [profile, trustSnapshot] = await Promise.all([
+			db.query.user.findFirst({
+				where: eq(user.id, locals.user.id),
+				columns: { id: true, name: true, email: true, county: true },
+			}),
+			db.query.trust.findFirst({
+				where: and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)),
+				columns: { joint: true, deedRetrievalRequested: true },
+			}),
+		]);
+		if (profile) {
+			await notifyAdmins(
+				`Intake submitted — trust #${trustId}`,
+				[
+					'Event: User finished all questions and submitted intake for review',
+					`Trust ID: ${trustId}`,
+					`Trust status: ${TrustStatus.RequiresReview}`,
+					`Trust marked complete: yes`,
+					`User ID: ${profile.id}`,
+					`User name: ${profile.name}`,
+					`User email: ${profile.email}`,
+					`User county: ${profile.county?.trim() ? profile.county : '(not set)'}`,
+					`Selected plan: ${currentTrust.selectedPlan ?? ''}`,
+					`Joint trust: ${trustSnapshot == null || trustSnapshot.joint === null ? 'unknown' : trustSnapshot.joint ? 'yes' : 'no'}`,
+					`Deed retrieval add-on: ${trustSnapshot?.deedRetrievalRequested ? 'yes' : 'no'}`,
+					`Open in admin: ${adminUserUrl(profile.id)}`,
+				].join('\n')
+			);
+		}
 
 		return { completedPost: true };
 	},
