@@ -87,6 +87,27 @@
 
 	let currentQuestion = $derived(activeQuestions[currentIndex]);
 	let currentValue = $derived(currentQuestion ? (responses[currentQuestion.id] ?? null) : null);
+
+	/** Prefer top-aligned layout on all breakpoints (long forms); shorter steps center on md+. */
+	const tallQuestionTypes = new Set([
+		'heirs-calculator',
+		'ownership-allocation',
+		'heba',
+		'assets',
+		'separate-property',
+		'personal-property',
+		'trustee-on-first-death',
+		'successor-trustees',
+		'madhab',
+		'heir-preview',
+		'minor-distribution',
+		'non-charitable-bequests',
+		'house-deed',
+		'summary-review',
+	]);
+	let tallQuestionLayout = $derived(
+		currentQuestion ? tallQuestionTypes.has(currentQuestion.type) : false
+	);
 	let isFirst = $derived(currentIndex === 0);
 	let isLast = $derived(currentIndex === activeQuestions.length - 1);
 
@@ -327,7 +348,7 @@
 		</div>
 	</nav>
 
-	<div class="relative z-10 flex-1 flex overflow-hidden">
+	<div class="relative z-10 flex min-h-0 flex-1 overflow-hidden">
 
 		<QuestionnaireSidebar
 			{currentIndex}
@@ -339,9 +360,9 @@
 			onnavigate={goToQuestionById}
 		/>
 
-		<main class="flex-1 flex flex-col overflow-hidden">
+		<main class="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<!-- mobile progress -->
-			<div class="md:hidden px-6 pt-5 pb-3">
+			<div class="shrink-0 md:hidden px-6 pt-5 pb-3">
 				<div class="flex items-center justify-between mb-2">
 					<span class="text-[11px] text-navy/40 tracking-wider uppercase font-medium">
 						{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}
@@ -354,9 +375,18 @@
 				</div>
 			</div>
 
-			<!-- centered question -->
-		<div class="flex-1 flex {['heirs-calculator', 'ownership-allocation', 'heba', 'assets', 'separate-property', 'personal-property', 'trustee-on-first-death', 'successor-trustees', 'madhab', 'heir-preview', 'minor-distribution', 'non-charitable-bequests', 'house-deed', 'summary-review'].includes(currentQuestion.type) ? 'items-start overflow-y-auto pt-8 pb-4' : 'items-center'} justify-center px-6 md:px-16">
-		<div class="w-full {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'summary-review'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'}">
+			<!-- Scrollable question body: min-h-0 + overflow-y-auto required for flex children on mobile -->
+			<div
+				class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+			>
+				<div
+					class="flex min-h-full w-full flex-col px-6 py-4 pb-6 md:px-16 md:py-8 {tallQuestionLayout
+						? 'justify-start'
+						: 'justify-start md:justify-center'}"
+				>
+					<div
+						class="w-full {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'summary-review'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'} mx-auto"
+					>
 				<div class="hidden md:flex items-center gap-3 mb-8">
 						<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
 							{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}
@@ -388,11 +418,12 @@
 						deedRetrievalRequested={data.trust.deedRetrievalRequested}
 						selectedPlan={data.trust.selectedPlan}
 					/>
+					</div>
 				</div>
 			</div>
 
 			<!-- back / next -->
-			<div class="shrink-0 px-6 md:px-16 py-5 border-t border-navy/[0.06] flex flex-col gap-3">
+			<div class="shrink-0 border-t border-navy/[0.06] px-6 py-5 md:px-16 flex flex-col gap-3">
 				{#if completeBlockedMessage}
 					<div
 						class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900"
