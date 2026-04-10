@@ -38,9 +38,11 @@
 	"dependencies": {
 		"@neondatabase/serverless": "^1.0.2",
 		"@tailwindcss/vite": "^4.2.1",
+		"@types/video.js": "^7.3.58",
 		"@uploadthing/svelte": "^7.3.3",
 		"resend": "^6.9.2",
 		"stripe": "^22.0.0",
-		"uploadthing": "^7.7.4"
+		"uploadthing": "^7.7.4",
+		"video.js": "^8.23.7"
 	}
 }

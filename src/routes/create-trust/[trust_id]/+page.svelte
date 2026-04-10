@@ -18,6 +18,7 @@
 	import QuestionInput from '$lib/components/QuestionInput.svelte';
 	import QuestionnaireSidebar from '$lib/components/QuestionnaireSidebar.svelte';
 	import ScreeningStep from '$lib/components/ScreeningStep.svelte';
+	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 
 	/** Set to `true` to show the individual vs joint trust picker again. */
 	const showTrustTypeSelection = false;
@@ -111,6 +112,18 @@
 	let isFirst = $derived(currentIndex === 0);
 	let isLast = $derived(currentIndex === activeQuestions.length - 1);
 
+	// ── video interstitial ──
+	// When a question has a videoUrl, show the video screen first.
+	// showingVideo tracks whether we're on the video screen for the current question.
+	let showingVideo = $state(false);
+
+	// Reset to video screen whenever the question changes (if it has a video).
+	$effect(() => {
+		// reactive on currentIndex
+		void currentIndex;
+		showingVideo = !!(currentQuestion?.videoUrl);
+	});
+
 	function isCurrentQuestionComplete(): boolean {
 		if (!currentQuestion) return false;
 		return isQuestionResponseComplete(currentQuestion.type, currentValue, responses, {
@@ -193,6 +206,11 @@
 	}
 
 	function goBack() {
+		// If on the question screen and this question has a video, step back to the video first.
+		if (!showingVideo && currentQuestion?.videoUrl) {
+			showingVideo = true;
+			return;
+		}
 		if (!isFirst) goToQuestion(currentIndex - 1);
 	}
 
@@ -379,47 +397,84 @@
 			<div
 				class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
 			>
-				<div
-					class="flex min-h-full w-full flex-col px-6 py-4 pb-6 md:px-16 md:py-8 {tallQuestionLayout
-						? 'justify-start'
-						: 'justify-start md:justify-center'}"
-				>
+				{#if showingVideo && currentQuestion.videoUrl}
+					<!-- ── VIDEO INTERSTITIAL SCREEN ── -->
+					<div class="flex min-h-full w-full flex-col items-center justify-center px-6 py-8 md:px-16 md:py-10">
+						<div class="w-full max-w-2xl mx-auto">
+							<div class="hidden md:flex items-center gap-3 mb-8">
+								<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
+									{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}
+								</span>
+								<span class="w-4 h-px bg-navy/15"></span>
+								<span class="text-[11px] text-navy/30">{currentIndex + 1} of {activeQuestions.length}</span>
+							</div>
+
+							{#if currentQuestion.videoTitle}
+								<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-6">
+									{currentQuestion.videoTitle}
+								</h2>
+							{/if}
+
+							<VideoPlayer src={currentQuestion.videoUrl} />
+
+							<div class="mt-6 flex justify-center">
+								<button
+									onclick={() => (showingVideo = false)}
+									class="inline-flex items-center gap-2.5 px-7 py-3 rounded-xl text-sm font-medium text-cream bg-emerald-accent
+										   transition-all duration-200 hover:bg-emerald-accent/90 hover:shadow-lg hover:shadow-emerald-accent/20 cursor-pointer"
+								>
+									Go To Question
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+									</svg>
+								</button>
+							</div>
+						</div>
+					</div>
+				{:else}
+					<!-- ── QUESTION SCREEN ── -->
 					<div
-						class="w-full {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'summary-review'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'} mx-auto"
+						class="flex min-h-full w-full flex-col px-6 py-4 pb-6 md:px-16 md:py-8 {tallQuestionLayout
+							? 'justify-start'
+							: 'justify-start md:justify-center'}"
 					>
-				<div class="hidden md:flex items-center gap-3 mb-8">
-						<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
-							{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}
-						</span>
-						<span class="w-4 h-px bg-navy/15"></span>
-						<span class="text-[11px] text-navy/30">{currentIndex + 1} of {activeQuestions.length}</span>
-					</div>
+						<div
+							class="w-full {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'summary-review'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'} mx-auto"
+						>
+							<div class="hidden md:flex items-center gap-3 mb-8">
+								<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
+									{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}
+								</span>
+								<span class="w-4 h-px bg-navy/15"></span>
+								<span class="text-[11px] text-navy/30">{currentIndex + 1} of {activeQuestions.length}</span>
+							</div>
 
-					<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
-						{currentQuestion.text}
-					</h2>
-					{#if currentQuestion.subtext}
-						<p class="text-navy/50 text-base font-light max-w-md auto mb-8">{currentQuestion.subtext}</p>
-					{/if}
+							<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
+								{currentQuestion.text}
+							</h2>
+							{#if currentQuestion.subtext}
+								<p class="text-navy/50 text-base font-light max-w-md auto mb-8">{currentQuestion.subtext}</p>
+							{/if}
 
-					<QuestionInput
-						question={currentQuestion}
-						value={currentValue}
-						onresponse={setResponse}
-						onnext={goNext}
-						allResponses={responses}
-						onnavigate={goToQuestionById}
-						oncomplete={completeIntake}
-						{completing}
-						trustId={data.trust.id}
-						userId={data.userId}
-						userCounty={data.userCounty}
-						houseDeedUrl={data.trust.houseDeedUrl}
-						deedRetrievalRequested={data.trust.deedRetrievalRequested}
-						selectedPlan={data.trust.selectedPlan}
-					/>
+							<QuestionInput
+								question={currentQuestion}
+								value={currentValue}
+								onresponse={setResponse}
+								onnext={goNext}
+								allResponses={responses}
+								onnavigate={goToQuestionById}
+								oncomplete={completeIntake}
+								{completing}
+								trustId={data.trust.id}
+								userId={data.userId}
+								userCounty={data.userCounty}
+								houseDeedUrl={data.trust.houseDeedUrl}
+								deedRetrievalRequested={data.trust.deedRetrievalRequested}
+								selectedPlan={data.trust.selectedPlan}
+							/>
+						</div>
 					</div>
-				</div>
+				{/if}
 			</div>
 
 			<!-- back / next -->
@@ -433,7 +488,7 @@
 					</div>
 				{/if}
 				<div class="flex items-center justify-between">
-				<button onclick={goBack} disabled={isFirst}
+				<button onclick={goBack} disabled={isFirst && (showingVideo || !currentQuestion?.videoUrl)}
 					class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm text-navy/60
 						   transition-all hover:text-navy hover:bg-navy/[0.04]
 						   disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
@@ -442,7 +497,10 @@
 					</svg>
 					Back
 				</button>
-				{#if isLast && currentQuestion.type !== 'summary-review'}
+				{#if showingVideo}
+					<!-- On video screen, the primary CTA is the "Go To Question" button in the body; show nothing on the right -->
+					<div></div>
+				{:else if isLast && currentQuestion.type !== 'summary-review'}
 					<button onclick={completeIntake} disabled={completing}
 						class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-emerald-accent
 							   transition-all duration-200 hover:bg-emerald-accent/90 hover:shadow-lg hover:shadow-emerald-accent/15

@@ -27,6 +27,10 @@ export type Question = {
 	options?: string[];
 	depends?: QuestionDependency | QuestionDependency[];
 	defaultWhen?: { field: string; eq: string | boolean; value: string | boolean };
+	/** Optional video to display above the question input */
+	videoUrl?: string;
+	/** Optional title label shown above the video */
+	videoTitle?: string;
 };
 
 export type ChildResponse = {
@@ -193,6 +197,8 @@ export const prePaymentQuestions: Question[] = [
 		type: 'personal-data',
 		required: true,
 		bucket: 'personal',
+		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10mFr7q0dnzlcbr6eI10ZaOgjXxYfTdUkiNvD9',
+		videoTitle: 'Let\'s get started with some easy questions.',
 	},
 	{
 		id: "wife-data",
