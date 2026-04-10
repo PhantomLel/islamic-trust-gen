@@ -52,6 +52,7 @@ export const trust = pgTable('trust', {
 	charities: jsonb('charities').$type<string[]>(),
 	selectedPlan: text('selected_plan'), // 'full' or 'discounted'
 	deedRetrievalRequested: boolean('deed_retrieval_requested').notNull().default(false),
+	customPrice: integer('custom_price'), // admin-set override for the base $799 fee (in whole dollars)
 });
 
 export const invoice = pgTable('invoice', {

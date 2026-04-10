@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	return {
 		trustId,
-		amountUsd: DEFAULT_PREP_FEE,
+		amountUsd: existing.customPrice ?? DEFAULT_PREP_FEE,
 		userEmail: locals.user.email,
 		userName: locals.user.name,
 	};
@@ -54,7 +54,7 @@ export const actions: Actions = {
 		const selectedPlan = formData.get('selectedPlan') === 'discounted' ? 'discounted' : 'full';
 		const addDeedRetrieval = formData.get('addDeedRetrieval') === 'true';
 
-		const baseAmount = DEFAULT_PREP_FEE;
+		const baseAmount = existing.customPrice ?? DEFAULT_PREP_FEE;
 		const trustFeeAmount = selectedPlan === 'discounted'
 			? Math.max(0, baseAmount - CHARITY_DISCOUNT)
 			: baseAmount;

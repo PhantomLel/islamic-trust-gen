@@ -6,8 +6,10 @@
 
 	let { data } = $props();
 
-	let editingInvoiceId = $state<number | null>(null);
-	let editAmount = $state('');
+	let editingTrustId = $state<number | null>(null);
+	let editPrice = $state('');
+
+	const DEFAULT_PRICE = 799;
 
 	function getProgress(responses: { id: string; response: unknown }[]): number {
 		if (allIntakeQuestions.length === 0) return 0;
@@ -24,32 +26,49 @@
 		window.location.href = '/';
 	}
 
-	function getStatus(trust: typeof data.trusts[number] & { awaitingPayment?: boolean }): { label: string; color: string } {
-		if (trust.awaitingPayment) return { label: 'Awaiting Payment', color: 'bg-amber-400' };
-		if (trust.complete) return { label: 'Approved', color: 'bg-emerald-accent' };
-		if (trust.isEligible === false) return { label: 'Ineligible', color: 'bg-black/[0.04]' };
-		if (trust.isEligible === true) return { label: 'Eligible', color: 'bg-emerald-accent/60' };
-		return { label: 'Not Screened', color: 'bg-navy/10' };
+	function statusLabel(status: string): string {
+		const map: Record<string, string> = {
+			'started': 'Started',
+			'awaiting-payment': 'Awaiting Payment',
+			'awaiting-answers': 'Awaiting Answers',
+			'review': 'Requires Review',
+			'notarization-pending': 'Notarization Pending',
+			'completed': 'Completed',
+		};
+		return map[status] ?? status;
 	}
 
-	function startEditInvoice(invoiceId: number, currentAmount: number) {
-		editingInvoiceId = invoiceId;
-		editAmount = String(currentAmount);
+	function statusColor(status: string): string {
+		const map: Record<string, string> = {
+			'started': 'bg-navy/10 text-navy/60',
+			'awaiting-payment': 'bg-amber-50 text-amber-700',
+			'awaiting-answers': 'bg-blue-50 text-blue-700',
+			'review': 'bg-purple-50 text-purple-700',
+			'notarization-pending': 'bg-orange-50 text-orange-700',
+			'completed': 'bg-emerald-50 text-emerald-700',
+		};
+		return map[status] ?? 'bg-navy/10 text-navy/60';
 	}
 
-	function cancelEditInvoice() {
-		editingInvoiceId = null;
-		editAmount = '';
+	function planLabel(plan: string | null): string {
+		if (!plan) return '-';
+		return plan === 'full' ? 'Full' : 'Discounted';
+	}
+
+	function startEdit(trustId: number, currentPrice: number | null) {
+		editingTrustId = trustId;
+		editPrice = String(currentPrice ?? DEFAULT_PRICE);
+	}
+
+	function cancelEdit() {
+		editingTrustId = null;
+		editPrice = '';
 	}
 </script>
 
-<div class="min-h-screen w-screen bg-cream font-sans relative">
-	<div class="absolute inset-0 pointer-events-none"
-		style="background: radial-gradient(ellipse 80% 60% at 50% 30%, rgba(74,124,111,0.05) 0%, transparent 70%);">
-	</div>
-
+<div class="min-h-screen w-screen bg-cream font-sans">
 	<!-- top bar -->
-	<nav class="relative z-10 flex items-center justify-between px-6 md:px-8 py-5 border-b border-navy/[0.06] max-w-6xl mx-auto">
+	<nav class="flex items-center justify-between px-6 md:px-8 py-5 border-b border-navy/[0.06] max-w-7xl mx-auto">
 		<a href="/" class="flex items-center gap-2 text-navy font-semibold text-base tracking-tight">
 			<span class="w-2 h-2 rounded-full bg-emerald-accent"></span>
 			{siteName}
@@ -60,144 +79,150 @@
 		</div>
 	</nav>
 
-	<div class="relative z-10 max-w-6xl mx-auto px-6 md:px-8 py-10">
-		<!-- header -->
-		<div class="mb-10">
-			<h1 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight mb-2">Trusts</h1>
-			<p class="text-navy/45 text-sm font-light">{data.trusts.length} total trust{data.trusts.length !== 1 ? 's' : ''}</p>
+	<div class="max-w-7xl mx-auto px-6 md:px-8 py-10">
+		<div class="mb-8">
+			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">Trusts</h1>
+			<p class="text-navy/45 text-sm">{data.trusts.length} total</p>
 		</div>
 
 		{#if data.trusts.length === 0}
-			<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center">
-				<p class="text-navy/40 text-sm">No trusts created yet.</p>
+			<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center">
+				<p class="text-navy/40 text-sm">No trusts yet.</p>
 			</div>
 		{:else}
-			<div class="space-y-3">
-				{#each data.trusts as t}
-					{@const progress = getProgress(t.responses)}
-					{@const status = getStatus(t)}
-					{@const awaitingPayment = 'awaitingPayment' in t && t.awaitingPayment}
+			<div class="rounded-xl border border-navy/[0.06] overflow-hidden bg-white/70">
+				<div class="overflow-x-auto">
+					<table class="w-full text-sm text-left">
+						<thead>
+							<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
+								<th class="px-4 py-3 font-medium">User</th>
+								<th class="px-4 py-3 font-medium">Status</th>
+								<th class="px-4 py-3 font-medium">Type</th>
+								<th class="px-4 py-3 font-medium">Plan</th>
+								<th class="px-4 py-3 font-medium">Eligible</th>
+								<th class="px-4 py-3 font-medium">Progress</th>
+								<th class="px-4 py-3 font-medium">Price</th>
+								<th class="px-4 py-3 font-medium">Created</th>
+								<th class="px-4 py-3 font-medium"></th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each data.trusts as t}
+								{@const progress = getProgress(t.responses)}
+								{@const effectivePrice = t.customPrice ?? DEFAULT_PRICE}
+								{@const isCustom = t.customPrice !== null && t.customPrice !== DEFAULT_PRICE}
+								{@const hasPaid = t.selectedPlan !== null}
+								<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
+									<!-- User -->
+									<td class="px-4 py-3">
+										<div class="font-medium text-navy">{t.user.name}</div>
+										<div class="text-[11px] text-navy/40">{t.user.email}</div>
+									</td>
 
-					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden transition-all duration-200 hover:bg-white hover:shadow-lg hover:shadow-navy/[0.04] hover:-translate-y-0.5">
-					<a href="/admin/user/{t.user.id}" class="block">
-						<div class="group w-full flex items-center gap-4 px-6 py-5">
-							<!-- status dot -->
-							<div class="w-2.5 h-2.5 rounded-full shrink-0 {status.color}"></div>
-
-							<!-- user info -->
-							<div class="flex-1 min-w-0">
-								<div class="flex items-center gap-2">
-									<span class="text-sm font-medium text-navy truncate">{t.user.name}</span>
-									<span class="text-[11px] text-navy/30">&middot;</span>
-									<span class="text-[12px] text-navy/40 truncate">{t.user.email}</span>
-								</div>
-								<div class="flex items-center gap-3 mt-1 flex-wrap">
-									<span class="text-[11px] text-navy/35">
-										{t.joint === null ? 'Not selected' : t.joint ? 'Joint' : 'Individual'}
-									</span>
-									<span class="text-[11px] text-navy/20">&middot;</span>
-									<span class="text-[11px] text-navy/35">Created {formatDate(t.createdAt)}</span>
-
-									{#if t.isEligible === false}
-										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-navy/[0.04] text-navy/45 border border-navy/[0.08]">
-											<span class="w-1.5 h-1.5 rounded-full bg-rose-300"></span>
-											Ineligible
+									<!-- Status -->
+									<td class="px-4 py-3">
+										<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium {statusColor(t.status)}">
+											{statusLabel(t.status)}
 										</span>
-									{:else if t.isEligible === true}
-										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-navy/[0.04] text-navy/45 border border-navy/[0.08]">
-											<span class="w-1.5 h-1.5 rounded-full bg-emerald-accent/60"></span>
-											Eligible
-										</span>
-									{:else}
-										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-navy/[0.04] text-navy/35 border border-navy/[0.08]">
-											<span class="w-1.5 h-1.5 rounded-full bg-navy/20"></span>
-											Not Screened
-										</span>
-									{/if}
+									</td>
 
-									{#if t.user.requestedConsultation}
-										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-navy/[0.04] text-navy/45 border border-navy/[0.08]">
-											<span class="w-1.5 h-1.5 rounded-full bg-amber-300"></span>
-											Consultation Requested
-										</span>
-									{/if}
+									<!-- Type -->
+									<td class="px-4 py-3 text-navy/60">
+										{t.joint === null ? '-' : t.joint ? 'Joint' : 'Individual'}
+									</td>
 
-									{#if status.label === 'Awaiting Payment'}
-										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-navy/[0.04] text-navy/45 border border-navy/[0.08]">
-											<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-											Awaiting Payment
-										</span>
-									{/if}
-								</div>
-							</div>
+									<!-- Plan -->
+									<td class="px-4 py-3 text-navy/60">
+										{planLabel(t.selectedPlan)}
+									</td>
 
-							<!-- progress -->
-							<div class="hidden sm:flex items-center gap-3 shrink-0">
-								<div class="w-24 h-1.5 rounded-full bg-navy/[0.06] overflow-hidden">
-									<div class="h-full rounded-full transition-all duration-500
-												{t.complete ? 'bg-emerald-accent' : progress > 0 ? 'bg-amber-400' : 'bg-navy/10'}"
-										style="width: {progress}%"></div>
-								</div>
-								<span class="text-[11px] text-navy/40 w-8 text-right">{progress}%</span>
-							</div>
+									<!-- Eligible -->
+									<td class="px-4 py-3">
+										{#if t.isEligible === true}
+											<span class="inline-block w-2 h-2 rounded-full bg-emerald-accent" title="Eligible"></span>
+										{:else if t.isEligible === false}
+											<span class="inline-block w-2 h-2 rounded-full bg-rose-400" title="Ineligible"></span>
+										{:else}
+											<span class="inline-block w-2 h-2 rounded-full bg-navy/20" title="Not screened"></span>
+										{/if}
+									</td>
 
-							<!-- arrow -->
-							<svg class="w-4 h-4 text-navy/20 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-							</svg>
-						</div>
-					</a>
+									<!-- Progress -->
+									<td class="px-4 py-3">
+										<div class="flex items-center gap-2">
+											<div class="w-16 h-1.5 rounded-full bg-navy/[0.06] overflow-hidden">
+												<div
+													class="h-full rounded-full {progress === 100 ? 'bg-emerald-accent' : progress > 0 ? 'bg-amber-400' : 'bg-navy/10'}"
+													style="width: {progress}%"
+												></div>
+											</div>
+											<span class="text-[11px] text-navy/40 tabular-nums">{progress}%</span>
+										</div>
+									</td>
 
-					{#if awaitingPayment && t.invoices?.length}
-						<div class="border-t border-navy/[0.06] px-6 py-3 flex items-center gap-4 flex-wrap">
-							{#each t.invoices.filter((i: any) => !i.paid) as inv (inv.id)}
-								<div class="flex items-center gap-2 text-[12px]">
-									<span class="text-navy/50">{inv.name}:</span>
-									{#if editingInvoiceId === inv.id}
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<!-- svelte-ignore a11y_click_events_have_key_events -->
-										<span onclick={(e: MouseEvent) => e.preventDefault()} class="contents">
-											<form
-												method="POST"
-												action="?/updateInvoiceAmount"
-												use:enhance={() => {
-													return async ({ result }) => {
-														if (result.type === 'success') {
-															cancelEditInvoice();
-															await invalidateAll();
-														}
-													};
-												}}
-											>
-												<input type="hidden" name="invoiceId" value={inv.id} />
-												<div class="flex items-center gap-1.5">
-													<span class="text-navy/50">$</span>
-													<input
-														type="number"
-														name="amount"
-														bind:value={editAmount}
-														min="0"
-														class="w-20 px-2 py-0.5 rounded border border-navy/20 text-[12px] text-navy bg-white focus:outline-none focus:border-emerald-accent"
-													/>
-													<button type="submit" class="px-2 py-0.5 rounded bg-emerald-accent text-white text-[11px] font-medium cursor-pointer hover:bg-emerald-accent/90">Save</button>
-													<button type="button" onclick={() => cancelEditInvoice()} class="px-2 py-0.5 rounded bg-navy/10 text-navy/50 text-[11px] font-medium cursor-pointer hover:bg-navy/15">Cancel</button>
-												</div>
-											</form>
-										</span>
-									{:else}
-										<span class="font-medium text-navy tabular-nums">${inv.amount}</span>
-										<button
-											type="button"
-											onclick={(e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); startEditInvoice(inv.id, inv.amount); }}
-											class="text-[11px] text-emerald-accent hover:text-emerald-accent/80 cursor-pointer underline decoration-emerald-accent/30"
-										>edit</button>
-									{/if}
-								</div>
+									<!-- Price -->
+									<td class="px-4 py-3">
+										{#if editingTrustId === t.id}
+											<!-- svelte-ignore a11y_no_static_element_interactions -->
+											<!-- svelte-ignore a11y_click_events_have_key_events -->
+											<span onclick={(e: MouseEvent) => e.stopPropagation()} class="contents">
+												<form
+													method="POST"
+													action="?/updatePrice"
+													use:enhance={() => {
+														return async ({ result }) => {
+															if (result.type === 'success') {
+																cancelEdit();
+																await invalidateAll();
+															}
+														};
+													}}
+												>
+													<input type="hidden" name="trustId" value={t.id} />
+													<div class="flex items-center gap-1">
+														<span class="text-navy/50">$</span>
+														<input
+															type="number"
+															name="price"
+															bind:value={editPrice}
+															min="0"
+															class="w-16 px-1.5 py-0.5 rounded border border-navy/20 text-[12px] text-navy bg-white focus:outline-none focus:border-emerald-accent"
+														/>
+														<button type="submit" class="px-1.5 py-0.5 rounded bg-emerald-accent text-white text-[10px] font-medium cursor-pointer">Save</button>
+														<button type="button" onclick={() => cancelEdit()} class="px-1.5 py-0.5 rounded bg-navy/10 text-navy/50 text-[10px] cursor-pointer">Cancel</button>
+													</div>
+												</form>
+											</span>
+										{:else}
+											<span class="text-navy tabular-nums" class:text-emerald-700={isCustom} class:font-medium={isCustom}>
+												${effectivePrice}
+											</span>
+											{#if !hasPaid}
+												<button
+													type="button"
+													onclick={(e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); startEdit(t.id, t.customPrice); }}
+													class="ml-1 text-[10px] text-emerald-accent hover:text-emerald-accent/80 cursor-pointer underline"
+												>edit</button>
+											{/if}
+										{/if}
+									</td>
+
+									<!-- Created -->
+									<td class="px-4 py-3 text-navy/50 text-[12px] whitespace-nowrap">
+										{formatDate(t.createdAt)}
+									</td>
+
+									<!-- Link -->
+									<td class="px-4 py-3">
+										<a href="/admin/user/{t.user.id}" class="text-emerald-accent hover:text-emerald-accent/80 text-[12px] font-medium">
+											View
+										</a>
+									</td>
+								</tr>
 							{/each}
-						</div>
-					{/if}
+						</tbody>
+					</table>
 				</div>
-				{/each}
 			</div>
 		{/if}
 	</div>
