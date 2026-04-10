@@ -68,7 +68,7 @@
 		</div>
 
 		<WhatsAppHelpLink
-			message="Hi, I have a question about the heba before completing my trust."
+			message="Asalamu alaikum, I have a question about the heba before completing my trust."
 			label="I have questions about this before I proceed"
 		/>
 	</div>

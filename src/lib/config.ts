@@ -229,6 +229,8 @@ export const prePaymentQuestions: Question[] = [
 		type: 'heirs-calculator',
 		required: true,
 		bucket: 'family',
+		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10IAIp6MPeFonb5wydHU6i2TYhqrPZDOkXj3RJ',
+		videoTitle: 'Now we need to know who will inherit your estate.'
 	},
 	{
 		id: 'wife-heirs',
@@ -249,6 +251,8 @@ export const postPaymentQuestions: Question[] = [
 		type: 'ownership-allocation',
 		required: true,
 		bucket: 'property',
+		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10xGGHSRKgUH105vesNS8Z4FiXfaME62wjuchA',
+		videoTitle: 'What wealth is yours?'
 	},
 	{
 		id: "heba",
@@ -311,6 +315,8 @@ export const postPaymentQuestions: Question[] = [
 		type: 'minor-distribution',
 		required: true,
 		bucket: 'trust',
+		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10nJllLYDNQrS24zUAo7hYkq0V6PBGpLRuJayO',
+		videoTitle: 'Children\'s inheritance distribution'
 	},
 	{
 		id: "charities",
@@ -318,6 +324,8 @@ export const postPaymentQuestions: Question[] = [
 		type: 'charities',
 		required: false,
 		bucket: 'property',
+		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10jg4aEPhmudJDCr4YbfQNXe7lI3BRHgcLvPUk',
+		videoTitle: 'Let your wealth be a blessing to others.'
 
 	},
 	{
