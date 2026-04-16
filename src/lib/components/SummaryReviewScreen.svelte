@@ -132,8 +132,11 @@
 		return null;
 	});
 
-	function charityName(id: string): string {
-		return charities.find((c) => c.id === id)?.name ?? id;
+	function charityLabel(ch: CharityResponse): string {
+		if (typeof ch.customName === 'string' && ch.customName.trim() !== '') {
+			return ch.customName.trim();
+		}
+		return charities.find((c) => c.id === ch.charityId)?.name ?? ch.charityId;
 	}
 
 	function ownerLabel(s: string): string {
@@ -444,9 +447,14 @@
 			{#if charitiesData && charitiesData.filter(c => c.percentage > 0).length > 0}
 				<div class="space-y-1.5">
 					{#each charitiesData.filter(c => c.percentage > 0) as ch}
-						<div class="flex items-baseline justify-between text-[13px]">
-							<span class="text-navy">{charityName(ch.charityId)}</span>
-							<span class="text-navy/60 tabular-nums">{ch.percentage}%</span>
+						<div class="flex items-baseline justify-between gap-3 text-[13px]">
+							<span class="text-navy">
+								{charityLabel(ch)}
+								{#if typeof ch.customEin === 'string' && ch.customEin.trim() !== ''}
+									<span class="text-navy/45 font-normal"> · EIN {ch.customEin.trim()}</span>
+								{/if}
+							</span>
+							<span class="text-navy/60 tabular-nums shrink-0">{ch.percentage}%</span>
 						</div>
 					{/each}
 				</div>
@@ -499,7 +507,7 @@
 		{#if discountedPledgeBlocksFinalize}
 			<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950 leading-relaxed">
 				Your discounted plan includes a charitable wasiyyah pledge. Use <strong>Edit</strong> on Charitable Bequests
-				above and allocate at least <strong>1%</strong> to one listed charity before you can finalize.
+				above and allocate at least <strong>1%</strong> to one eligible charity before you can finalize.
 			</div>
 		{/if}
 		<button

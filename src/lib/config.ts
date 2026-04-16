@@ -47,6 +47,9 @@ export type HeirResponse = {
 export type CharityResponse = {
 	charityId: string;
 	percentage: number;
+	/** When present, this row is a user-added charity (`charityId` is an opaque id). */
+	customName?: string;
+	customEin?: string;
 };
 
 /** HeirAllocationJSON extended with per-person names collected during the questionnaire. */

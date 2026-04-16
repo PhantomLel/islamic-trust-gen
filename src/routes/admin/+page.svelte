@@ -21,6 +21,45 @@
 		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 	}
 
+	function formatDateTime(iso: string): string {
+		return new Date(iso).toLocaleString('en-US', {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit',
+		});
+	}
+
+	const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+	function timeAgo(iso: string): string {
+		const diffSeconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
+		const steps: [Intl.RelativeTimeFormatUnit, number][] = [
+			['year', 31536000],
+			['month', 2592000],
+			['week', 604800],
+			['day', 86400],
+			['hour', 3600],
+			['minute', 60],
+			['second', 1],
+		];
+		for (const [unit, unitSec] of steps) {
+			if (Math.abs(diffSeconds) >= unitSec || unit === 'second') {
+				return rtf.format(Math.trunc(diffSeconds / unitSec), unit);
+			}
+		}
+		return rtf.format(0, 'second');
+	}
+
+	/** Visual hint: warmer = more recently updated */
+	function recencyDotClass(iso: string): string {
+		const hours = (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60);
+		if (hours <= 24) return 'bg-emerald-accent';
+		if (hours <= 24 * 7) return 'bg-amber-400';
+		return 'bg-navy/25';
+	}
+
 	async function handleLogout() {
 		await authClient.signOut();
 		window.location.href = '/';
@@ -96,6 +135,7 @@
 						<thead>
 							<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
 								<th class="px-4 py-3 font-medium">User</th>
+								<th class="px-4 py-3 font-medium">Last updated</th>
 								<th class="px-4 py-3 font-medium">Last device</th>
 								<th class="px-4 py-3 font-medium">Status</th>
 								<th class="px-4 py-3 font-medium">Type</th>
@@ -117,7 +157,21 @@
 									<!-- User -->
 									<td class="px-4 py-3">
 										<div class="font-medium text-navy">{t.user.name}</div>
-										<div class="text-[11px] text-navy/40">{t.user.email}</div>
+										<div class="text-[11px] text-navy/40 break-all">{t.user.email}</div>
+									</td>
+
+									<!-- Last updated -->
+									<td class="px-4 py-3 text-[12px] whitespace-nowrap">
+										<div class="flex items-start gap-2">
+											<span
+												class="mt-1.5 w-2 h-2 rounded-full shrink-0 {recencyDotClass(t.updatedAt)}"
+												aria-hidden="true"
+											></span>
+											<div class="min-w-0">
+												<div class="text-navy/60 tabular-nums">{formatDateTime(t.updatedAt)}</div>
+												<div class="text-[11px] text-navy/40">{timeAgo(t.updatedAt)}</div>
+											</div>
+										</div>
 									</td>
 
 									<td class="px-4 py-3 text-navy/60 text-[12px]">

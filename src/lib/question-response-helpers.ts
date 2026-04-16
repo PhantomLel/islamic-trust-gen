@@ -16,22 +16,41 @@ export const WASIYYAH_THIRD_PERCENT = 100 / 3;
 
 const CHARITY_ID_SET = new Set(configuredCharities.map((c) => c.id));
 
-/** Minimum charitable wasiyyah to one listed charity when the user chose the discounted (pledge) plan. */
+/** Minimum charitable wasiyyah to one preset or user-added charity when the user chose the discounted (pledge) plan. */
 export const DISCOUNTED_CHARITY_MIN_PCT = 1;
 
-/** True when at least one configured charity has a wasiyyah allocation at or above the discounted-plan minimum. */
+/** User-added charity row (name + EIN stored on the response). */
+export function isCustomCharityResponse(c: unknown): c is CharityResponse & { customName: string; customEin: string } {
+	return (
+		!!c &&
+		typeof c === 'object' &&
+		'customName' in c &&
+		typeof (c as CharityResponse).customName === 'string'
+	);
+}
+
+function meetsPledgeForCharityRow(c: CharityResponse): boolean {
+	if (
+		typeof c.charityId !== 'string' ||
+		typeof c.percentage !== 'number' ||
+		Number.isNaN(c.percentage) ||
+		c.percentage < DISCOUNTED_CHARITY_MIN_PCT - 1e-6
+	) {
+		return false;
+	}
+	if (CHARITY_ID_SET.has(c.charityId)) return true;
+	if (isCustomCharityResponse(c)) {
+		return c.customName.trim() !== '' && c.customEin.trim() !== '';
+	}
+	return false;
+}
+
+/** True when at least one listed or user-added charity has a wasiyyah allocation at or above the discounted-plan minimum. */
 export function meetsDiscountedCharityPledge(charitiesValue: unknown): boolean {
 	if (!Array.isArray(charitiesValue)) return false;
 	return charitiesValue.some((raw) => {
 		if (!raw || typeof raw !== 'object' || !('charityId' in raw)) return false;
-		const c = raw as CharityResponse;
-		return (
-			typeof c.charityId === 'string' &&
-			CHARITY_ID_SET.has(c.charityId) &&
-			typeof c.percentage === 'number' &&
-			!Number.isNaN(c.percentage) &&
-			c.percentage >= DISCOUNTED_CHARITY_MIN_PCT - 1e-6
-		);
+		return meetsPledgeForCharityRow(raw as CharityResponse);
 	});
 }
 
@@ -170,12 +189,18 @@ export function isChildResponseComplete(child: Partial<ChildResponse>): boolean 
 }
 
 export function isCharityResponseComplete(charity: Partial<CharityResponse>): boolean {
-	return (
-		typeof charity.charityId === 'string' &&
-		charity.charityId.trim() !== '' &&
-		typeof charity.percentage === 'number' &&
-		charity.percentage > 0
-	);
+	if (
+		typeof charity.charityId !== 'string' ||
+		charity.charityId.trim() === '' ||
+		typeof charity.percentage !== 'number' ||
+		charity.percentage <= 0
+	) {
+		return false;
+	}
+	if (isCustomCharityResponse(charity)) {
+		return charity.customName.trim() !== '' && charity.customEin.trim() !== '';
+	}
+	return true;
 }
 
 export function isHeirResponseComplete(heir: Partial<HeirResponse>): boolean {

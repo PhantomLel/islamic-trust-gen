@@ -270,7 +270,7 @@ export const actions: Actions = {
 			throw error(
 				400,
 				currentTrust.selectedPlan === 'discounted'
-					? 'Intake incomplete: the discounted plan requires at least 1% of wasiyyah to one listed charity.'
+					? 'Intake incomplete: the discounted plan requires at least 1% of wasiyyah to one eligible charity (listed or added by you).'
 					: 'Intake incomplete'
 			);
 		}

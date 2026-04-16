@@ -9,6 +9,7 @@
 	} from '$lib/config';
 	import { charities } from '$lib/config';
 	import {
+		isCustomCharityResponse,
 		isPersonalDataShape,
 		meetsDiscountedCharityPledge,
 		WASIYYAH_THIRD_PERCENT
@@ -125,16 +126,32 @@
 		onresponse(next.length > 0 ? next : null);
 	}
 
+	function newCustomCharityId(): string {
+		if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+			return crypto.randomUUID();
+		}
+		return `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+	}
+
 	function getCharities(): CharityResponse[] {
 		if (!Array.isArray(value)) return [];
 		return value
 			.filter((item): item is CharityResponse => 
 				!!item && typeof item === 'object' && 'charityId' in item
 			)
-			.map((charity) => ({
-				charityId: charity.charityId ?? '',
-				percentage: charity.percentage ?? 0
-			}));
+			.map((charity) => {
+				const charityId = charity.charityId ?? '';
+				const percentage = charity.percentage ?? 0;
+				if (isCustomCharityResponse(charity)) {
+					return {
+						charityId,
+						percentage,
+						customName: charity.customName ?? '',
+						customEin: typeof charity.customEin === 'string' ? charity.customEin : ''
+					};
+				}
+				return { charityId, percentage };
+			});
 	}
 
 	function isCharitySelected(charityId: string): boolean {
@@ -155,6 +172,30 @@
 	function updateCharityPercentage(charityId: string, percentage: number) {
 		const current = getCharities();
 		onresponse(current.map((c) => c.charityId === charityId ? { ...c, percentage } : c));
+	}
+
+	function addCustomCharity() {
+		const current = getCharities();
+		onresponse([
+			...current,
+			{ charityId: newCustomCharityId(), percentage: 0, customName: '', customEin: '' }
+		]);
+	}
+
+	function removeCustomCharity(charityId: string) {
+		const current = getCharities().filter((c) => c.charityId !== charityId);
+		onresponse(current.length > 0 ? current : null);
+	}
+
+	function updateCustomCharityField(charityId: string, field: 'customName' | 'customEin', fieldValue: string) {
+		const current = getCharities();
+		onresponse(
+			current.map((c) =>
+				c.charityId === charityId && isCustomCharityResponse(c)
+					? { ...c, [field]: fieldValue }
+					: c
+			)
+		);
 	}
 
 	function getTotalCharityPercentage(): number {
@@ -436,10 +477,10 @@
 				role="status"
 			>
 				{#if discountedPledgeMet}
-					Your wasiyyah pledge is satisfied: at least 1% is allocated to a listed charity.
+					Your wasiyyah pledge is satisfied: at least 1% is allocated to a charity you selected.
 				{:else}
 					You chose the discounted rate. To continue, allocate <strong>at least 1%</strong> of your wasiyyah to
-					<strong>one</strong> of the charities below.
+					<strong>one</strong> of the charities below (listed or one you add).
 				{/if}
 			</div>
 		{/if}
@@ -510,6 +551,77 @@
 				</div>
 			</div>
 		{/each}
+
+		<div class="rounded-xl border border-navy/10 bg-navy/[0.02] p-4 mt-4">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
+				<div>
+					<h3 class="text-sm font-medium text-navy">Other charities</h3>
+					<p class="text-xs text-navy/55 mt-0.5">Add any U.S. charity by legal name and EIN (Employer Identification Number).</p>
+				</div>
+				<button
+					type="button"
+					onclick={addCustomCharity}
+					class="shrink-0 px-3 py-2 rounded-lg text-sm font-medium border border-emerald-accent/30 text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 transition-colors cursor-pointer"
+				>
+					Add charity
+				</button>
+			</div>
+			{#each getCharities().filter((c) => isCustomCharityResponse(c)) as custom}
+				<div class="rounded-lg border border-navy/10 bg-white p-3 mb-3 last:mb-0">
+					<div class="grid gap-3 sm:grid-cols-2">
+						<div>
+							<label for={`custom-name-${custom.charityId}`} class="block text-xs text-navy/55 mb-1">Legal name</label>
+							<input
+								id={`custom-name-${custom.charityId}`}
+								type="text"
+								value={custom.customName}
+								oninput={(e) => updateCustomCharityField(custom.charityId, 'customName', e.currentTarget.value)}
+								placeholder="Charity legal name"
+								class="w-full px-3 py-2 rounded-lg border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
+							/>
+						</div>
+						<div>
+							<label for={`custom-ein-${custom.charityId}`} class="block text-xs text-navy/55 mb-1">EIN</label>
+							<input
+								id={`custom-ein-${custom.charityId}`}
+								type="text"
+								value={custom.customEin}
+								oninput={(e) => updateCustomCharityField(custom.charityId, 'customEin', e.currentTarget.value)}
+								placeholder="e.g. 12-3456789"
+								class="w-full px-3 py-2 rounded-lg border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
+							/>
+						</div>
+					</div>
+					<div class="mt-3 flex flex-wrap items-center gap-3">
+						<label for={`${custom.charityId}-custom-pct`} class="text-sm text-navy/70 whitespace-nowrap">Wasiyyah %</label>
+						<div class="flex items-center gap-2 flex-1 max-w-xs">
+							<input
+								id={`${custom.charityId}-custom-pct`}
+								type="number"
+								min="0"
+								max="100"
+								step="0.1"
+								value={custom.percentage}
+								oninput={(e) => {
+									const val = parseFloat(e.currentTarget.value);
+									if (!isNaN(val)) updateCharityPercentage(custom.charityId, val);
+								}}
+								class="w-full px-3 py-2 rounded-lg border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
+								placeholder="0"
+							/>
+							<span class="text-sm text-navy/50 shrink-0">%</span>
+						</div>
+						<button
+							type="button"
+							onclick={() => removeCustomCharity(custom.charityId)}
+							class="ml-auto text-xs font-medium text-navy/45 hover:text-red-600 transition-colors cursor-pointer"
+						>
+							Remove
+						</button>
+					</div>
+				</div>
+			{/each}
+		</div>
 		
 		<div class="space-y-2 mt-3 pt-3 border-t border-navy/10">
 			{#if selectedCharities.length > 0}
@@ -539,7 +651,7 @@
 					</div>
 				{/if}
 			{:else}
-				<p class="text-xs text-navy/40 text-center">Select one or more charities above to allocate a percentage of your wasiyyah</p>
+				<p class="text-xs text-navy/40 text-center">Select listed charities and/or add your own below to allocate wasiyyah</p>
 			{/if}
 		</div>
 	</div>

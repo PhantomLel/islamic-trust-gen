@@ -11,6 +11,7 @@
 		type QuestionResponseValue
 	} from '$lib/config';
 	import {
+		isCustomCharityResponse,
 		isNonCharitableBequestsShape,
 		isPersonalDataShape,
 		isQuestionResponseAnswered
@@ -129,11 +130,52 @@
 			.filter((charity) => !!charity && typeof charity === 'object')
 			.map((charity) => {
 				const entry = charity as Partial<CharityResponse>;
-				return {
+				const base: CharityResponse = {
 					charityId: typeof entry.charityId === 'string' ? entry.charityId : '',
 					percentage: typeof entry.percentage === 'number' ? entry.percentage : 0
 				};
+				if (typeof entry.customName === 'string') {
+					return {
+						...base,
+						customName: entry.customName,
+						customEin: typeof entry.customEin === 'string' ? entry.customEin : ''
+					};
+				}
+				return base;
 			});
+	}
+
+	function newAdminCustomCharityId(): string {
+		if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+			return crypto.randomUUID();
+		}
+		return `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+	}
+
+	function addEditCustomCharity(questionId: string) {
+		const current = getEditCharities(questionId);
+		setEditValue(questionId, [
+			...current,
+			{ charityId: newAdminCustomCharityId(), percentage: 0, customName: '', customEin: '' }
+		]);
+	}
+
+	function removeEditCustomCharity(questionId: string, charityId: string) {
+		const current = getEditCharities(questionId).filter((c) => c.charityId !== charityId);
+		setEditValue(questionId, current.length > 0 ? current : null);
+	}
+
+	function updateEditCustomCharityField(
+		questionId: string,
+		charityId: string,
+		field: 'customName' | 'customEin',
+		fieldValue: string
+	) {
+		const current = getEditCharities(questionId);
+		const next = current.map((c) =>
+			c.charityId === charityId && isCustomCharityResponse(c) ? { ...c, [field]: fieldValue } : c
+		);
+		setEditValue(questionId, next);
 	}
 
 	function getEditCharities(questionId: string): CharityResponse[] {
@@ -453,6 +495,64 @@
 										</div>
 									</div>
 								{/each}
+
+								<div class="mt-3 pt-3 border-t border-navy/10 space-y-2">
+									<div class="flex items-center justify-between gap-2">
+										<span class="text-[11px] font-medium text-navy/55">Other charities (name + EIN)</span>
+										<button
+											type="button"
+											onclick={() => addEditCustomCharity(q.id)}
+											class="px-2.5 py-1 rounded-md text-[11px] font-medium border border-emerald-accent/25 text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 transition-colors cursor-pointer"
+										>
+											Add charity
+										</button>
+									</div>
+									{#each getEditCharities(q.id).filter((c) => isCustomCharityResponse(c)) as custom}
+										<div class="rounded-md border border-navy/10 bg-white p-2 space-y-2">
+											<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+												<input
+													type="text"
+													value={custom.customName}
+													oninput={(e) =>
+														updateEditCustomCharityField(q.id, custom.charityId, 'customName', e.currentTarget.value)}
+													placeholder="Legal name"
+													class="px-2 py-1.5 rounded-md text-[12px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40"
+												/>
+												<input
+													type="text"
+													value={custom.customEin}
+													oninput={(e) =>
+														updateEditCustomCharityField(q.id, custom.charityId, 'customEin', e.currentTarget.value)}
+													placeholder="EIN"
+													class="px-2 py-1.5 rounded-md text-[12px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40"
+												/>
+											</div>
+											<div class="flex items-center gap-2">
+												<input
+													type="number"
+													min="0"
+													max="100"
+													step="0.1"
+													value={custom.percentage}
+													oninput={(e) => {
+														const val = parseFloat(e.currentTarget.value);
+														if (!isNaN(val)) updateEditCharityPercentage(q.id, custom.charityId, val);
+													}}
+													class="w-16 px-2 py-1 rounded-md border border-navy/10 text-[11px] text-navy outline-none transition-all focus:border-emerald-accent/40"
+													placeholder="0"
+												/>
+												<span class="text-[11px] text-navy/50">%</span>
+												<button
+													type="button"
+													onclick={() => removeEditCustomCharity(q.id, custom.charityId)}
+													class="ml-auto text-[11px] text-navy/45 hover:text-red-600 transition-colors cursor-pointer"
+												>
+													Remove
+												</button>
+											</div>
+										</div>
+									{/each}
+								</div>
 								
 								{#if editChars.length > 0}
 									{@const totalEditPercentage = getEditCharityTotalPercentage(q.id)}
@@ -593,13 +693,17 @@
 								{@const totalViewPercentage = charitiesData.reduce((sum, c) => sum + (c.percentage || 0), 0)}
 								<div class="space-y-1.5">
 									{#each charitiesData as charityData}
-										{@const charity = charities.find((c) => c.id === charityData.charityId)}
-										{#if charity}
-											<div class="text-[13px] text-navy font-medium">
-												{charity.name}
-												<span class="text-navy/35 font-normal"> — {charityData.percentage}%</span>
-											</div>
-										{/if}
+										{@const preset = charities.find((c) => c.id === charityData.charityId)}
+										<div class="text-[13px] text-navy font-medium">
+											{#if preset}
+												{preset.name}
+											{:else if typeof charityData.customName === 'string' && charityData.customName.trim() !== ''}
+												{charityData.customName.trim()}{#if typeof charityData.customEin === 'string' && charityData.customEin.trim() !== ''}<span class="text-navy/35 font-normal"> · EIN {charityData.customEin.trim()}</span>{/if}
+											{:else}
+												<span class="text-navy/50">Custom charity</span>
+											{/if}
+											<span class="text-navy/35 font-normal"> — {charityData.percentage}%</span>
+										</div>
 									{/each}
 									<div class="mt-2 pt-2 border-t border-navy/10">
 										<div class="text-[11px] text-navy/50">
