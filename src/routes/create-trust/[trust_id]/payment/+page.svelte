@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { siteName } from '$lib/config';
+	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 	import { authClient } from '$lib/auth-client';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
@@ -63,17 +64,17 @@
 			</p>
 		</div>
 
-		<!-- Wasiyyah video placeholder -->
-	
-		<div class="rounded-2xl overflow-hidden border border-navy/[0.07] bg-navy/[0.02]">
-			<div class="aspect-video flex flex-col items-center justify-center gap-4 bg-navy/[0.03]">
-				<div class="w-16 h-16 rounded-full bg-white/70 border border-navy/[0.08] flex items-center justify-center shadow-sm">
-					<svg class="w-6 h-6 text-navy/40 translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
-						<path d="M8 5v14l11-7z" />
-					</svg>
-				</div>
-				<p class="text-[13px] text-navy/40 font-light">Video: Understanding Wasiyyah in Islamic Estate Planning</p>
-			</div>
+		<!-- Wasiyyah video -->
+		<div class="space-y-3">
+			<VideoPlayer
+				src="https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10jg4aEPhmudJDCr4YbfQNXe7lI3BRHgcLvPUk"
+				title="Your Wasiyyah is a commitment to charity"
+			/>
+			<p class="text-[13px] text-navy/50 font-light leading-relaxed">
+				Before any money is distributed to your heirs, you can bequest up to 1/3 of your wealth to almost any cause. We are
+				offering to give you a ${CHARITY_DISCOUNT} discount if you pledge even 1% of your wealth to any charity of your
+				choosing. You will select where to donate later.
+			</p>
 		</div>
 
 		<!-- Plan selection -->
