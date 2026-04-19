@@ -1,4 +1,4 @@
-import { error, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { trust, user, TrustStatus } from '$lib/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -21,6 +21,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const hasPaid = trusts.some((t) => t.selectedPlan !== null);
 
 	return {
+		currentAdminId: locals.user.id,
 		targetUser: {
 			id: targetUser.id,
 			name: targetUser.name,
@@ -86,5 +87,31 @@ export const actions: Actions = {
 		}).where(eq(user.id, userId));
 
 		return { toggled: true };
+	},
+
+	deleteUser: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const userId = formData.get('userId');
+		if (typeof userId !== 'string' || !userId.trim()) {
+			return fail(400, { message: 'Missing user ID' });
+		}
+		if (locals.user.id === userId) {
+			return fail(400, { message: 'You cannot delete your own account.' });
+		}
+
+		const target = await db.query.user.findFirst({
+			where: eq(user.id, userId),
+		});
+		if (!target) {
+			return fail(404, { message: 'User not found.' });
+		}
+		if (target.role === 'admin') {
+			return fail(400, { message: 'Admin accounts cannot be deleted from this screen.' });
+		}
+
+		await db.delete(user).where(eq(user.id, userId));
+		redirect(303, '/admin');
 	},
 };

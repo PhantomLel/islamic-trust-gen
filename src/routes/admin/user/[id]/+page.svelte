@@ -1,12 +1,20 @@
 <script lang="ts">
 	import { siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import AdminQuestionResponses from '$lib/components/AdminQuestionResponses.svelte';
 
 	let { data } = $props();
 
 	let trust = $derived(data.trusts[0] ?? null);
+
+	let canDeleteUser = $derived(
+		data.targetUser.id !== data.currentAdminId && data.targetUser.role !== 'admin'
+	);
+
+	let showDeleteModal = $state(false);
+	let deleteError = $state<string | null>(null);
 
 	let copiedEmail = $state(false);
 
@@ -40,6 +48,15 @@
 	async function handleLogout() {
 		await authClient.signOut();
 		window.location.href = '/';
+	}
+
+	function openDeleteModal() {
+		deleteError = null;
+		showDeleteModal = true;
+	}
+
+	function closeDeleteModal() {
+		showDeleteModal = false;
 	}
 </script>
 
@@ -133,6 +150,17 @@
 							Awaiting Payment
 						</span>
 					{/if}
+
+					{#if canDeleteUser}
+						<button
+							type="button"
+							onclick={openDeleteModal}
+							class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition-all cursor-pointer
+								border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100"
+						>
+							Delete user
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -146,4 +174,70 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if showDeleteModal}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-navy/25 backdrop-blur-sm"
+			onclick={closeDeleteModal}
+			role="presentation"
+		>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="relative max-w-md w-full bg-white rounded-2xl shadow-2xl shadow-navy/15 p-7 outline-none border border-navy/[0.06]"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="delete-user-title"
+				tabindex="-1"
+			>
+				<h3 id="delete-user-title" class="text-lg font-semibold text-navy mb-2">
+					Delete this user?
+				</h3>
+				<p class="text-[13px] text-navy/65 leading-relaxed mb-1">
+					This will permanently remove <span class="font-medium text-navy">{data.targetUser.name}</span>
+					(<span class="font-mono text-[12px]">{data.targetUser.email}</span>) and all associated data
+					including trusts and invoices. This cannot be undone.
+				</p>
+				{#if deleteError}
+					<p class="mt-3 text-[13px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
+						{deleteError}
+					</p>
+				{/if}
+				<form
+					method="POST"
+					action="?/deleteUser"
+					use:enhance={() => {
+						return async ({ result }) => {
+							if (result.type === 'redirect') {
+								closeDeleteModal();
+								await goto(result.location);
+							} else if (result.type === 'failure') {
+								const d = result.data as { message?: string } | undefined;
+								deleteError = d?.message ?? 'Could not delete user.';
+							}
+						};
+					}}
+					class="mt-6 flex flex-col-reverse sm:flex-row gap-3"
+				>
+					<input type="hidden" name="userId" value={data.targetUser.id} />
+					<button
+						type="button"
+						onclick={closeDeleteModal}
+						class="flex-1 py-2.5 rounded-xl text-sm font-medium text-navy bg-navy/6 hover:bg-navy/10 transition-colors cursor-pointer"
+					>
+						Cancel
+					</button>
+					<button
+						type="submit"
+						class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer"
+					>
+						Delete permanently
+					</button>
+				</form>
+			</div>
+		</div>
+	{/if}
 </div>
