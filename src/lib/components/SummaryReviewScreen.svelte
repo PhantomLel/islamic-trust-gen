@@ -11,14 +11,15 @@
 		PersonalPropertyEntry,
 		SeparatePropertyResponse,
 		SuccessorTrusteeEntry,
+		PourOverRepresentativeEntry,
 	} from '$lib/config';
-	import { charities } from '$lib/config';
+	import { allIntakeQuestions, charities } from '$lib/config';
 	import {
+		isIntakePhaseComplete,
 		isPersonalDataShape,
 		isNonCharitableBequestsShape,
 		meetsDiscountedCharityPledge,
 	} from '$lib/question-response-helpers';
-	import WhatsAppHelpLink from '$lib/components/WhatsAppHelpLink.svelte';
 
 	let {
 		value,
@@ -45,7 +46,7 @@
 	let showConfirmModal = $state(false);
 
 	function openConfirmModal() {
-		if (!completing && !discountedPledgeBlocksFinalize) showConfirmModal = true;
+		if (!completing && !cannotFinalize) showConfirmModal = true;
 	}
 
 	function closeConfirmModal() {
@@ -102,6 +103,17 @@
 		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.fullName === 'string') return v as SuccessorTrusteeEntry[];
 		return null;
 	});
+	function pourOverList(key: string): PourOverRepresentativeEntry[] | null {
+		const v = allResponses[key];
+		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.fullName === 'string') {
+			return v as PourOverRepresentativeEntry[];
+		}
+		return null;
+	}
+	let husbandPersonalReps = $derived(pourOverList('husband-personal-representatives'));
+	let wifePersonalReps = $derived(pourOverList('wife-personal-representatives'));
+	let husbandGuardians = $derived(pourOverList('husband-guardians'));
+	let wifeGuardians = $derived(pourOverList('wife-guardians'));
 	let madhab = $derived(typeof allResponses['madhab'] === 'string' ? allResponses['madhab'] : null);
 	let husbandHeirs = $derived(heirs('husband-heirs'));
 	let wifeHeirs = $derived(heirs('wife-heirs'));
@@ -124,6 +136,10 @@
 	let discountedPledgeBlocksFinalize = $derived(
 		selectedPlan === 'discounted' && !meetsDiscountedCharityPledge(allResponses['charities'])
 	);
+	let intakeFullyComplete = $derived(
+		isIntakePhaseComplete(allResponses, allIntakeQuestions, { selectedPlan })
+	);
+	let cannotFinalize = $derived(!intakeFullyComplete || discountedPledgeBlocksFinalize);
 	let spHusbandItems = $derived(separateProperty?.husband?.filter(e => e.assetName.trim()) ?? []);
 	let spWifeItems = $derived(separateProperty?.wife?.filter(e => e.assetName.trim()) ?? []);
 	let personalPropertyData = $derived.by(() => {
@@ -361,6 +377,76 @@
 		</div>
 	</div>
 
+	<!-- Pour-Over Will: Personal Representatives -->
+	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
+		<div class="flex items-center justify-between px-5 py-3 bg-navy/3 border-b border-navy/8">
+			<h3 class="text-sm font-semibold text-navy">Pour-Over Will — Personal Representatives</h3>
+		</div>
+		<div class="px-5 py-4 space-y-4">
+			{#each [
+				{ label: `${husband?.name || 'Husband'}'s Personal Representatives`, list: husbandPersonalReps, id: 'husband-personal-representatives' },
+				{ label: `${wife?.name || 'Wife'}'s Personal Representatives`, list: wifePersonalReps, id: 'wife-personal-representatives' }
+			] as section}
+				<div>
+					<div class="flex items-center justify-between mb-2">
+						<div class="text-[11px] font-medium text-navy/40 tracking-wider uppercase">{section.label}</div>
+						<button type="button" onclick={() => onnavigate?.(section.id)} class={editBtnClass}>Edit</button>
+					</div>
+					{#if section.list && section.list.filter((t) => t.fullName.trim()).length > 0}
+						<ol class="space-y-2">
+							{#each section.list.filter((t) => t.fullName.trim()) as rep, i}
+								<li class="flex items-baseline gap-3">
+									<span class="text-[11px] font-semibold text-navy/30 tabular-nums">{i + 1}.</span>
+									<div>
+										<p class="text-sm text-navy font-medium">{rep.fullName}</p>
+										<p class="text-[13px] text-navy/55">{rep.relationship}{rep.contact ? ` · ${rep.contact}` : ''}</p>
+									</div>
+								</li>
+							{/each}
+						</ol>
+					{:else}
+						<p class="text-[13px] text-navy/40">None named</p>
+					{/if}
+				</div>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Pour-Over Will: Guardians -->
+	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
+		<div class="flex items-center justify-between px-5 py-3 bg-navy/3 border-b border-navy/8">
+			<h3 class="text-sm font-semibold text-navy">Pour-Over Will — Guardians</h3>
+		</div>
+		<div class="px-5 py-4 space-y-4">
+			{#each [
+				{ label: `${husband?.name || 'Husband'}'s Guardians`, list: husbandGuardians, id: 'husband-guardians' },
+				{ label: `${wife?.name || 'Wife'}'s Guardians`, list: wifeGuardians, id: 'wife-guardians' }
+			] as section}
+				<div>
+					<div class="flex items-center justify-between mb-2">
+						<div class="text-[11px] font-medium text-navy/40 tracking-wider uppercase">{section.label}</div>
+						<button type="button" onclick={() => onnavigate?.(section.id)} class={editBtnClass}>Edit</button>
+					</div>
+					{#if section.list && section.list.filter((t) => t.fullName.trim()).length > 0}
+						<ol class="space-y-2">
+							{#each section.list.filter((t) => t.fullName.trim()) as guardian, i}
+								<li class="flex items-baseline gap-3">
+									<span class="text-[11px] font-semibold text-navy/30 tabular-nums">{i + 1}.</span>
+									<div>
+										<p class="text-sm text-navy font-medium">{guardian.fullName}</p>
+										<p class="text-[13px] text-navy/55">{guardian.relationship}{guardian.contact ? ` · ${guardian.contact}` : ''}</p>
+									</div>
+								</li>
+							{/each}
+						</ol>
+					{:else}
+						<p class="text-[13px] text-navy/40">None named</p>
+					{/if}
+				</div>
+			{/each}
+		</div>
+	</div>
+
 	<!-- School of Jurisprudence -->
 	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
 		<div class="flex items-center justify-between px-5 py-3 bg-navy/3 border-b border-navy/8">
@@ -509,13 +595,17 @@
 				Your discounted plan includes a charitable wasiyyah pledge. Use <strong>Edit</strong> on Charitable Bequests
 				above and allocate at least <strong>1%</strong> to one eligible charity before you can finalize.
 			</div>
+		{:else if !intakeFullyComplete}
+			<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950 leading-relaxed">
+				Some required questions are still incomplete. Use the <strong>sidebar</strong> or <strong>Edit</strong> links above to finish each section before you can finalize.
+			</div>
 		{/if}
 		<button
 			type="button"
 			onclick={openConfirmModal}
-			disabled={completing || discountedPledgeBlocksFinalize}
+			disabled={completing || cannotFinalize}
 			class="w-full py-4 rounded-2xl text-base font-semibold transition-all duration-200 cursor-pointer
-				{completing || discountedPledgeBlocksFinalize
+				{completing || cannotFinalize
 					? 'text-cream/90 bg-navy/25 cursor-not-allowed'
 					: 'text-cream bg-emerald-accent hover:bg-emerald-accent/90 hover:shadow-xl hover:shadow-emerald-accent/15'}
 				disabled:cursor-not-allowed"
@@ -617,8 +707,4 @@
 		</div>
 	{/if}
 
-	<WhatsAppHelpLink
-		message="I have a question before I generate my trust."
-		label="I have a question before I generate my trust"
-	/>
 </div>

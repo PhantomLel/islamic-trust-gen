@@ -334,6 +334,13 @@ export function isQuestionResponseComplete(
 		);
 		return valid.length >= 2;
 	}
+	if (type === 'pour-over-representatives') {
+		if (!Array.isArray(value) || value.length === 0) return false;
+		const valid = value.filter(
+			(e) => e && typeof e === 'object' && typeof e.fullName === 'string' && e.fullName.trim() !== '' && typeof e.relationship === 'string' && e.relationship.trim() !== ''
+		);
+		return valid.length >= 1;
+	}
 	if (type === 'heir-preview' || type === 'summary-review') {
 		if (
 			type === 'summary-review' &&
@@ -397,4 +404,16 @@ export function getActiveQuestions(
 		return true;
 	});
 	return { active, autoValues };
+}
+
+/** True when every question in `questionList` that is active for `record` has a complete response. */
+export function isIntakePhaseComplete(
+	record: Record<string, QuestionResponseValue>,
+	questionList: Question[],
+	completionContext?: QuestionCompletionContext
+): boolean {
+	const { active } = getActiveQuestions(record, questionList);
+	return active.every((q) =>
+		isQuestionResponseComplete(q.type, record[q.id], record, completionContext)
+	);
 }

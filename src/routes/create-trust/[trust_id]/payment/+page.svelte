@@ -67,7 +67,7 @@
 		<!-- Wasiyyah video -->
 		<div class="space-y-3">
 			<VideoPlayer
-				src="https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10jg4aEPhmudJDCr4YbfQNXe7lI3BRHgcLvPUk"
+				src="https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10rT8uaA1glaJLmwS73iTIo6AeUxsZvfNkH4BC"
 				title="Your Wasiyyah is a commitment to charity"
 			/>
 			<p class="text-[13px] text-navy/50 font-light leading-relaxed">

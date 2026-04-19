@@ -21,7 +21,7 @@ export type Question = {
 	id: string;
 	text: string;
 	subtext?: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'assets' | 'separate-property' | 'personal-property' | 'trustee-on-first-death' | 'successor-trustees' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests' | 'house-deed' | 'summary-review';
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'assets' | 'separate-property' | 'personal-property' | 'trustee-on-first-death' | 'successor-trustees' | 'pour-over-representatives' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests' | 'house-deed' | 'summary-review';
 	required: boolean;
 	bucket: string;
 	options?: string[];
@@ -114,6 +114,13 @@ export type SuccessorTrusteeEntry = {
 	contact?: string;
 };
 
+/** Pour-over will personal representative or guardian nominee (shared shape). */
+export type PourOverRepresentativeEntry = {
+	fullName: string;
+	relationship: string;
+	contact?: string;
+};
+
 /** Wasiyyah to non-heirs; percentages only, combined with charities under one-third of estate. */
 export type NonCharitableBequestEntry = {
 	recipientName: string;
@@ -166,6 +173,7 @@ export type QuestionResponseValue =
 	| SeparatePropertyResponse
 	| PersonalPropertyEntry[]
 	| SuccessorTrusteeEntry[]
+	| PourOverRepresentativeEntry[]
 	| MinorDistributionResponse
 	| NonCharitableBequestsResponse;
 
@@ -174,6 +182,8 @@ export const buckets: Record<string, { label: string; icon: string }> = {
 	family: { label: 'Family', icon: 'users' },
 	property: { label: 'Property', icon: 'home' },
 	trust: { label: 'Trust', icon: 'scroll' },
+	will: { label: 'Will', icon: 'file-text' },
+	review: { label: 'Review', icon: 'check-circle' },
 };
 
 export type Charity = {
@@ -247,6 +257,7 @@ export const prePaymentQuestions: Question[] = [
 
 /** Shown only after the user has at least one paid invoice (see create-trust server). */
 export const postPaymentQuestions: Question[] = [
+	// ── Property ───────────────────────────────────────────────────────────
 	{
 		id: "ownership-allocation",
 		text: "How would you like to establish ownership of your marital property?",
@@ -273,7 +284,6 @@ export const postPaymentQuestions: Question[] = [
 		bucket: 'property',
 		depends: { field: 'ownership-allocation', eq: 'assets' },
 	},
-
 	{
 		id: "separate-property",
 		text: "Did either of you own property before the marriage, or receive a personal gift or inheritance during the marriage?",
@@ -281,7 +291,6 @@ export const postPaymentQuestions: Question[] = [
 		required: false,
 		bucket: 'property',
 	},
-
 	{
 		id: "personal-property",
 		text: "Do you have any high-value personal items to designate?",
@@ -289,7 +298,29 @@ export const postPaymentQuestions: Question[] = [
 		required: false,
 		bucket: 'property',
 	},
-
+	{
+		id: "charities",
+		text: "Would you like any of these charities to receive a portion of your wasiyyah?",
+		type: 'charities',
+		required: false,
+		bucket: 'property',
+	},
+	{
+		id: "non-charitable-bequests",
+		text: "Would either of you like to leave something to someone who is not an Islamic heir?",
+		type: 'non-charitable-bequests',
+		required: false,
+		bucket: 'property',
+	},
+	{
+		id: "house-deed",
+		text: "Upload Your House Deed",
+		subtext: "If you own a house, please upload a copy of your house deed. This helps us draft your trust accurately.",
+		type: 'house-deed',
+		required: false,
+		bucket: 'property',
+	},
+	// ── Trust ──────────────────────────────────────────────────────────────
 	{
 		id: "trustee-on-first-death",
 		text: "Who will manage your trust when you are no longer able to?",
@@ -304,7 +335,6 @@ export const postPaymentQuestions: Question[] = [
 		required: true,
 		bucket: 'trust',
 	},
-
 	{
 		id: "heir-preview",
 		text: "Here are your heirs and their estimated shares.",
@@ -322,31 +352,6 @@ export const postPaymentQuestions: Question[] = [
 		videoTitle: 'Children\'s inheritance distribution'
 	},
 	{
-		id: "charities",
-		text: "Would you like any of these charities to receive a portion of your wasiyyah?",
-		type: 'charities',
-		required: false,
-		bucket: 'property',
-		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10jg4aEPhmudJDCr4YbfQNXe7lI3BRHgcLvPUk',
-		videoTitle: 'Let your wealth be a blessing to others.'
-
-	},
-	{
-		id: "non-charitable-bequests",
-		text: "Would either of you like to leave something to someone who is not an Islamic heir?",
-		type: 'non-charitable-bequests',
-		required: false,
-		bucket: 'property',
-	},
-	{
-		id: "house-deed",
-		text: "Upload Your House Deed",
-		subtext: "If you own a house, please upload a copy of your house deed. This helps us draft your trust accurately.",
-		type: 'house-deed',
-		required: false,
-		bucket: 'property',
-	},
-	{
 		id: "madhab",
 		text: "Which school of Islamic jurisprudence do you follow?",
 		type: 'madhab',
@@ -362,13 +367,49 @@ export const postPaymentQuestions: Question[] = [
 		required: true,
 		bucket: 'trust',
 	},
+	// ── Pour-over will ─────────────────────────────────────────────────────
+	{
+		id: "husband-personal-representatives",
+		text: "Husband — who are the personal representatives on your pour-over will?",
+		subtext: "Your personal representative (also called an executor) manages your estate through probate before any remaining assets pour over into the trust. Name up to three, in order of preference.",
+		type: 'pour-over-representatives',
+		required: true,
+		bucket: 'will',
+		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10yXz3q1Ncb63rAR8KDBn2h140uEaitxHCSkwQ',
+		videoTitle: 'Pour-Over Will'
+	},
+	{
+		id: "husband-guardians",
+		text: "Husband — who are the guardians on your pour-over will?",
+		subtext: "If both spouses pass while any child is still a minor, the guardian is the person who raises your children. Name up to three, in order of preference.",
+		type: 'pour-over-representatives',
+		required: true,
+		bucket: 'will',
+	},
+	{
+		id: "wife-personal-representatives",
+		text: "Wife — who are the personal representatives on your pour-over will?",
+		subtext: "Your personal representative (also called an executor) manages your estate through probate before any remaining assets pour over into the trust. Name up to three, in order of preference.",
+		type: 'pour-over-representatives',
+		required: true,
+		bucket: 'will',
+	},
+	{
+		id: "wife-guardians",
+		text: "Wife — who are the guardians on your pour-over will?",
+		subtext: "If both spouses pass while any child is still a minor, the guardian is the person who raises your children. Name up to three, in order of preference.",
+		type: 'pour-over-representatives',
+		required: true,
+		bucket: 'will',
+	},
+	// ── Review ─────────────────────────────────────────────────────────────
 	{
 		id: "summary-review",
 		text: "Here is your trust — please review everything before we generate your document.",
 		type: 'summary-review',
 		required: true,
-		bucket: 'trust',
-	}
+		bucket: 'review',
+	},
 ];
 
 /** First question after payment (property / marital ownership); used when returning from checkout. */

@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { QuestionResponseValue } from '$lib/config';
 	import InfoPopout from './InfoPopout.svelte';
-	import WhatsAppHelpLink from './WhatsAppHelpLink.svelte';
-
 	let {
 		value,
 		onresponse,
@@ -67,10 +65,6 @@
 		</div>
 	</div>
 
-	<WhatsAppHelpLink
-		message="I have a question about which school applies to us."
-		label="I have a question about which school applies to us"
-	/>
 </div>
 
 <InfoPopout open={popout} onclose={() => (popout = false)} title="What is a school of jurisprudence?">

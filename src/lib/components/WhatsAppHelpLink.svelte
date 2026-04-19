@@ -1,7 +1,7 @@
 <script lang="ts">
 	let {
-		message = 'Hi, I have a question about my trust.',
-		label = 'I have questions — speak to an imam or attorney',
+		message = 'Not sure how to fill out this question?',
+		label = 'Speak with an imam or attorney',
 		phone = '+16194906369',
 		email = 'leonard@mcdanielestateplanning.com',
 	}: {

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { AssetAllocationEntry, QuestionResponseValue } from '$lib/config';
-	import WhatsAppHelpLink from './WhatsAppHelpLink.svelte';
 	import InfoPopout from './InfoPopout.svelte';
 
 	let {
@@ -140,10 +139,6 @@
 		</button>
 	</div>
 
-	<WhatsAppHelpLink
-		message="I'm not sure how to designate one of our assets."
-		label="I'm not sure how to designate one of our assets"
-	/>
 </div>
 
 <InfoPopout open={islamicPopout} onclose={() => (islamicPopout = false)} title='What does "Islamically owns it" mean?'>

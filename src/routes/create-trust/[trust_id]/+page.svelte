@@ -10,6 +10,7 @@
 	} from '$lib/config';
 	import {
 		getActiveQuestions,
+		isIntakePhaseComplete,
 		isQuestionResponseAnswered,
 		isQuestionResponseComplete,
 		meetsDiscountedCharityPledge
@@ -21,6 +22,7 @@
 	import QuestionnaireSidebar from '$lib/components/QuestionnaireSidebar.svelte';
 	import ScreeningStep from '$lib/components/ScreeningStep.svelte';
 	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
+	import WhatsAppHelpLink from '$lib/components/WhatsAppHelpLink.svelte';
 
 	/** Set to `true` to show the individual vs joint trust picker again. */
 	const showTrustTypeSelection = false;
@@ -93,26 +95,6 @@
 	let currentQuestion = $derived(activeQuestions[currentIndex]);
 	let currentValue = $derived(currentQuestion ? (responses[currentQuestion.id] ?? null) : null);
 
-	/** Prefer top-aligned layout on all breakpoints (long forms); shorter steps center on md+. */
-	const tallQuestionTypes = new Set([
-		'heirs-calculator',
-		'ownership-allocation',
-		'heba',
-		'assets',
-		'separate-property',
-		'personal-property',
-		'trustee-on-first-death',
-		'successor-trustees',
-		'madhab',
-		'heir-preview',
-		'minor-distribution',
-		'non-charitable-bequests',
-		'house-deed',
-		'summary-review',
-	]);
-	let tallQuestionLayout = $derived(
-		currentQuestion ? tallQuestionTypes.has(currentQuestion.type) : false
-	);
 	let isFirst = $derived(currentIndex === 0);
 	let isLast = $derived(currentIndex === activeQuestions.length - 1);
 
@@ -178,6 +160,7 @@
 
 	async function completeIntake() {
 		completeBlockedMessage = null;
+		const completionCtx = { selectedPlan: data.trust.selectedPlan };
 		if (
 			hasPaidInvoice &&
 			selectedPlan === 'discounted' &&
@@ -185,6 +168,11 @@
 		) {
 			completeBlockedMessage =
 				'You chose the discounted wasiyyah pledge. Allocate at least 1% of your wasiyyah to one of the listed charities before continuing.';
+			return;
+		}
+		if (!isIntakePhaseComplete(responses, intakeQuestions, completionCtx)) {
+			completeBlockedMessage =
+				'Please complete all questions before finalizing. Use the sidebar to jump to any section that still needs answers.';
 			return;
 		}
 		completing = true;
@@ -439,11 +427,11 @@
 				class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
 			>
 				{#if showingVideo && currentQuestion.videoUrl}
-					<!-- ── VIDEO INTERSTITIAL SCREEN ── -->
+					<!-- ── VIDEO INTERSTITIAL SCREEN (top-aligned so titles stay visible; scrolls if tall) ── -->
 					<div
-						class="flex w-full flex-col items-center justify-center px-6 py-8 md:min-h-full md:px-12 md:py-10 lg:px-16"
+						class="flex w-full flex-col items-stretch px-6 py-6 pb-10 md:px-12 md:py-8 md:pb-12 lg:px-16"
 					>
-						<div class="w-full max-w-2xl md:max-w-5xl mx-auto">
+						<div class="w-full max-w-2xl md:max-w-5xl mx-auto shrink-0">
 							<div class="hidden md:flex items-center gap-3 mb-8">
 								<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">
 									{buckets[currentQuestion.bucket]?.label ?? currentQuestion.bucket}
@@ -472,14 +460,19 @@
 									</svg>
 								</button>
 							</div>
+
+							<div class="mt-8 pt-6 border-t border-navy/10">
+								<p class="text-[13px] text-navy/60 mb-3">
+									Not sure how to fill out this question? 
+								</p>
+								<WhatsAppHelpLink />
+							</div>
 						</div>
 					</div>
 				{:else}
 					<!-- ── QUESTION SCREEN ── -->
 					<div
-						class="flex min-h-0 min-w-0 w-full flex-col px-6 py-4 pb-6 md:min-h-full md:px-16 md:py-8 {tallQuestionLayout
-							? 'justify-start'
-							: 'justify-start md:justify-center'}"
+						class="flex min-h-0 min-w-0 w-full flex-col px-6 py-4 pb-8 md:px-16 md:py-8 md:pb-10 justify-start"
 					>
 						<div
 							class="w-full min-w-0 {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'summary-review', 'heba', 'ownership-allocation'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'} mx-auto"
@@ -515,6 +508,13 @@
 								deedRetrievalRequested={data.trust.deedRetrievalRequested}
 								selectedPlan={data.trust.selectedPlan}
 							/>
+
+							<div class="mt-8 pt-6 border-t border-navy/10">
+								<p class="text-[13px] text-navy/60 mb-3">
+									Not sure how to fill out this question? 
+								</p>
+								<WhatsAppHelpLink />
+							</div>
 						</div>
 					</div>
 				{/if}

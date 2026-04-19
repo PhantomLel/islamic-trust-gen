@@ -11,8 +11,6 @@
 		isPersonalDataShape,
 	} from '$lib/question-response-helpers';
 	import InfoPopout from './InfoPopout.svelte';
-	import WhatsAppHelpLink from './WhatsAppHelpLink.svelte';
-
 	let {
 		value,
 		onresponse,
@@ -410,10 +408,6 @@
 		{/if}
 	</div>
 
-	<WhatsAppHelpLink
-		message="I have a question about who I can leave a bequest to."
-		label="I have a question about who I can leave a bequest to"
-	/>
 </div>
 
 <InfoPopout open={blockedPopout} onclose={() => (blockedPopout = false)} title="Not entitled to an Islamic inheritance share">

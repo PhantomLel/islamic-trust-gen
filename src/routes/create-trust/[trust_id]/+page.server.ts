@@ -3,10 +3,10 @@ import { db } from '$lib/server/db';
 import { trust, user, TrustStatus } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
-import { prePaymentQuestions, postPaymentQuestions } from '$lib/config';
+import { allIntakeQuestions, prePaymentQuestions, postPaymentQuestions } from '$lib/config';
 import {
-	getActiveQuestions,
-	isQuestionResponseComplete,
+	isIntakePhaseComplete,
+	meetsDiscountedCharityPledge,
 	type QuestionCompletionContext
 } from '$lib/question-response-helpers';
 import type { QuestionResponseValue } from '$lib/config';
@@ -39,17 +39,6 @@ function mergeResponses(
 		map.set(id, response);
 	}
 	return [...map.entries()].map(([id, response]) => ({ id, response }));
-}
-
-function isPhaseComplete(
-	record: Record<string, QuestionResponseValue>,
-	questionList: typeof prePaymentQuestions,
-	completionContext?: QuestionCompletionContext
-): boolean {
-	const { active } = getActiveQuestions(record, questionList);
-	return active.every((q) =>
-		isQuestionResponseComplete(q.type, record[q.id], record, completionContext)
-	);
 }
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -189,10 +178,9 @@ export const actions: Actions = {
 		const record = responsesToRecord(merged);
 
 		const completionCtx: QuestionCompletionContext = { selectedPlan: currentTrust.selectedPlan };
-		const preDone = isPhaseComplete(record, prePaymentQuestions, completionCtx);
-		const postDone = hasPaidInvoice ? isPhaseComplete(record, postPaymentQuestions, completionCtx) : false;
 		// `trust.complete` means the full intake (including post-payment) is submitted — see completePostPayment.
-		const allDone = hasPaidInvoice && preDone && postDone;
+		const allDone =
+			hasPaidInvoice && isIntakePhaseComplete(record, allIntakeQuestions, completionCtx);
 
 		await db
 			.update(trust)
@@ -227,7 +215,7 @@ export const actions: Actions = {
 		}
 
 		const record = responsesToRecord((currentTrust.responses ?? []) as { id: string; response: unknown }[]);
-		if (!isPhaseComplete(record, prePaymentQuestions)) throw error(400, 'Pre-payment intake incomplete');
+		if (!isIntakePhaseComplete(record, prePaymentQuestions)) throw error(400, 'Pre-payment intake incomplete');
 
 		await db
 			.update(trust)
@@ -263,15 +251,15 @@ export const actions: Actions = {
 
 		const record = responsesToRecord((currentTrust.responses ?? []) as { id: string; response: unknown }[]);
 		const completionCtx: QuestionCompletionContext = { selectedPlan: currentTrust.selectedPlan };
-		if (!isPhaseComplete(record, prePaymentQuestions, completionCtx)) {
-			throw error(400, 'Pre-payment intake incomplete');
-		}
-		if (!isPhaseComplete(record, postPaymentQuestions, completionCtx)) {
+		if (!isIntakePhaseComplete(record, allIntakeQuestions, completionCtx)) {
+			const needsCharityPledge =
+				currentTrust.selectedPlan === 'discounted' &&
+				!meetsDiscountedCharityPledge(record['charities']);
 			throw error(
 				400,
-				currentTrust.selectedPlan === 'discounted'
+				needsCharityPledge
 					? 'Intake incomplete: the discounted plan requires at least 1% of wasiyyah to one eligible charity (listed or added by you).'
-					: 'Intake incomplete'
+					: 'Intake incomplete: not all required questions are answered.'
 			);
 		}
 

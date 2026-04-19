@@ -23,6 +23,7 @@
 	import PersonalPropertyInput from './PersonalPropertyInput.svelte';
 	import TrusteeSelectionInput from './TrusteeSelectionInput.svelte';
 	import SuccessorTrusteesInput from './SuccessorTrusteesInput.svelte';
+	import PourOverRepresentativesInput from './PourOverRepresentativesInput.svelte';
 	import MadhabInput from './MadhabInput.svelte';
 	import HeirPreviewScreen from './HeirPreviewScreen.svelte';
 	import MinorDistributionInput from './MinorDistributionInput.svelte';
@@ -444,6 +445,10 @@
 
 {:else if question.type === 'successor-trustees'}
 	<SuccessorTrusteesInput {value} {onresponse} />
+
+{:else if question.type === 'pour-over-representatives'}
+	{@const role = question.id.endsWith('-guardians') ? 'guardian' : 'personal-representative'}
+	<PourOverRepresentativesInput {value} {onresponse} {role} {allResponses} />
 
 {:else if question.type === 'madhab'}
 	<MadhabInput {value} {onresponse} {onnext} />

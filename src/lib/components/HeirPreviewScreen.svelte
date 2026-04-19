@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { HeirsCalculatorResponse, QuestionResponseValue } from '$lib/config';
 	import InfoPopout from './InfoPopout.svelte';
-	import WhatsAppHelpLink from './WhatsAppHelpLink.svelte';
-
 	let {
 		value,
 		onresponse,
@@ -122,10 +120,6 @@
 		</p>
 	</div>
 
-	<WhatsAppHelpLink
-		message="I have a question about my heir calculation."
-		label="I have a question about my heir calculation"
-	/>
 </div>
 
 <InfoPopout open={popout} onclose={() => (popout = false)} title="What does recalculation at death mean?">

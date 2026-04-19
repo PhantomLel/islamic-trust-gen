@@ -51,7 +51,6 @@
 				onclick={() => (orderPopout = true)}
 				class="font-medium text-navy/85 underline decoration-navy/25 hover:decoration-navy/60 cursor-pointer transition-colors"
 			>in the order you list them</span>.
-			We recommend naming at least two. You may name up to four.
 		</p>
 		<p class="text-[14px] text-navy/50 leading-relaxed">
 			Choose people who are trustworthy, organized, and willing to take on this responsibility. It is a good idea to ask them before naming them here.

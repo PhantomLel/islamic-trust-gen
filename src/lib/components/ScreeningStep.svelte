@@ -131,8 +131,11 @@
 							{/each}
 						</div>
 
-						<div class="mb-8 flex justify-center sm:justify-start">
-							<WhatsAppHelpLink message="I'm not sure about this question." />
+						<div class="mb-8 flex flex-col gap-3 sm:items-start">
+							<p class="text-[13px] text-navy/60">
+								Not sure how to fill out this question? 
+							</p>
+							<WhatsAppHelpLink />
 						</div>
 
 						{#if finalQuestionAnswered}

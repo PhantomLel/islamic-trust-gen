@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { QuestionResponseValue } from '$lib/config';
-	import WhatsAppHelpLink from './WhatsAppHelpLink.svelte';
 	import InfoPopout from './InfoPopout.svelte';
 
 	let {
@@ -106,10 +105,6 @@
 		</button>
 	</div>
 
-	<WhatsAppHelpLink
-		message="I have a question about who should serve as trustee."
-		label="I have a question about who should serve as trustee"
-	/>
 </div>
 
 <InfoPopout open={successorPopout} onclose={() => (successorPopout = false)} title="What is a successor trustee?">

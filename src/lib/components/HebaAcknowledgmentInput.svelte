@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { HebaResponse, PersonalDataResponse, QuestionResponseValue } from '$lib/config';
 	import { isPersonalDataShape } from '$lib/question-response-helpers';
-	import WhatsAppHelpLink from './WhatsAppHelpLink.svelte';
-
 	let {
 		value,
 		onresponse,
@@ -67,10 +65,6 @@
 			</p>
 		</div>
 
-		<WhatsAppHelpLink
-			message="Asalamu alaikum, I have a question about the heba before completing my trust."
-			label="I have questions about this before I proceed"
-		/>
 	</div>
 
 	<div class="space-y-3">
