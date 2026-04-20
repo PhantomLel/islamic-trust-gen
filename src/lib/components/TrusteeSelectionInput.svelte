@@ -42,17 +42,23 @@
 		<button
 			type="button"
 			onclick={() => onresponse('survivor-serves')}
-			class="w-full text-left rounded-2xl border-2 p-5 transition-all duration-200 cursor-pointer relative overflow-hidden
+			class="w-full min-w-0 text-left rounded-2xl border-2 p-4 sm:p-5 transition-all duration-200 cursor-pointer relative overflow-hidden
 				{selected === 'survivor-serves'
 					? 'border-emerald-accent bg-white shadow-md shadow-emerald-accent/10'
 					: 'border-emerald-accent/30 bg-emerald-accent/2 hover:border-emerald-accent/60 hover:bg-white'}"
 		>
-			<div class="absolute top-3.5 right-4">
+			<!-- Mobile: badge in document flow so body text can use full width -->
+			<div class="mb-3 md:hidden">
+				<span class="inline-block text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-accent/10 text-emerald-accent">
+					Recommended for most families
+				</span>
+			</div>
+			<div class="absolute top-3.5 right-4 hidden md:block">
 				<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-accent/10 text-emerald-accent">
 					Recommended for most families
 				</span>
 			</div>
-			<div class="flex items-start gap-4 pr-44">
+			<div class="flex items-start gap-3 sm:gap-4 min-w-0 md:pr-44">
 				<div class="mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors
 					{selected === 'survivor-serves' ? 'border-emerald-accent' : 'border-navy/25'}">
 					{#if selected === 'survivor-serves'}
@@ -61,7 +67,7 @@
 				</div>
 				<div class="flex-1 min-w-0">
 					<div class="text-sm font-semibold text-navy mb-1.5">The surviving spouse serves as trustee.</div>
-					<p class="text-[13px] text-navy/55 leading-relaxed">
+					<p class="text-[13px] text-navy/55 leading-relaxed text-pretty wrap-break-word">
 						The surviving spouse takes over as sole trustee and manages the trust until they pass or are unable to serve. The successor trustees named below step in after that.
 					</p>
 				</div>
@@ -72,12 +78,12 @@
 		<button
 			type="button"
 			onclick={() => onresponse('survivor-skipped')}
-			class="w-full text-left rounded-2xl border-2 p-5 transition-all duration-200 cursor-pointer
+			class="w-full min-w-0 text-left rounded-2xl border-2 p-4 sm:p-5 transition-all duration-200 cursor-pointer
 				{selected === 'survivor-skipped'
 					? 'border-navy bg-white shadow-sm'
 					: 'border-navy/8 bg-white/60 hover:border-navy/20 hover:bg-white/80'}"
 		>
-			<div class="flex items-start gap-4">
+			<div class="flex items-start gap-3 sm:gap-4 min-w-0">
 				<div class="mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors
 					{selected === 'survivor-skipped' ? 'border-navy' : 'border-navy/25'}">
 					{#if selected === 'survivor-skipped'}

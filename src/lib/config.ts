@@ -52,6 +52,13 @@ export type CharityResponse = {
 	customEin?: string;
 };
 
+export type CharitiesResponse = {
+	husbandInterested: boolean;
+	wifeInterested: boolean;
+	husbandCharities: CharityResponse[];
+	wifeCharities: CharityResponse[];
+};
+
 /** HeirAllocationJSON extended with per-person names collected during the questionnaire. */
 export type NamedHeir = {
 	heirType: HeirType;
@@ -164,7 +171,7 @@ export type QuestionResponseValue =
 	| boolean
 	| ChildResponse[]
 	| HeirResponse[]
-	| CharityResponse[]
+	| CharitiesResponse
 	| HeirsCalculatorResponse
 	| null
 	| PersonalDataResponse

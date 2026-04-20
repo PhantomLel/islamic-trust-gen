@@ -2,6 +2,7 @@
 	import type {
 		AssetAllocationEntry,
 		CharityResponse,
+		CharitiesResponse,
 		HeirsCalculatorResponse,
 		HebaResponse,
 		MinorDistributionResponse,
@@ -16,6 +17,7 @@
 	import { allIntakeQuestions, charities } from '$lib/config';
 	import {
 		isIntakePhaseComplete,
+		isCharitiesResponseShape,
 		isPersonalDataShape,
 		isNonCharitableBequestsShape,
 		meetsDiscountedCharityPledge,
@@ -124,8 +126,7 @@
 	});
 	let charitiesData = $derived.by(() => {
 		const v = allResponses['charities'];
-		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.charityId === 'string') return v as CharityResponse[];
-		return null;
+		return isCharitiesResponseShape(v) ? v : null;
 	});
 	let ncbData = $derived.by(() => {
 		const v = allResponses['non-charitable-bequests'];
@@ -530,19 +531,40 @@
 			<button type="button" onclick={() => onnavigate?.('charities')} class={editBtnClass}>Edit</button>
 		</div>
 		<div class="px-5 py-4">
-			{#if charitiesData && charitiesData.filter(c => c.percentage > 0).length > 0}
-				<div class="space-y-1.5">
-					{#each charitiesData.filter(c => c.percentage > 0) as ch}
-						<div class="flex items-baseline justify-between gap-3 text-[13px]">
-							<span class="text-navy">
-								{charityLabel(ch)}
-								{#if typeof ch.customEin === 'string' && ch.customEin.trim() !== ''}
-									<span class="text-navy/45 font-normal"> · EIN {ch.customEin.trim()}</span>
-								{/if}
-							</span>
-							<span class="text-navy/60 tabular-nums shrink-0">{ch.percentage}%</span>
+			{#if charitiesData && (charitiesData.husbandInterested || charitiesData.wifeInterested)}
+				<div class="space-y-3">
+					{#if charitiesData.husbandInterested && charitiesData.husbandCharities.filter(c => c.percentage > 0).length > 0}
+						<div>
+							<div class="text-[11px] font-medium text-navy/40 tracking-wider uppercase mb-1">{husband?.name || 'Husband'}</div>
+							{#each charitiesData.husbandCharities.filter(c => c.percentage > 0) as ch}
+								<div class="flex items-baseline justify-between gap-3 text-[13px]">
+									<span class="text-navy">
+										{charityLabel(ch)}
+										{#if typeof ch.customEin === 'string' && ch.customEin.trim() !== ''}
+											<span class="text-navy/45 font-normal"> · EIN {ch.customEin.trim()}</span>
+										{/if}
+									</span>
+									<span class="text-navy/60 tabular-nums shrink-0">{ch.percentage}%</span>
+								</div>
+							{/each}
 						</div>
-					{/each}
+					{/if}
+					{#if charitiesData.wifeInterested && charitiesData.wifeCharities.filter(c => c.percentage > 0).length > 0}
+						<div>
+							<div class="text-[11px] font-medium text-navy/40 tracking-wider uppercase mb-1">{wife?.name || 'Wife'}</div>
+							{#each charitiesData.wifeCharities.filter(c => c.percentage > 0) as ch}
+								<div class="flex items-baseline justify-between gap-3 text-[13px]">
+									<span class="text-navy">
+										{charityLabel(ch)}
+										{#if typeof ch.customEin === 'string' && ch.customEin.trim() !== ''}
+											<span class="text-navy/45 font-normal"> · EIN {ch.customEin.trim()}</span>
+										{/if}
+									</span>
+									<span class="text-navy/60 tabular-nums shrink-0">{ch.percentage}%</span>
+								</div>
+							{/each}
+						</div>
+					{/if}
 				</div>
 			{:else}
 				<p class="text-[13px] text-navy/40">None</p>

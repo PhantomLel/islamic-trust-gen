@@ -6,11 +6,13 @@
 		type ChildResponse,
 		type HeirResponse,
 		type CharityResponse,
+		type CharitiesResponse,
 		type HeirsCalculatorResponse,
 		type PersonalDataResponse,
 		type QuestionResponseValue
 	} from '$lib/config';
 	import {
+		isCharitiesResponseShape,
 		isCustomCharityResponse,
 		isNonCharitableBequestsShape,
 		isPersonalDataShape,
@@ -124,9 +126,9 @@
 		setEditValue(questionId, next.length > 0 ? next : null);
 	}
 
-	function normalizeCharities(value: unknown): CharityResponse[] {
-		if (!Array.isArray(value)) return [];
-		return value
+	function normalizeCharitiesArray(arr: unknown): CharityResponse[] {
+		if (!Array.isArray(arr)) return [];
+		return arr
 			.filter((charity) => !!charity && typeof charity === 'object')
 			.map((charity) => {
 				const entry = charity as Partial<CharityResponse>;
@@ -145,6 +147,11 @@
 			});
 	}
 
+	function normalizeCharitiesResponse(value: unknown): CharitiesResponse {
+		if (isCharitiesResponseShape(value)) return value;
+		return { husbandInterested: false, wifeInterested: false, husbandCharities: [], wifeCharities: [] };
+	}
+
 	function newAdminCustomCharityId(): string {
 		if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
 			return crypto.randomUUID();
@@ -152,62 +159,88 @@
 		return `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 	}
 
-	function addEditCustomCharity(questionId: string) {
-		const current = getEditCharities(questionId);
-		setEditValue(questionId, [
-			...current,
-			{ charityId: newAdminCustomCharityId(), percentage: 0, customName: '', customEin: '' }
-		]);
+	function getEditCharitiesResponse(questionId: string): CharitiesResponse {
+		return normalizeCharitiesResponse(editResponses[questionId]);
 	}
 
-	function removeEditCustomCharity(questionId: string, charityId: string) {
-		const current = getEditCharities(questionId).filter((c) => c.charityId !== charityId);
-		setEditValue(questionId, current.length > 0 ? current : null);
-	}
-
-	function updateEditCustomCharityField(
-		questionId: string,
-		charityId: string,
-		field: 'customName' | 'customEin',
-		fieldValue: string
-	) {
-		const current = getEditCharities(questionId);
-		const next = current.map((c) =>
-			c.charityId === charityId && isCustomCharityResponse(c) ? { ...c, [field]: fieldValue } : c
-		);
+	function setEditCharitiesResponse(questionId: string, next: CharitiesResponse) {
 		setEditValue(questionId, next);
 	}
 
-	function getEditCharities(questionId: string): CharityResponse[] {
-		return normalizeCharities(editResponses[questionId]);
+	function setEditHusbandInterested(questionId: string, yes: boolean) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, yes ? { ...cr, husbandInterested: true } : { ...cr, husbandInterested: false, husbandCharities: [] });
 	}
 
-	function isEditCharitySelected(questionId: string, charityId: string): boolean {
-		return getEditCharities(questionId).some((c) => c.charityId === charityId);
+	function setEditWifeInterested(questionId: string, yes: boolean) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, yes ? { ...cr, wifeInterested: true } : { ...cr, wifeInterested: false, wifeCharities: [] });
 	}
 
-	function toggleEditCharity(questionId: string, charityId: string) {
-		const current = getEditCharities(questionId);
-		const exists = current.some((c) => c.charityId === charityId);
-		
-		if (exists) {
-			const next = current.filter((c) => c.charityId !== charityId);
-			setEditValue(questionId, next.length > 0 ? next : null);
-		} else {
-			setEditValue(questionId, [...current, { charityId, percentage: 0 }]);
-		}
+	function isEditHusbandCharitySelected(questionId: string, charityId: string): boolean {
+		return getEditCharitiesResponse(questionId).husbandCharities.some((c) => c.charityId === charityId);
 	}
 
-	function updateEditCharityPercentage(questionId: string, charityId: string, percentage: number) {
-		const current = getEditCharities(questionId);
-		const next = current.map((c) => 
-			c.charityId === charityId ? { ...c, percentage } : c
-		);
-		setEditValue(questionId, next);
+	function isEditWifeCharitySelected(questionId: string, charityId: string): boolean {
+		return getEditCharitiesResponse(questionId).wifeCharities.some((c) => c.charityId === charityId);
 	}
 
-	function getEditCharityTotalPercentage(questionId: string): number {
-		return getEditCharities(questionId).reduce((sum, c) => sum + (c.percentage || 0), 0);
+	function toggleEditHusbandCharity(questionId: string, charityId: string) {
+		const cr = getEditCharitiesResponse(questionId);
+		const exists = cr.husbandCharities.some((c) => c.charityId === charityId);
+		const next = exists
+			? cr.husbandCharities.filter((c) => c.charityId !== charityId)
+			: [...cr.husbandCharities, { charityId, percentage: 0 }];
+		setEditCharitiesResponse(questionId, { ...cr, husbandCharities: next });
+	}
+
+	function toggleEditWifeCharity(questionId: string, charityId: string) {
+		const cr = getEditCharitiesResponse(questionId);
+		const exists = cr.wifeCharities.some((c) => c.charityId === charityId);
+		const next = exists
+			? cr.wifeCharities.filter((c) => c.charityId !== charityId)
+			: [...cr.wifeCharities, { charityId, percentage: 0 }];
+		setEditCharitiesResponse(questionId, { ...cr, wifeCharities: next });
+	}
+
+	function updateEditHusbandCharityPct(questionId: string, charityId: string, percentage: number) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, { ...cr, husbandCharities: cr.husbandCharities.map((c) => c.charityId === charityId ? { ...c, percentage } : c) });
+	}
+
+	function updateEditWifeCharityPct(questionId: string, charityId: string, percentage: number) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, { ...cr, wifeCharities: cr.wifeCharities.map((c) => c.charityId === charityId ? { ...c, percentage } : c) });
+	}
+
+	function addEditHusbandCustomCharity(questionId: string) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, { ...cr, husbandCharities: [...cr.husbandCharities, { charityId: newAdminCustomCharityId(), percentage: 0, customName: '', customEin: '' }] });
+	}
+
+	function addEditWifeCustomCharity(questionId: string) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, { ...cr, wifeCharities: [...cr.wifeCharities, { charityId: newAdminCustomCharityId(), percentage: 0, customName: '', customEin: '' }] });
+	}
+
+	function removeEditHusbandCustomCharity(questionId: string, charityId: string) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, { ...cr, husbandCharities: cr.husbandCharities.filter((c) => c.charityId !== charityId) });
+	}
+
+	function removeEditWifeCustomCharity(questionId: string, charityId: string) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, { ...cr, wifeCharities: cr.wifeCharities.filter((c) => c.charityId !== charityId) });
+	}
+
+	function updateEditHusbandCustomField(questionId: string, charityId: string, field: 'customName' | 'customEin', fieldValue: string) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, { ...cr, husbandCharities: cr.husbandCharities.map((c) => c.charityId === charityId && isCustomCharityResponse(c) ? { ...c, [field]: fieldValue } : c) });
+	}
+
+	function updateEditWifeCustomField(questionId: string, charityId: string, field: 'customName' | 'customEin', fieldValue: string) {
+		const cr = getEditCharitiesResponse(questionId);
+		setEditCharitiesResponse(questionId, { ...cr, wifeCharities: cr.wifeCharities.map((c) => c.charityId === charityId && isCustomCharityResponse(c) ? { ...c, [field]: fieldValue } : c) });
 	}
 
 	function normalizePersonalData(value: unknown): PersonalDataResponse {
@@ -240,16 +273,20 @@
 	function getAnswer(responses: TrustResponse[], questionId: string): string {
 		const raw = getRawResponse(responses, questionId);
 		if (raw == null) return '—';
+		if (isCharitiesResponseShape(raw)) {
+			const total = raw.husbandCharities.length + raw.wifeCharities.length;
+			if (total === 0 && !raw.husbandInterested && !raw.wifeInterested) return 'None';
+			const parts: string[] = [];
+			if (raw.husbandInterested) parts.push(`Husband: ${raw.husbandCharities.length} charity(ies)`);
+			if (raw.wifeInterested) parts.push(`Wife: ${raw.wifeCharities.length} charity(ies)`);
+			return parts.length > 0 ? parts.join(' · ') : 'None';
+		}
 		if (Array.isArray(raw)) {
 			if (raw.length === 0) return '—';
 			const first = raw[0];
 			if (first && typeof first === 'object' && 'firstName' in first) {
 				const children = normalizeChildren(raw);
 				return children.length > 0 ? `${children.length} child(ren)` : '—';
-			}
-			if (first && typeof first === 'object' && 'charityId' in first) {
-				const charitiesData = normalizeCharities(raw);
-				return charitiesData.length > 0 ? `${charitiesData.length} charity(ies)` : '—';
 			}
 			return '—';
 		}
@@ -450,133 +487,125 @@
 								</button>
 							</div>
 						{:else if q.type === 'charities'}
-							{@const editChars = getEditCharities(q.id)}
-							<div class="space-y-2">
-								{#each charities as charity}
-									{@const selected = isEditCharitySelected(q.id, charity.id)}
-									{@const charityData = editChars.find((c) => c.charityId === charity.id)}
-									{@const percentage = charityData?.percentage ?? 0}
-									
-									<div class="rounded-md border transition-all
-										{selected ? 'border-emerald-accent/30 bg-emerald-accent/5' : 'border-navy/10 bg-white'} p-2.5">
-										<div class="flex items-center gap-3">
-											<button
-												type="button"
-												onclick={() => toggleEditCharity(q.id, charity.id)}
-												class="flex items-center justify-center w-5 h-5 rounded border-2 shrink-0 transition-colors cursor-pointer
-													{selected ? 'border-emerald-accent bg-emerald-accent' : 'border-navy/20 bg-white hover:border-navy/30'}"
-											>
-												{#if selected}
-													<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-														<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-													</svg>
-												{/if}
-											</button>
-											
-											<div class="flex-1 min-w-0 flex items-center gap-2">
-												<div class="text-[12px] font-medium text-navy truncate">{charity.name}</div>
-												{#if selected}
-													<input
-														type="number"
-														min="0"
-														max="100"
-														step="0.1"
-														value={percentage}
-														oninput={(e) => {
-															const val = parseFloat(e.currentTarget.value);
-															if (!isNaN(val)) updateEditCharityPercentage(q.id, charity.id, val);
-														}}
-														class="w-16 px-2 py-1 rounded-md border border-navy/10 text-[11px] text-navy outline-none transition-all focus:border-emerald-accent/40"
-														placeholder="0"
-													/>
-													<span class="text-[11px] text-navy/50">%</span>
-												{/if}
-											</div>
-										</div>
+							{@const ecr = getEditCharitiesResponse(q.id)}
+							<div class="space-y-4">
+								<!-- Husband -->
+								<div class="space-y-2">
+									<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase">Husband</div>
+									<div class="flex gap-2">
+										<button type="button" onclick={() => setEditHusbandInterested(q.id, false)}
+											class="flex-1 py-1.5 rounded-lg text-[11px] font-medium border-2 cursor-pointer transition-colors
+												{!ecr.husbandInterested ? 'border-navy bg-white text-navy' : 'border-navy/10 bg-white/60 text-navy/45'}">No</button>
+										<button type="button" onclick={() => setEditHusbandInterested(q.id, true)}
+											class="flex-1 py-1.5 rounded-lg text-[11px] font-medium border-2 cursor-pointer transition-colors
+												{ecr.husbandInterested ? 'border-navy bg-white text-navy' : 'border-navy/10 bg-white/60 text-navy/45'}">Yes</button>
 									</div>
-								{/each}
-
-								<div class="mt-3 pt-3 border-t border-navy/10 space-y-2">
-									<div class="flex items-center justify-between gap-2">
-										<span class="text-[11px] font-medium text-navy/55">Other charities (name + EIN)</span>
-										<button
-											type="button"
-											onclick={() => addEditCustomCharity(q.id)}
-											class="px-2.5 py-1 rounded-md text-[11px] font-medium border border-emerald-accent/25 text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 transition-colors cursor-pointer"
-										>
-											Add charity
-										</button>
-									</div>
-									{#each getEditCharities(q.id).filter((c) => isCustomCharityResponse(c)) as custom}
-										<div class="rounded-md border border-navy/10 bg-white p-2 space-y-2">
-											<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-												<input
-													type="text"
-													value={custom.customName}
-													oninput={(e) =>
-														updateEditCustomCharityField(q.id, custom.charityId, 'customName', e.currentTarget.value)}
-													placeholder="Legal name"
-													class="px-2 py-1.5 rounded-md text-[12px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40"
-												/>
-												<input
-													type="text"
-													value={custom.customEin}
-													oninput={(e) =>
-														updateEditCustomCharityField(q.id, custom.charityId, 'customEin', e.currentTarget.value)}
-													placeholder="EIN"
-													class="px-2 py-1.5 rounded-md text-[12px] text-navy border border-navy/10 bg-white outline-none focus:border-emerald-accent/40"
-												/>
+									{#if ecr.husbandInterested}
+										<div class="space-y-1.5">
+											{#each charities as charity}
+												{@const sel = isEditHusbandCharitySelected(q.id, charity.id)}
+												{@const pct = ecr.husbandCharities.find((c) => c.charityId === charity.id)?.percentage ?? 0}
+												<div class="rounded-md border {sel ? 'border-emerald-accent/30 bg-emerald-accent/5' : 'border-navy/10 bg-white'} p-2 flex items-center gap-2">
+													<button type="button" onclick={() => toggleEditHusbandCharity(q.id, charity.id)}
+														class="w-4 h-4 rounded border-2 shrink-0 cursor-pointer flex items-center justify-center {sel ? 'border-emerald-accent bg-emerald-accent' : 'border-navy/20 bg-white'}">
+														{#if sel}<svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>{/if}
+													</button>
+													<span class="text-[11px] font-medium text-navy flex-1">{charity.name}</span>
+													{#if sel}
+														<input type="number" min="0" max="100" step="0.1" value={pct}
+															oninput={(e) => { const v = parseFloat(e.currentTarget.value); if (!isNaN(v)) updateEditHusbandCharityPct(q.id, charity.id, v); }}
+															class="w-14 px-1.5 py-1 rounded border border-navy/10 text-[11px] text-navy outline-none focus:border-emerald-accent/40" placeholder="0" />
+														<span class="text-[10px] text-navy/45">%</span>
+													{/if}
+												</div>
+											{/each}
+											<div class="flex items-center justify-between mt-1">
+												<span class="text-[10px] text-navy/45">Custom charities</span>
+												<button type="button" onclick={() => addEditHusbandCustomCharity(q.id)}
+													class="px-2 py-0.5 rounded text-[10px] border border-emerald-accent/25 text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 cursor-pointer">+ Add</button>
 											</div>
-											<div class="flex items-center gap-2">
-												<input
-													type="number"
-													min="0"
-													max="100"
-													step="0.1"
-													value={custom.percentage}
-													oninput={(e) => {
-														const val = parseFloat(e.currentTarget.value);
-														if (!isNaN(val)) updateEditCharityPercentage(q.id, custom.charityId, val);
-													}}
-													class="w-16 px-2 py-1 rounded-md border border-navy/10 text-[11px] text-navy outline-none transition-all focus:border-emerald-accent/40"
-													placeholder="0"
-												/>
-												<span class="text-[11px] text-navy/50">%</span>
-												<button
-													type="button"
-													onclick={() => removeEditCustomCharity(q.id, custom.charityId)}
-													class="ml-auto text-[11px] text-navy/45 hover:text-red-600 transition-colors cursor-pointer"
-												>
-													Remove
-												</button>
-											</div>
+											{#each ecr.husbandCharities.filter((c) => isCustomCharityResponse(c)) as custom}
+												<div class="rounded-md border border-navy/10 bg-white p-2 space-y-1.5">
+													<div class="grid grid-cols-2 gap-1.5">
+														<input type="text" value={custom.customName}
+															oninput={(e) => updateEditHusbandCustomField(q.id, custom.charityId, 'customName', e.currentTarget.value)}
+															placeholder="Legal name" class="px-2 py-1 rounded text-[11px] text-navy border border-navy/10 outline-none focus:border-emerald-accent/40" />
+														<input type="text" value={custom.customEin}
+															oninput={(e) => updateEditHusbandCustomField(q.id, custom.charityId, 'customEin', e.currentTarget.value)}
+															placeholder="EIN" class="px-2 py-1 rounded text-[11px] text-navy border border-navy/10 outline-none focus:border-emerald-accent/40" />
+													</div>
+													<div class="flex items-center gap-2">
+														<input type="number" min="0" max="100" step="0.1" value={custom.percentage}
+															oninput={(e) => { const v = parseFloat(e.currentTarget.value); if (!isNaN(v)) updateEditHusbandCharityPct(q.id, custom.charityId, v); }}
+															class="w-14 px-1.5 py-1 rounded border border-navy/10 text-[11px] text-navy outline-none focus:border-emerald-accent/40" placeholder="0" />
+														<span class="text-[10px] text-navy/45">%</span>
+														<button type="button" onclick={() => removeEditHusbandCustomCharity(q.id, custom.charityId)}
+															class="ml-auto text-[10px] text-navy/40 hover:text-red-600 cursor-pointer">Remove</button>
+													</div>
+												</div>
+											{/each}
 										</div>
-									{/each}
+									{/if}
 								</div>
-								
-								{#if editChars.length > 0}
-									{@const totalEditPercentage = getEditCharityTotalPercentage(q.id)}
-									{@const exceedsEditLimit = totalEditPercentage > 100}
-									
-									<div class="mt-2 pt-2 border-t border-navy/10">
-										<div class="flex items-center justify-between px-2 py-1.5 rounded-md bg-navy/5">
-											<span class="text-[11px] font-medium text-navy">Total Allocated:</span>
-											<span class="text-[11px] font-semibold {exceedsEditLimit ? 'text-red-500' : 'text-emerald-accent'}">
-												{totalEditPercentage.toFixed(1)}%
-											</span>
-										</div>
-										{#if exceedsEditLimit}
-											<div class="flex items-start gap-1.5 mt-1.5 px-2 py-1.5 rounded-md bg-red-50 border border-red-200">
-												<svg class="w-3 h-3 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-													<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-												</svg>
-												<p class="text-[11px] text-red-600 leading-relaxed">
-													Total percentage cannot exceed 100%.
-												</p>
-											</div>
-										{/if}
+
+								<!-- Wife -->
+								<div class="space-y-2 pt-2 border-t border-navy/8">
+									<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase">Wife</div>
+									<div class="flex gap-2">
+										<button type="button" onclick={() => setEditWifeInterested(q.id, false)}
+											class="flex-1 py-1.5 rounded-lg text-[11px] font-medium border-2 cursor-pointer transition-colors
+												{!ecr.wifeInterested ? 'border-navy bg-white text-navy' : 'border-navy/10 bg-white/60 text-navy/45'}">No</button>
+										<button type="button" onclick={() => setEditWifeInterested(q.id, true)}
+											class="flex-1 py-1.5 rounded-lg text-[11px] font-medium border-2 cursor-pointer transition-colors
+												{ecr.wifeInterested ? 'border-navy bg-white text-navy' : 'border-navy/10 bg-white/60 text-navy/45'}">Yes</button>
 									</div>
-								{/if}
+									{#if ecr.wifeInterested}
+										<div class="space-y-1.5">
+											{#each charities as charity}
+												{@const sel = isEditWifeCharitySelected(q.id, charity.id)}
+												{@const pct = ecr.wifeCharities.find((c) => c.charityId === charity.id)?.percentage ?? 0}
+												<div class="rounded-md border {sel ? 'border-emerald-accent/30 bg-emerald-accent/5' : 'border-navy/10 bg-white'} p-2 flex items-center gap-2">
+													<button type="button" onclick={() => toggleEditWifeCharity(q.id, charity.id)}
+														class="w-4 h-4 rounded border-2 shrink-0 cursor-pointer flex items-center justify-center {sel ? 'border-emerald-accent bg-emerald-accent' : 'border-navy/20 bg-white'}">
+														{#if sel}<svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>{/if}
+													</button>
+													<span class="text-[11px] font-medium text-navy flex-1">{charity.name}</span>
+													{#if sel}
+														<input type="number" min="0" max="100" step="0.1" value={pct}
+															oninput={(e) => { const v = parseFloat(e.currentTarget.value); if (!isNaN(v)) updateEditWifeCharityPct(q.id, charity.id, v); }}
+															class="w-14 px-1.5 py-1 rounded border border-navy/10 text-[11px] text-navy outline-none focus:border-emerald-accent/40" placeholder="0" />
+														<span class="text-[10px] text-navy/45">%</span>
+													{/if}
+												</div>
+											{/each}
+											<div class="flex items-center justify-between mt-1">
+												<span class="text-[10px] text-navy/45">Custom charities</span>
+												<button type="button" onclick={() => addEditWifeCustomCharity(q.id)}
+													class="px-2 py-0.5 rounded text-[10px] border border-emerald-accent/25 text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10 cursor-pointer">+ Add</button>
+											</div>
+											{#each ecr.wifeCharities.filter((c) => isCustomCharityResponse(c)) as custom}
+												<div class="rounded-md border border-navy/10 bg-white p-2 space-y-1.5">
+													<div class="grid grid-cols-2 gap-1.5">
+														<input type="text" value={custom.customName}
+															oninput={(e) => updateEditWifeCustomField(q.id, custom.charityId, 'customName', e.currentTarget.value)}
+															placeholder="Legal name" class="px-2 py-1 rounded text-[11px] text-navy border border-navy/10 outline-none focus:border-emerald-accent/40" />
+														<input type="text" value={custom.customEin}
+															oninput={(e) => updateEditWifeCustomField(q.id, custom.charityId, 'customEin', e.currentTarget.value)}
+															placeholder="EIN" class="px-2 py-1 rounded text-[11px] text-navy border border-navy/10 outline-none focus:border-emerald-accent/40" />
+													</div>
+													<div class="flex items-center gap-2">
+														<input type="number" min="0" max="100" step="0.1" value={custom.percentage}
+															oninput={(e) => { const v = parseFloat(e.currentTarget.value); if (!isNaN(v)) updateEditWifeCharityPct(q.id, custom.charityId, v); }}
+															class="w-14 px-1.5 py-1 rounded border border-navy/10 text-[11px] text-navy outline-none focus:border-emerald-accent/40" placeholder="0" />
+														<span class="text-[10px] text-navy/45">%</span>
+														<button type="button" onclick={() => removeEditWifeCustomCharity(q.id, custom.charityId)}
+															class="ml-auto text-[10px] text-navy/40 hover:text-red-600 cursor-pointer">Remove</button>
+													</div>
+												</div>
+											{/each}
+										</div>
+									{/if}
+								</div>
 							</div>
 						{:else if q.type === 'personal-data'}
 							{@const epd = normalizePersonalData(editResponses[q.id])}
@@ -687,33 +716,38 @@
 							{:else}
 								<span class="text-[13px] text-navy/25">—</span>
 							{/if}
-						{:else if q.type === 'charities'}
-							{@const charitiesData = normalizeCharities(raw)}
-							{#if charitiesData.length > 0}
-								{@const totalViewPercentage = charitiesData.reduce((sum, c) => sum + (c.percentage || 0), 0)}
-								<div class="space-y-1.5">
-									{#each charitiesData as charityData}
-										{@const preset = charities.find((c) => c.id === charityData.charityId)}
-										<div class="text-[13px] text-navy font-medium">
-											{#if preset}
-												{preset.name}
-											{:else if typeof charityData.customName === 'string' && charityData.customName.trim() !== ''}
-												{charityData.customName.trim()}{#if typeof charityData.customEin === 'string' && charityData.customEin.trim() !== ''}<span class="text-navy/35 font-normal"> · EIN {charityData.customEin.trim()}</span>{/if}
-											{:else}
-												<span class="text-navy/50">Custom charity</span>
-											{/if}
-											<span class="text-navy/35 font-normal"> — {charityData.percentage}%</span>
-										</div>
-									{/each}
-									<div class="mt-2 pt-2 border-t border-navy/10">
-										<div class="text-[11px] text-navy/50">
-											Total: <span class="font-semibold {totalViewPercentage > 100 ? 'text-red-500' : 'text-emerald-accent'}">{totalViewPercentage.toFixed(1)}%</span>
-										</div>
+					{:else if q.type === 'charities'}
+						{@const vcr = isCharitiesResponseShape(raw) ? raw : null}
+						{#if vcr && (vcr.husbandInterested || vcr.wifeInterested)}
+							<div class="space-y-2">
+								{#if vcr.husbandInterested}
+									<div>
+										<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Husband</div>
+										{#each vcr.husbandCharities as ch}
+											{@const preset = charities.find((c) => c.id === ch.charityId)}
+											<div class="text-[12px] text-navy">
+												{#if preset}{preset.name}{:else if typeof ch.customName === 'string' && ch.customName.trim()}{ch.customName.trim()}{:else}<span class="text-navy/40">Custom charity</span>{/if}
+												<span class="text-navy/40 font-normal"> — {ch.percentage}%</span>
+											</div>
+										{/each}
 									</div>
-								</div>
-							{:else}
-								<span class="text-[13px] text-navy/25">—</span>
-							{/if}
+								{/if}
+								{#if vcr.wifeInterested}
+									<div>
+										<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Wife</div>
+										{#each vcr.wifeCharities as ch}
+											{@const preset = charities.find((c) => c.id === ch.charityId)}
+											<div class="text-[12px] text-navy">
+												{#if preset}{preset.name}{:else if typeof ch.customName === 'string' && ch.customName.trim()}{ch.customName.trim()}{:else}<span class="text-navy/40">Custom charity</span>{/if}
+												<span class="text-navy/40 font-normal"> — {ch.percentage}%</span>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{:else}
+							<span class="text-[13px] text-navy/25">—</span>
+						{/if}
 						{:else if q.type === 'personal-data'}
 							{@const vp = normalizePersonalData(raw)}
 							{#if vp.name.trim() || vp.dob.trim() || vp.county.trim()}

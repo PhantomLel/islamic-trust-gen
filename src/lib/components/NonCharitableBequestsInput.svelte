@@ -5,8 +5,8 @@
 		QuestionResponseValue,
 	} from '$lib/config';
 	import {
-		getTotalCharityPercentage,
-		getCombinedWasiyyahPercentage,
+		getHusbandCharityPercentage,
+		getWifeCharityPercentage,
 		WASIYYAH_THIRD_PERCENT,
 		isPersonalDataShape,
 	} from '$lib/question-response-helpers';
@@ -67,9 +67,11 @@
 		return key === 'husband-data' ? 'Husband' : 'Wife';
 	}
 
-	let charityPct = $derived(getTotalCharityPercentage(allResponses['charities']));
-	let combinedPct = $derived(getCombinedWasiyyahPercentage(allResponses['charities'], ncb));
-	let overCap = $derived(combinedPct > WASIYYAH_THIRD_PERCENT + 0.01);
+	let husbandCharityPct = $derived(getHusbandCharityPercentage(allResponses['charities']));
+	let wifeCharityPct = $derived(getWifeCharityPercentage(allResponses['charities']));
+	let husbandCombinedPct = $derived(husbandCharityPct + ncb.husbandBequests.reduce((s, r) => s + (r.percentage ?? 0), 0));
+	let wifeCombinedPct = $derived(wifeCharityPct + ncb.wifeBequests.reduce((s, r) => s + (r.percentage ?? 0), 0));
+	let overCap = $derived(husbandCombinedPct > WASIYYAH_THIRD_PERCENT + 0.01 || wifeCombinedPct > WASIYYAH_THIRD_PERCENT + 0.01);
 
 	function emit(next: NonCharitableBequestsResponse) {
 		onresponse(next);
@@ -82,21 +84,14 @@
 	});
 
 	function otherNonCharitySumExcluding(spouse: 'husband' | 'wife', idx: number): number {
-		let s = 0;
-		for (let i = 0; i < ncb.husbandBequests.length; i++) {
-			if (spouse === 'husband' && i === idx) continue;
-			s += ncb.husbandBequests[i]?.percentage ?? 0;
-		}
-		for (let i = 0; i < ncb.wifeBequests.length; i++) {
-			if (spouse === 'wife' && i === idx) continue;
-			s += ncb.wifeBequests[i]?.percentage ?? 0;
-		}
-		return s;
+		const rows = spouse === 'husband' ? ncb.husbandBequests : ncb.wifeBequests;
+		return rows.reduce((s, r, i) => (i === idx ? s : s + (r.percentage ?? 0)), 0);
 	}
 
 	function maxPctFor(spouse: 'husband' | 'wife', idx: number): number {
+		const spouseCharityPct = spouse === 'husband' ? husbandCharityPct : wifeCharityPct;
 		const other = otherNonCharitySumExcluding(spouse, idx);
-		const headroom = WASIYYAH_THIRD_PERCENT - charityPct - other;
+		const headroom = WASIYYAH_THIRD_PERCENT - spouseCharityPct - other;
 		return Math.max(0, Math.min(33, Math.floor(headroom + 1e-9)));
 	}
 
@@ -184,7 +179,7 @@
 		</p>
 		<p>This is optional. Most families leave this blank.</p>
 		<p>
-			Remember: the total of all bequests — charitable and non-charitable combined — cannot exceed
+			Remember: each spouse's bequests — charitable and non-charitable combined — cannot exceed
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<span
@@ -198,19 +193,27 @@
 					}
 				}}
 				class="font-medium text-navy/85 underline decoration-navy/25 hover:decoration-navy/60 cursor-pointer transition-colors"
-			>one third of your estate</span>.
+			>one third of their own estate</span>. Each spouse has their own separate limit.
 		</p>
 	</div>
 
-	<div class="rounded-xl border border-navy/10 bg-navy/4 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-		<span class="text-[13px] font-medium text-navy/75">Wasiyyah used (charity + below)</span>
-		<span class="text-sm font-semibold tabular-nums {overCap ? 'text-red-500' : 'text-emerald-accent'}">
-			{combinedPct.toFixed(1)}% / {WASIYYAH_THIRD_PERCENT.toFixed(1)}% max
-		</span>
+	<div class="space-y-2">
+		<div class="rounded-xl border border-navy/10 bg-navy/4 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+			<span class="text-[13px] font-medium text-navy/75">{spouseLabel('husband-data')} wasiyyah used</span>
+			<span class="text-sm font-semibold tabular-nums {husbandCombinedPct > WASIYYAH_THIRD_PERCENT + 0.01 ? 'text-red-500' : 'text-emerald-accent'}">
+				{husbandCombinedPct.toFixed(1)}% / {WASIYYAH_THIRD_PERCENT.toFixed(1)}% max
+			</span>
+		</div>
+		<div class="rounded-xl border border-navy/10 bg-navy/4 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+			<span class="text-[13px] font-medium text-navy/75">{spouseLabel('wife-data')} wasiyyah used</span>
+			<span class="text-sm font-semibold tabular-nums {wifeCombinedPct > WASIYYAH_THIRD_PERCENT + 0.01 ? 'text-red-500' : 'text-emerald-accent'}">
+				{wifeCombinedPct.toFixed(1)}% / {WASIYYAH_THIRD_PERCENT.toFixed(1)}% max
+			</span>
+		</div>
 	</div>
-	{#if charityPct > WASIYYAH_THIRD_PERCENT + 0.01}
+	{#if husbandCharityPct > WASIYYAH_THIRD_PERCENT + 0.01 || wifeCharityPct > WASIYYAH_THIRD_PERCENT + 0.01}
 		<p class="text-[13px] text-red-600 leading-relaxed">
-			Your charitable allocations alone exceed the one-third limit. Go back and reduce them before adding non-charitable bequests.
+			Charitable allocations for one or both spouses exceed the one-third limit. Go back and reduce them before adding non-charitable bequests.
 		</p>
 	{/if}
 

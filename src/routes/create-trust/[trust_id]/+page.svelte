@@ -475,7 +475,7 @@
 						class="flex min-h-0 min-w-0 w-full flex-col px-6 py-4 pb-8 md:px-16 md:py-8 md:pb-10 justify-start"
 					>
 						<div
-							class="w-full min-w-0 {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'summary-review', 'heba', 'ownership-allocation'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'} mx-auto"
+							class="w-full min-w-0 {['heirs-calculator', 'minor-distribution', 'non-charitable-bequests', 'charities', 'summary-review', 'heba', 'ownership-allocation'].includes(currentQuestion.type) ? 'max-w-xl' : 'max-w-lg'} mx-auto"
 						>
 							<div class="hidden md:flex items-center gap-3 mb-8">
 								<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">

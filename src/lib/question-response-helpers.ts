@@ -2,6 +2,7 @@ import {
 	charities as configuredCharities,
 	type ChildResponse,
 	type CharityResponse,
+	type CharitiesResponse,
 	type HeirResponse,
 	type MinorDistributionResponse,
 	type NonCharitableBequestEntry,
@@ -29,6 +30,20 @@ export function isCustomCharityResponse(c: unknown): c is CharityResponse & { cu
 	);
 }
 
+export function isCharitiesResponseShape(value: unknown): value is CharitiesResponse {
+	return (
+		value != null &&
+		typeof value === 'object' &&
+		!Array.isArray(value) &&
+		'husbandInterested' in value &&
+		'wifeInterested' in value &&
+		'husbandCharities' in value &&
+		'wifeCharities' in value &&
+		Array.isArray((value as CharitiesResponse).husbandCharities) &&
+		Array.isArray((value as CharitiesResponse).wifeCharities)
+	);
+}
+
 function meetsPledgeForCharityRow(c: CharityResponse): boolean {
 	if (
 		typeof c.charityId !== 'string' ||
@@ -45,13 +60,23 @@ function meetsPledgeForCharityRow(c: CharityResponse): boolean {
 	return false;
 }
 
-/** True when at least one listed or user-added charity has a wasiyyah allocation at or above the discounted-plan minimum. */
+/** True when at least one listed or user-added charity (from either spouse) has a wasiyyah allocation at or above the discounted-plan minimum. */
 export function meetsDiscountedCharityPledge(charitiesValue: unknown): boolean {
-	if (!Array.isArray(charitiesValue)) return false;
-	return charitiesValue.some((raw) => {
-		if (!raw || typeof raw !== 'object' || !('charityId' in raw)) return false;
-		return meetsPledgeForCharityRow(raw as CharityResponse);
-	});
+	if (!isCharitiesResponseShape(charitiesValue)) return false;
+	const all = [...charitiesValue.husbandCharities, ...charitiesValue.wifeCharities];
+	return all.some((raw) => meetsPledgeForCharityRow(raw));
+}
+
+/** Total charitable wasiyyah for the husband's estate. */
+export function getHusbandCharityPercentage(charitiesValue: unknown): number {
+	if (!isCharitiesResponseShape(charitiesValue)) return 0;
+	return charitiesValue.husbandCharities.reduce((sum, c) => sum + (c.percentage || 0), 0);
+}
+
+/** Total charitable wasiyyah for the wife's estate. */
+export function getWifeCharityPercentage(charitiesValue: unknown): number {
+	if (!isCharitiesResponseShape(charitiesValue)) return 0;
+	return charitiesValue.wifeCharities.reduce((sum, c) => sum + (c.percentage || 0), 0);
 }
 
 export type QuestionCompletionContext = {
@@ -108,9 +133,11 @@ function isNonCharitableBequestsComplete(
 ): boolean {
 	if (!isNonCharitableBequestsShape(value)) return false;
 
-	const charityPct = allResponses ? getTotalCharityPercentage(allResponses['charities']) : 0;
-	const nonCharityTotal = getTotalNonCharitableBequestPercentage(value);
-	if (charityPct + nonCharityTotal > WASIYYAH_THIRD_PERCENT + 1e-6) return false;
+	const charitiesValue = allResponses?.['charities'];
+	const husbandCharityPct = allResponses ? getHusbandCharityPercentage(charitiesValue) : 0;
+	const wifeCharityPct = allResponses ? getWifeCharityPercentage(charitiesValue) : 0;
+	if (husbandCharityPct + sumBequestPercentages(value.husbandBequests) > WASIYYAH_THIRD_PERCENT + 1e-6) return false;
+	if (wifeCharityPct + sumBequestPercentages(value.wifeBequests) > WASIYYAH_THIRD_PERCENT + 1e-6) return false;
 
 	if (value.husbandInterested) {
 		if (value.husbandBequests.length === 0) return false;
@@ -213,15 +240,16 @@ export function isHeirResponseComplete(heir: Partial<HeirResponse>): boolean {
 }
 
 export function getTotalCharityPercentage(value: unknown): number {
-	if (!Array.isArray(value)) return 0;
-	return value
-		.filter((item): item is CharityResponse => 
-			!!item && typeof item === 'object' && 'charityId' in item
-		)
-		.reduce((sum, c) => sum + (c.percentage || 0), 0);
+	if (isCharitiesResponseShape(value)) {
+		return getHusbandCharityPercentage(value) + getWifeCharityPercentage(value);
+	}
+	return 0;
 }
 
 export function isQuestionResponseAnswered(value: unknown): boolean {
+	if (isCharitiesResponseShape(value)) {
+		return true;
+	}
 	if (Array.isArray(value)) {
 		if (value.length === 0) return false;
 		const first = value[0];
@@ -230,9 +258,6 @@ export function isQuestionResponseAnswered(value: unknown): boolean {
 				return value.some((child) => !!child && typeof child === 'object' && isChildResponseComplete(child));
 			}
 			return value.some((heir) => !!heir && typeof heir === 'object' && isHeirResponseComplete(heir));
-		}
-		if (first && typeof first === 'object' && 'charityId' in first) {
-			return value.some((charity) => !!charity && typeof charity === 'object' && isCharityResponseComplete(charity));
 		}
 		if (first && typeof first === 'object' && 'assetName' in first) {
 			return value.some((entry) => typeof entry?.assetName === 'string' && entry.assetName.trim() !== '');
@@ -296,13 +321,18 @@ export function isQuestionResponseComplete(
 		);
 	}
 	if (type === 'charities') {
-		const discounted = context?.selectedPlan === 'discounted';
-		if (!Array.isArray(value) || value.length === 0) {
-			return !discounted;
+		if (!isCharitiesResponseShape(value)) return false;
+		if (value.husbandInterested) {
+			if (value.husbandCharities.length === 0) return false;
+			if (!value.husbandCharities.every((c) => isCharityResponseComplete(c))) return false;
+			if (getHusbandCharityPercentage(value) > WASIYYAH_THIRD_PERCENT + 1e-6) return false;
 		}
-		const allComplete = value.every((charity) => !!charity && typeof charity === 'object' && isCharityResponseComplete(charity));
-		const totalPercentage = getTotalCharityPercentage(value);
-		if (!allComplete || totalPercentage > WASIYYAH_THIRD_PERCENT + 1e-6) return false;
+		if (value.wifeInterested) {
+			if (value.wifeCharities.length === 0) return false;
+			if (!value.wifeCharities.every((c) => isCharityResponseComplete(c))) return false;
+			if (getWifeCharityPercentage(value) > WASIYYAH_THIRD_PERCENT + 1e-6) return false;
+		}
+		const discounted = context?.selectedPlan === 'discounted';
 		if (discounted && !meetsDiscountedCharityPledge(value)) return false;
 		return true;
 	}
