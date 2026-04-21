@@ -28,6 +28,7 @@
 	const showTrustTypeSelection = false;
 
 	let completing = $state(false);
+	let mobileSidebarOpen = $state(false);
 
 	let { data } = $props();
 
@@ -384,10 +385,30 @@
 	<nav
 		class="relative z-10 shrink-0 flex items-center justify-between px-6 md:px-8 pt-[max(1.25rem,env(safe-area-inset-top,0px))] pb-5 border-b border-navy/[0.06]"
 	>
-		<a href="/" class="flex items-center gap-2 text-navy font-semibold text-base tracking-tight">
-			<span class="w-2 h-2 rounded-full bg-emerald-accent"></span>
-			{siteName}
-		</a>
+		<div class="flex min-w-0 items-center gap-2">
+			<button
+				type="button"
+				class="md:hidden shrink-0 cursor-pointer p-1.5 -ml-1 text-navy/50 transition-colors hover:text-navy"
+				onclick={() => (mobileSidebarOpen = !mobileSidebarOpen)}
+				aria-label={mobileSidebarOpen ? 'Close sections menu' : 'Open sections menu'}
+				aria-expanded={mobileSidebarOpen}
+				aria-controls="questionnaire-sidebar-drawer"
+			>
+				{#if mobileSidebarOpen}
+					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				{:else}
+					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+					</svg>
+				{/if}
+			</button>
+			<a href="/" class="flex min-w-0 items-center gap-2 truncate text-navy font-semibold text-base tracking-tight">
+				<span class="w-2 h-2 shrink-0 rounded-full bg-emerald-accent"></span>
+				{siteName}
+			</a>
+		</div>
 		<div class="flex items-center gap-4">
 			<span class="text-[11px] text-navy/35 transition-opacity duration-300 {saving ? 'opacity-100' : 'opacity-0'}">Saving...</span>
 			<span class="hidden sm:inline text-sm text-navy/45">{userEmail}</span>
@@ -398,6 +419,7 @@
 	<div class="relative z-10 flex min-h-0 flex-1 overflow-hidden">
 
 		<QuestionnaireSidebar
+			bind:mobileOpen={mobileSidebarOpen}
 			{currentIndex}
 			{responses}
 			{activeQuestions}

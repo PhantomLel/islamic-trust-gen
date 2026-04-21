@@ -10,6 +10,7 @@
 		postQuestions,
 		selectedPlan,
 		onnavigate,
+		mobileOpen = $bindable(false),
 	}: {
 		currentIndex: number;
 		responses: Record<string, QuestionResponseValue>;
@@ -18,7 +19,17 @@
 		postQuestions: Question[];
 		selectedPlan: string | null;
 		onnavigate: (questionId: string) => void;
+		mobileOpen?: boolean;
 	} = $props();
+
+	$effect(() => {
+		if (!mobileOpen) return;
+		function onKey(e: KeyboardEvent) {
+			if (e.key === 'Escape') mobileOpen = false;
+		}
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	});
 
 	let currentId = $derived(activeQuestions[currentIndex]?.id ?? null);
 
@@ -48,6 +59,7 @@
 		const idx = activeQuestions.findIndex((aq) => aq.id === questionId);
 		if (idx < 0 || idx >= firstBlockedNavIndex) return;
 		onnavigate(questionId);
+		mobileOpen = false;
 	}
 
 	function tryNavigateBucket(bucketQs: Question[], sectionLocked: boolean) {
@@ -55,6 +67,7 @@
 		const idx = firstNavigableIndexInBucket(bucketQs);
 		if (idx < 0 || idx >= firstBlockedNavIndex) return;
 		onnavigate(activeQuestions[idx].id);
+		mobileOpen = false;
 	}
 
 	// Pre questions are always navigable — users can revisit them after payment.
@@ -83,7 +96,7 @@
 	}
 </script>
 
-<aside class="hidden md:flex flex-col w-64 shrink-0 border-r border-navy/[0.06] bg-white/40 backdrop-blur-sm">
+{#snippet sidebarInner()}
 	<div class="px-6 pt-6 pb-4">
 		<div class="text-[11px] text-navy/40 tracking-wider uppercase font-medium mb-3">Progress</div>
 		<div class="w-full h-1.5 rounded-full bg-navy/[0.06] overflow-hidden">
@@ -282,4 +295,42 @@
 			</div>
 		{/each}
 	</nav>
+{/snippet}
+
+<aside class="hidden md:flex flex-col w-64 shrink-0 border-r border-navy/[0.06] bg-white/40 backdrop-blur-sm">
+	{@render sidebarInner()}
 </aside>
+
+{#if mobileOpen}
+	<div class="fixed inset-0 z-[60] md:hidden">
+		<button
+			type="button"
+			class="absolute inset-0 cursor-pointer bg-navy/40"
+			aria-label="Close navigation"
+			onclick={() => (mobileOpen = false)}
+		></button>
+		<div
+			id="questionnaire-sidebar-drawer"
+			class="absolute left-0 top-0 bottom-0 z-[61] flex w-[min(20rem,calc(100vw-2rem))] flex-col border-r border-navy/[0.06] bg-white/95 shadow-xl backdrop-blur-sm pt-[max(0.5rem,env(safe-area-inset-top,0px))] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
+			role="dialog"
+			aria-modal="true"
+			aria-label="Questionnaire sections"
+		>
+			<div class="flex shrink-0 items-center justify-end border-b border-navy/[0.06] px-2 py-2">
+				<button
+					type="button"
+					class="cursor-pointer rounded-lg p-2 text-navy/50 transition-colors hover:bg-navy/[0.06] hover:text-navy"
+					aria-label="Close menu"
+					onclick={() => (mobileOpen = false)}
+				>
+					<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+			<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+				{@render sidebarInner()}
+			</div>
+		</div>
+	</div>
+{/if}
