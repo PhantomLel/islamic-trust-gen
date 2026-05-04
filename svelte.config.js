@@ -5,7 +5,7 @@ export default {
     adapter: adapter({
       functions: {
         'api/admin/trust/[id]/document': {
-          includeFiles: ['src/lib/templates/**']
+          includeFiles: ['static/templates/**']
         }
       }
     })

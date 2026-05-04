@@ -7,7 +7,7 @@ import Docxtemplater from 'docxtemplater';
 import expressionParser from 'docxtemplater/expressions.js';
 import { buildJointTrustContext } from './buildContext';
 
-const TEMPLATE_PATH = path.resolve('src/lib/templates/joint_template.docx');
+const TEMPLATE_PATH = path.resolve('static/templates/joint_template.docx');
 
 /**
  * Two pre-render fixes applied directly to word/document.xml:
