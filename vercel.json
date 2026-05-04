@@ -1,6 +1,6 @@
 {
     "functions": {
-      "api/admin/**": {
+      ".svelte-kit/output/server/**/*.js": {
         "includeFiles": "src/lib/templates/**"
       }
     }
