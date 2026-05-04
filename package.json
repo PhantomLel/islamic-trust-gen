@@ -37,6 +37,7 @@
 	},
 	"dependencies": {
 		"@neondatabase/serverless": "^1.0.2",
+		"@sveltejs/adapter-vercel": "^6.3.3",
 		"@tailwindcss/vite": "^4.2.1",
 		"@types/video.js": "^7.3.58",
 		"@uploadthing/svelte": "^7.3.3",
