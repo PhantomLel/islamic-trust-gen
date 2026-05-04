@@ -8,6 +8,17 @@ type Response = {
 	response: string | string[] | boolean | number | null;
 }
 
+export type GeneratedFile = {
+	/** Logical document kind, e.g. 'joint-trust', 'pour-over-will-husband'. */
+	kind: string;
+	url: string;
+	filename: string;
+	/** Storage provider key (uploadthing key) so we can delete later if needed. */
+	storageKey?: string;
+	/** ISO timestamp of when this file was generated. */
+	generatedAt: string;
+}
+
 enum Charities {
 	IslamicSocietyOfNorthAmerica = 'islamic-society-of-north-america',
 	AmericanRedCross = 'american-red-cross',
@@ -50,6 +61,7 @@ export const trust = pgTable('trust', {
 	approved: boolean('approved').notNull().default(false),
 	file_urls: text('file_urls').array(),
 	house_deed_url: text('house_deed_url'),
+	generated_files: jsonb('generated_files').$type<GeneratedFile[]>(),
 	charities: jsonb('charities').$type<string[]>(),
 	selectedPlan: text('selected_plan'), // 'full' or 'discounted'
 	deedRetrievalRequested: boolean('deed_retrieval_requested').notNull().default(false),

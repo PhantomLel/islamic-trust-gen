@@ -18,6 +18,51 @@
 
 	let copiedEmail = $state(false);
 
+	type TabId = 'questionnaire' | 'files';
+	let activeTab = $state<TabId>('questionnaire');
+
+	type FileRow = { label: string; sublabel: string; url: string };
+	let fileRows = $derived<FileRow[]>(buildFileRows(trust));
+
+	function buildFileRows(t: typeof trust): FileRow[] {
+		if (!t) return [];
+		const rows: FileRow[] = [];
+		if (t.houseDeedUrl) {
+			rows.push({ label: 'House deed', sublabel: 'Uploaded by client', url: t.houseDeedUrl });
+		}
+		for (const g of t.generatedFiles ?? []) {
+			rows.push({
+				label: g.filename,
+				sublabel: `Generated \u00b7 ${kindLabel(g.kind)} \u00b7 ${formatDate(g.generatedAt)}`,
+				url: g.url,
+			});
+		}
+		for (const url of t.fileUrls ?? []) {
+			rows.push({ label: filenameFromUrl(url), sublabel: 'Other file', url });
+		}
+		return rows;
+	}
+
+	function kindLabel(kind: string): string {
+		const map: Record<string, string> = {
+			'joint-trust': 'Joint trust',
+			'pour-over-will-husband': "Husband's pour-over will",
+			'pour-over-will-wife': "Wife's pour-over will",
+			'certification-of-trust': 'Certification of trust',
+		};
+		return map[kind] ?? kind;
+	}
+
+	function filenameFromUrl(url: string): string {
+		try {
+			const u = new URL(url);
+			const last = u.pathname.split('/').filter(Boolean).pop();
+			return last ? decodeURIComponent(last) : url;
+		} catch {
+			return url;
+		}
+	}
+
 	async function copyEmail() {
 		await navigator.clipboard.writeText(data.targetUser.email);
 		copiedEmail = true;
@@ -144,12 +189,28 @@
 							Consultation requested
 						</button>
 					{/if}
-					{#if trust?.awaitingPayment}
-						<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border bg-navy/[0.03] border-navy/10 text-navy/50">
-							<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-							Awaiting Payment
-						</span>
-					{/if}
+				{#if trust?.awaitingPayment}
+					<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border bg-navy/[0.03] border-navy/10 text-navy/50">
+						<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+						Awaiting Payment
+					</span>
+				{/if}
+
+				{#if trust}
+					{@const canGenerate = trust.complete}
+					<a
+						href={canGenerate ? `/api/admin/trust/${trust.id}/document` : undefined}
+						aria-disabled={!canGenerate}
+						title={canGenerate ? 'Download the rendered joint trust .docx' : 'Available once the user completes the questionnaire.'}
+						class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition-all
+							{canGenerate
+								? 'bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 cursor-pointer'
+								: 'bg-navy/[0.03] text-navy/35 border-navy/10 cursor-not-allowed pointer-events-none'}"
+					>
+						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+						Generate joint trust (.docx)
+					</a>
+				{/if}
 
 					{#if canDeleteUser}
 						<button
@@ -165,9 +226,71 @@
 			</div>
 		</div>
 
-		<!-- questionnaire answers -->
 		{#if trust}
-			<AdminQuestionResponses {trust} />
+			<!-- tabs -->
+			<div class="flex items-center gap-1 mb-4 border-b border-navy/[0.08]" role="tablist">
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === 'questionnaire'}
+					onclick={() => (activeTab = 'questionnaire')}
+					class="px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors cursor-pointer
+						{activeTab === 'questionnaire'
+							? 'text-navy border-emerald-accent'
+							: 'text-navy/45 border-transparent hover:text-navy/70'}"
+				>
+					Questionnaire
+				</button>
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === 'files'}
+					onclick={() => (activeTab = 'files')}
+					class="px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors cursor-pointer flex items-center gap-1.5
+						{activeTab === 'files'
+							? 'text-navy border-emerald-accent'
+							: 'text-navy/45 border-transparent hover:text-navy/70'}"
+				>
+					Files
+					<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
+						{fileRows.length}
+					</span>
+				</button>
+			</div>
+
+			{#if activeTab === 'questionnaire'}
+				<AdminQuestionResponses {trust} />
+			{:else if activeTab === 'files'}
+				<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden">
+					{#if fileRows.length === 0}
+						<div class="p-12 text-center">
+							<p class="text-navy/40 text-sm">No files yet.</p>
+							<p class="text-navy/35 text-[12px] mt-1">Generate the trust document or wait for the client to upload their house deed.</p>
+						</div>
+					{:else}
+						<ul class="divide-y divide-navy/[0.06]">
+							{#each fileRows as f}
+								<li class="flex items-center justify-between gap-4 px-5 py-3.5">
+									<div class="min-w-0">
+										<div class="text-[13px] text-navy font-medium truncate">{f.label}</div>
+										<div class="text-[11px] text-navy/45 mt-0.5">{f.sublabel}</div>
+									</div>
+									<a
+										href={f.url}
+										download
+										target="_blank"
+										rel="noopener"
+										class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 transition-all cursor-pointer"
+									>
+										<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+										Download
+									</a>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			{/if}
 		{:else}
 			<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center">
 				<p class="text-navy/40 text-sm">No trust created yet.</p>

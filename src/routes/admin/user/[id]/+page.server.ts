@@ -40,6 +40,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			isEligible: t.isEligible,
 			awaitingPayment: t.status === TrustStatus.AwaitingPayment && t.selectedPlan === null,
 			responses: (t.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
+			houseDeedUrl: t.house_deed_url ?? null,
+			fileUrls: t.file_urls ?? [],
+			generatedFiles: t.generated_files ?? [],
 		})),
 	};
 };
