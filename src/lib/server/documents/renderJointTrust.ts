@@ -1,13 +1,10 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import { ORIGIN } from '$env/static/private';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - the expressions sub-path has no shipped types
 import expressionParser from 'docxtemplater/expressions.js';
 import { buildJointTrustContext } from './buildContext';
-
-const TEMPLATE_PATH = path.resolve('static/templates/joint_template.docx');
 
 /**
  * Two pre-render fixes applied directly to word/document.xml:
@@ -41,10 +38,16 @@ function safeFilenameFragment(s: string | null | undefined, fallback: string): s
 	return cleaned || fallback;
 }
 
-export function renderJointTrust(trust: TrustLike): RenderedDocument {
+export async function renderJointTrust(trust: TrustLike): Promise<RenderedDocument> {
 	const data = buildJointTrustContext(trust);
 
-	const raw = fs.readFileSync(TEMPLATE_PATH);
+	const response = await fetch(`${ORIGIN}/templates/joint_template.docx`);
+	if (!response.ok) {
+		throw new Error(
+			`Failed to load joint trust template: ${response.status} ${response.statusText}`,
+		);
+	}
+	const raw = Buffer.from(await response.arrayBuffer());
 	const zip = new PizZip(raw);
 
 	const docXmlPath = 'word/document.xml';

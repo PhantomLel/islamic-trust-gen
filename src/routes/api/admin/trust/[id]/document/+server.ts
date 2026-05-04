@@ -21,7 +21,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 	if (!row) throw error(404, 'Trust not found');
 	if (!row.complete) throw error(409, 'Questionnaire not complete');
 
-	const { buffer, filename } = renderJointTrust({
+	const { buffer, filename } = await renderJointTrust({
 		id: row.id,
 		responses: row.responses ?? [],
 		user: { name: row.user?.name ?? null },
