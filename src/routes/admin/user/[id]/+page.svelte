@@ -4,6 +4,9 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import AdminQuestionResponses from '$lib/components/AdminQuestionResponses.svelte';
+	import type { UserFile } from '$lib/server/db/schema';
+	import { createUploader } from '$lib/uploadthing';
+	import { UploadDropzone } from '@uploadthing/svelte';
 
 	let { data } = $props();
 
@@ -21,8 +24,14 @@
 	type TabId = 'questionnaire' | 'files';
 	let activeTab = $state<TabId>('questionnaire');
 
-	type FileRow = { label: string; sublabel: string; url: string };
+	type FileRow = {
+		label: string;
+		sublabel: string;
+		url: string;
+		deleteAction?: { action: string; fields: Record<string, string> };
+	};
 	let fileRows = $derived<FileRow[]>(buildFileRows(trust));
+	let deletingKey = $state<string | null>(null);
 
 	function buildFileRows(t: typeof trust): FileRow[] {
 		if (!t) return [];
@@ -33,8 +42,17 @@
 		for (const g of t.generatedFiles ?? []) {
 			rows.push({
 				label: g.filename,
-				sublabel: `Generated \u00b7 ${kindLabel(g.kind)} \u00b7 ${formatDate(g.generatedAt)}`,
+				sublabel: `Generated · ${kindLabel(g.kind)} · ${formatDate(g.generatedAt)}`,
 				url: g.url,
+				deleteAction: { action: '?/deleteGeneratedFile', fields: { trustId: String(t.id), kind: g.kind } },
+			});
+		}
+		for (const f of (t.userFiles ?? []) as UserFile[]) {
+			rows.push({
+				label: f.filename,
+				sublabel: `Uploaded by admin· ${kindLabel(f.kind)}${f.uploadedAt ? ' · ' + formatDate(f.uploadedAt) : ''}`,
+				url: f.url,
+				deleteAction: { action: '?/deleteUserFile', fields: { trustId: String(t.id), fileId: f.id } },
 			});
 		}
 		for (const url of t.fileUrls ?? []) {
@@ -49,6 +67,8 @@
 			'pour-over-will-husband': "Husband's pour-over will",
 			'pour-over-will-wife': "Wife's pour-over will",
 			'certification-of-trust': 'Certification of trust',
+			'trust-document': 'Trust document',
+			'other': 'Other',
 		};
 		return map[kind] ?? kind;
 	}
@@ -62,6 +82,66 @@
 			return url;
 		}
 	}
+
+	async function deleteFile(row: FileRow) {
+		if (!row.deleteAction) return;
+		const key = row.deleteAction.fields.kind ?? row.deleteAction.fields.fileId;
+		deletingKey = key;
+		const formData = new FormData();
+		for (const [k, v] of Object.entries(row.deleteAction.fields)) formData.set(k, v);
+		await fetch(row.deleteAction.action, { method: 'POST', body: formData });
+		deletingKey = null;
+		await invalidateAll();
+	}
+
+	// ── File upload (admin) ───────────────────────────────────────
+	const FILE_KINDS = [
+		{ value: 'trust-document', label: 'Trust Document' },
+		{ value: 'pour-over-will-husband', label: 'Pour Over Will – Husband' },
+		{ value: 'pour-over-will-wife', label: 'Pour Over Will – Wife' },
+		{ value: 'other', label: 'Other' },
+	] as const;
+
+	let selectedKind = $state<string>('trust-document');
+	let uploadError = $state('');
+	let uploadSaved = $state(false);
+	let uploadSaving = $state(false);
+
+	const dropzoneAppearance = {
+		container:
+			'ut-ready:border-navy/12 ut-ready:hover:border-emerald-accent/45 ut-ready:bg-white/70 ut-ready:hover:bg-white ut-uploading:border-emerald-accent/45 ut-uploading:bg-emerald-accent/[0.04] border-2 border-dashed rounded-xl p-5 transition-all',
+		label: 'text-navy text-[13px] font-medium tracking-tight',
+		allowedContent: 'text-navy/42 text-[11px]',
+		button: 'hidden',
+		uploadIcon: 'text-emerald-accent/95 h-6 w-6',
+	};
+
+	const uploader = createUploader('userDocumentUploader', {
+		config: { mode: 'auto' },
+		onClientUploadComplete: async (files) => {
+			if (!trust) return;
+			const file = files?.[0] as any;
+			// UploadThing v7+: ufsUrl is preferred; serverData carries what onUploadComplete returned
+			const url = file?.ufsUrl ?? file?.serverData?.url ?? file?.url;
+			const key = file?.key ?? file?.serverData?.key;
+			if (!url) { uploadError = 'Upload succeeded but no URL returned.'; return; }
+			uploadSaving = true;
+			const formData = new FormData();
+			formData.set('trustId', String(trust.id));
+			formData.set('url', url);
+			formData.set('filename', file?.name ?? 'document');
+			formData.set('kind', selectedKind);
+			if (key) formData.set('storageKey', key);
+			const res = await fetch('?/saveUserFile', { method: 'POST', body: formData });
+			uploadSaving = false;
+			if (!res.ok) { uploadError = 'Could not save the file. Please try again.'; return; }
+			uploadError = '';
+			uploadSaved = true;
+			setTimeout(() => { uploadSaved = false; }, 2500);
+			await invalidateAll();
+		},
+		onUploadError: (err) => { uploadError = err.message ?? 'Upload failed.'; },
+	});
 
 	async function copyEmail() {
 		await navigator.clipboard.writeText(data.targetUser.email);
@@ -260,31 +340,110 @@
 
 			{#if activeTab === 'questionnaire'}
 				<AdminQuestionResponses {trust} />
-			{:else if activeTab === 'files'}
-				<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden">
-					{#if fileRows.length === 0}
-						<div class="p-12 text-center">
-							<p class="text-navy/40 text-sm">No files yet.</p>
-							<p class="text-navy/35 text-[12px] mt-1">Generate the trust document or wait for the client to upload their house deed.</p>
+		{:else if activeTab === 'files'}
+			<!-- upload panel -->
+			{#if trust}
+				<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-5 mb-4">
+					<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-4">Upload a file for this client</p>
+					<div class="mb-3">
+						<label for="admin-doc-kind" class="block text-[11px] text-navy/40 mb-1.5">Document type</label>
+						<div class="relative inline-block w-full max-w-xs">
+							<select
+								id="admin-doc-kind"
+								bind:value={selectedKind}
+								class="w-full appearance-none rounded-lg border border-navy/10 bg-white px-3 py-2 text-[13px] text-navy pr-8
+									   focus:outline-none focus:border-emerald-accent/40 focus:ring-1 focus:ring-emerald-accent/20 transition-all cursor-pointer"
+							>
+								{#each FILE_KINDS as kind}
+									<option value={kind.value}>{kind.label}</option>
+								{/each}
+							</select>
+							<div class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center">
+								<svg class="w-3.5 h-3.5 text-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+								</svg>
+							</div>
 						</div>
-					{:else}
+					</div>
+
+					<UploadDropzone {uploader} appearance={dropzoneAppearance}>
+						<svelte:fragment slot="upload-icon">
+							<svg class="w-6 h-6 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 17.25a4.5 4.5 0 01.86-8.917 5.25 5.25 0 0110.252 1.47A3.75 3.75 0 0118 17.25H8.25z" />
+								<path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75V8.25m0 0l-2.25 2.25M12 8.25l2.25 2.25" />
+							</svg>
+						</svelte:fragment>
+						<svelte:fragment slot="label">
+							<span class="text-center">
+								<span class="block text-[13px]">Drop a file here</span>
+								<span class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-navy text-cream hover:bg-navy-light shadow-sm transition-all cursor-pointer">
+									Browse files
+								</span>
+							</span>
+						</svelte:fragment>
+						<svelte:fragment slot="allowed-content">
+							PDF, Word (.docx), or image · up to 32 MB
+						</svelte:fragment>
+					</UploadDropzone>
+
+					{#if uploadSaving}
+						<p class="mt-2 text-[12px] text-navy/45">Saving…</p>
+					{/if}
+					{#if uploadSaved}
+						<div class="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-accent/30 bg-emerald-accent/10 px-2.5 py-1 text-[11px] font-medium text-emerald-accent">
+							<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+							Uploaded successfully
+						</div>
+					{/if}
+					{#if uploadError}
+						<p class="mt-2 text-[12px] text-red-600">{uploadError}</p>
+					{/if}
+				</div>
+			{/if}
+
+			<!-- file list -->
+			<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden">
+				{#if fileRows.length === 0}
+					<div class="p-12 text-center">
+						<p class="text-navy/40 text-sm">No files yet.</p>
+						<p class="text-navy/35 text-[12px] mt-1">Upload a file above, generate the trust document, or wait for the client to upload their house deed.</p>
+					</div>
+				{:else}
 						<ul class="divide-y divide-navy/[0.06]">
 							{#each fileRows as f}
+								{@const deleteKey = f.deleteAction?.fields.kind ?? f.deleteAction?.fields.fileId}
 								<li class="flex items-center justify-between gap-4 px-5 py-3.5">
 									<div class="min-w-0">
 										<div class="text-[13px] text-navy font-medium truncate">{f.label}</div>
 										<div class="text-[11px] text-navy/45 mt-0.5">{f.sublabel}</div>
 									</div>
-									<a
-										href={f.url}
-										download
-										target="_blank"
-										rel="noopener"
-										class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 transition-all cursor-pointer"
-									>
-										<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
-										Download
-									</a>
+									<div class="flex items-center gap-2 shrink-0">
+										<a
+											href={f.url}
+											download
+											target="_blank"
+											rel="noopener"
+											class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 transition-all cursor-pointer"
+										>
+											<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+											Download
+										</a>
+										{#if f.deleteAction}
+											<button
+												type="button"
+												onclick={() => deleteFile(f)}
+												disabled={deletingKey === deleteKey}
+												class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-rose-200/60 bg-rose-50 text-rose-400 hover:bg-rose-100 hover:text-rose-600 transition-all cursor-pointer disabled:opacity-40"
+												title="Delete file"
+											>
+												{#if deletingKey === deleteKey}
+													<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+												{:else}
+													<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+												{/if}
+											</button>
+										{/if}
+									</div>
 								</li>
 							{/each}
 						</ul>

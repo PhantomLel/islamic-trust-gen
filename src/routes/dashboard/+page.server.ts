@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { allIntakeQuestions } from '$lib/config';
 import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
 import { TrustStatus } from '$lib/server/db/schema';
+import type { UserFile } from '$lib/server/db/schema';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
 import type { Actions, PageServerLoad } from './$types';
@@ -14,14 +15,11 @@ const utapi = new UTApi({ token: env.UPLOADTHING_TOKEN });
 function getUploadThingFileKey(fileUrl: string): string | null {
 	try {
 		const url = new URL(fileUrl);
-		// Typical UploadThing URLs look like /f/<fileKey>
 		const fSegmentIndex = url.pathname.split('/').findIndex((segment) => segment === 'f');
 		if (fSegmentIndex >= 0) {
 			const maybeKey = url.pathname.split('/')[fSegmentIndex + 1];
 			if (maybeKey) return maybeKey;
 		}
-
-		// Fallback: use last path segment
 		const lastSegment = url.pathname.split('/').filter(Boolean).at(-1);
 		return lastSegment ?? null;
 	} catch {
@@ -39,9 +37,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		orderBy: (t, { desc }) => [desc(t.createdAt)],
 	});
 
-
 	if (!existing) throw redirect(302, '/create-trust');
-	
+
 	if (existing.isEligible === null) throw redirect(302, `/create-trust/${existing.id}`);
 
 	// Match create-trust: joint/individual picker is hidden; default to joint.
@@ -72,8 +69,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			: 0;
 	const hasHouse = responses.find((r) => r.id === 'has-house')?.response === true;
 	const hasPaid = existing.selectedPlan !== null;
-	const awaitingPayment =
-		existing.status === TrustStatus.AwaitingPayment && !hasPaid;
+	const awaitingPayment = existing.status === TrustStatus.AwaitingPayment && !hasPaid;
 	const intakeUnderReview = existing.status === TrustStatus.RequiresReview;
 
 	return {
@@ -96,6 +92,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			questionnaireProgress,
 			awaitingPayment,
 			intakeUnderReview,
+			userFiles: (existing.user_files ?? []) as UserFile[],
+			generatedFiles: existing.generated_files ?? [],
 		},
 	};
 };
@@ -114,9 +112,7 @@ export const actions: Actions = {
 
 		const existingTrust = await db.query.trust.findFirst({
 			where: and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)),
-			columns: {
-				house_deed_url: true
-			}
+			columns: { house_deed_url: true },
 		});
 
 		if (!existingTrust) return { saved: false };
@@ -128,7 +124,6 @@ export const actions: Actions = {
 				try {
 					await utapi.deleteFiles(previousFileKey);
 				} catch (error) {
-					// Keep update flow resilient if cleanup fails.
 					console.error('Failed to delete previous house deed file', error);
 				}
 			}
@@ -136,10 +131,7 @@ export const actions: Actions = {
 
 		await db
 			.update(trust)
-			.set({
-				house_deed_url: houseDeedUrl,
-				updatedAt: new Date(),
-			})
+			.set({ house_deed_url: houseDeedUrl, updatedAt: new Date() })
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
 		return { saved: true };

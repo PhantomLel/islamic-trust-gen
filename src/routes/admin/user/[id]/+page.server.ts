@@ -1,8 +1,14 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { trust, user, TrustStatus } from '$lib/server/db/schema';
+import type { UserFile } from '$lib/server/db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { UTApi } from 'uploadthing/server';
+import { env } from '$env/dynamic/private';
+import { randomUUID } from 'crypto';
 import type { PageServerLoad, Actions } from './$types';
+
+const utapi = new UTApi({ token: env.UPLOADTHING_TOKEN });
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) throw redirect(302, '/login');
@@ -43,6 +49,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			houseDeedUrl: t.house_deed_url ?? null,
 			fileUrls: t.file_urls ?? [],
 			generatedFiles: t.generated_files ?? [],
+			userFiles: (t.user_files ?? []) as UserFile[],
 		})),
 	};
 };
@@ -90,6 +97,113 @@ export const actions: Actions = {
 		}).where(eq(user.id, userId));
 
 		return { toggled: true };
+	},
+
+	saveUserFile: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		const url = formData.get('url');
+		const filename = formData.get('filename');
+		const kind = formData.get('kind');
+		const storageKey = formData.get('storageKey');
+
+		if (
+			Number.isNaN(trustId) ||
+			typeof url !== 'string' || !url ||
+			typeof filename !== 'string' || !filename ||
+			typeof kind !== 'string' || !kind
+		) {
+			return fail(400, { message: 'Missing fields' });
+		}
+
+		const existingTrust = await db.query.trust.findFirst({
+			where: eq(trust.id, trustId),
+			columns: { user_files: true },
+		});
+		if (!existingTrust) return fail(404, { message: 'Trust not found' });
+
+		const newFile: UserFile = {
+			id: randomUUID(),
+			kind: kind as UserFile['kind'],
+			url,
+			filename,
+			storageKey: typeof storageKey === 'string' && storageKey ? storageKey : undefined,
+			uploadedAt: new Date().toISOString(),
+		};
+
+		const current = (existingTrust.user_files ?? []) as UserFile[];
+		await db
+			.update(trust)
+			.set({ user_files: [...current, newFile], updatedAt: new Date() })
+			.where(eq(trust.id, trustId));
+
+		return { saved: true };
+	},
+
+	deleteUserFile: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		const fileId = formData.get('fileId');
+
+		if (Number.isNaN(trustId) || typeof fileId !== 'string' || !fileId) {
+			return fail(400, { message: 'Missing fields' });
+		}
+
+		const existingTrust = await db.query.trust.findFirst({
+			where: eq(trust.id, trustId),
+			columns: { user_files: true },
+		});
+		if (!existingTrust) return fail(404, { message: 'Trust not found' });
+
+		const current = (existingTrust.user_files ?? []) as UserFile[];
+		const target = current.find((f) => f.id === fileId);
+		if (!target) return fail(404, { message: 'File not found' });
+
+		const next = current.filter((f) => f.id !== fileId);
+		await db.update(trust).set({ user_files: next, updatedAt: new Date() }).where(eq(trust.id, trustId));
+
+		if (target.storageKey) {
+			try { await utapi.deleteFiles(target.storageKey); } catch (err) {
+				console.error('Failed to delete user file from storage', err);
+			}
+		}
+		return { deleted: true };
+	},
+
+	deleteGeneratedFile: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		const kind = formData.get('kind');
+
+		if (Number.isNaN(trustId) || typeof kind !== 'string' || !kind) {
+			return fail(400, { message: 'Missing fields' });
+		}
+
+		const existingTrust = await db.query.trust.findFirst({
+			where: eq(trust.id, trustId),
+			columns: { generated_files: true },
+		});
+		if (!existingTrust) return fail(404, { message: 'Trust not found' });
+
+		const current = existingTrust.generated_files ?? [];
+		const target = current.find((f) => f.kind === kind);
+		if (!target) return fail(404, { message: 'File not found' });
+
+		const next = current.filter((f) => f.kind !== kind);
+		await db.update(trust).set({ generated_files: next, updatedAt: new Date() }).where(eq(trust.id, trustId));
+
+		if (target.storageKey) {
+			try { await utapi.deleteFiles(target.storageKey); } catch (err) {
+				console.error('Failed to delete generated file from storage', err);
+			}
+		}
+		return { deleted: true };
 	},
 
 	deleteUser: async ({ request, locals }) => {

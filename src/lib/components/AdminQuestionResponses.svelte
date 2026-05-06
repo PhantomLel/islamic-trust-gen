@@ -1,16 +1,23 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import {
-		allIntakeQuestions,
-		charities,
-		type ChildResponse,
-		type HeirResponse,
-		type CharityResponse,
-		type CharitiesResponse,
-		type HeirsCalculatorResponse,
-		type PersonalDataResponse,
-		type QuestionResponseValue
-	} from '$lib/config';
+import {
+	allIntakeQuestions,
+	charities,
+	type ChildResponse,
+	type HeirResponse,
+	type CharityResponse,
+	type CharitiesResponse,
+	type HeirsCalculatorResponse,
+	type PersonalDataResponse,
+	type QuestionResponseValue,
+	type HebaResponse,
+	type AssetAllocationEntry,
+	type SeparatePropertyResponse,
+	type PersonalPropertyEntry,
+	type SuccessorTrusteeEntry,
+	type PourOverRepresentativeEntry,
+	type MinorDistributionResponse
+} from '$lib/config';
 	import {
 		isCharitiesResponseShape,
 		isCustomCharityResponse,
@@ -332,6 +339,58 @@
 			day: 'numeric',
 			year: 'numeric'
 		});
+	}
+
+	function isHebaShape(value: unknown): value is HebaResponse {
+		return (
+			value != null &&
+			typeof value === 'object' &&
+			!Array.isArray(value) &&
+			'husbandConfirmation' in value &&
+			'wifeConfirmation' in value
+		);
+	}
+
+	function isSeparatePropertyShape(value: unknown): value is SeparatePropertyResponse {
+		return (
+			value != null &&
+			typeof value === 'object' &&
+			!Array.isArray(value) &&
+			'husband' in value &&
+			'wife' in value &&
+			Array.isArray((value as { husband: unknown }).husband) &&
+			Array.isArray((value as { wife: unknown }).wife)
+		);
+	}
+
+	function isMinorDistributionShape(value: unknown): value is MinorDistributionResponse {
+		return (
+			value != null &&
+			typeof value === 'object' &&
+			!Array.isArray(value) &&
+			'mode' in value &&
+			['staggered', 'single-age', 'age-of-majority'].includes((value as { mode: string }).mode)
+		);
+	}
+
+	const ownershipLabels: Record<string, string> = {
+		heba: 'Heba (gift to spouse)',
+		assets: 'Asset-by-asset designation',
+		'50-50': 'Equal (50/50)',
+		husband: 'Husband owns all',
+		wife: 'Wife owns all'
+	};
+
+	const trusteeOnFirstDeathLabels: Record<string, string> = {
+		'survivor-serves': 'Surviving spouse serves as trustee',
+		'survivor-skipped': 'Survivor skips — go to successors directly'
+	};
+
+	function formatSpouse(spouse: string): string {
+		if (spouse === '50-50') return 'Joint (50/50)';
+		if (spouse === 'husband') return 'Husband';
+		if (spouse === 'wife') return 'Wife';
+		return spouse;
 	}
 
 	function getChildDisplayName(child: ChildResponse): string {
@@ -776,15 +835,176 @@
 									</div>
 								{/if}
 							</div>
-						{:else}
-							<span class="text-[13px] text-navy/25">—</span>
+				{:else}
+					<span class="text-[13px] text-navy/25">—</span>
+				{/if}
+				{:else if q.type === 'ownership-allocation'}
+					{#if typeof raw === 'string' && raw.trim()}
+						<span class="text-[13px] text-navy font-medium">{ownershipLabels[raw] ?? raw}</span>
+					{:else}
+						<span class="text-[13px] text-navy/25">—</span>
+					{/if}
+				{:else if q.type === 'trustee-on-first-death'}
+					{#if typeof raw === 'string' && raw.trim()}
+						<span class="text-[13px] text-navy font-medium">{trusteeOnFirstDeathLabels[raw] ?? raw}</span>
+					{:else}
+						<span class="text-[13px] text-navy/25">—</span>
+					{/if}
+				{:else if q.type === 'heba'}
+					{@const heba = isHebaShape(raw) ? raw : null}
+					{#if heba && (heba.husbandConfirmation !== null || heba.wifeConfirmation !== null)}
+						<div class="text-[12px] text-navy space-y-0.5">
+							<div>
+								<span class="text-navy/45">Husband</span>
+								{#if heba.husbandConfirmation !== null}
+									<span class="text-emerald-600 font-medium ml-1">Confirmed</span>
+								{:else}
+									<span class="text-amber-500 ml-1">Pending</span>
+								{/if}
+							</div>
+							<div>
+								<span class="text-navy/45">Wife</span>
+								{#if heba.wifeConfirmation !== null}
+									<span class="text-emerald-600 font-medium ml-1">Confirmed</span>
+								{:else}
+									<span class="text-amber-500 ml-1">Pending</span>
+								{/if}
+							</div>
+						</div>
+					{:else}
+						<span class="text-[13px] text-navy/25">—</span>
+					{/if}
+				{:else if q.type === 'assets'}
+					{@const assets = Array.isArray(raw) ? (raw as AssetAllocationEntry[]) : []}
+					{#if assets.length > 0}
+						<div class="space-y-1">
+							{#each assets as asset}
+								<div class="text-[12px] text-navy">
+									<span class="font-medium">{asset.assetName}</span>
+									{#if asset.accountId}
+										<span class="text-navy/35 text-[11px]"> #{asset.accountId}</span>
+									{/if}
+									<span class="text-navy/40"> — {formatSpouse(asset.spouse)}</span>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<span class="text-[13px] text-navy/25">—</span>
+					{/if}
+				{:else if q.type === 'separate-property'}
+					{@const sp = isSeparatePropertyShape(raw) ? raw : null}
+					{#if sp && (sp.husband.length > 0 || sp.wife.length > 0)}
+						<div class="space-y-2">
+							{#if sp.husband.length > 0}
+								<div>
+									<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Husband</div>
+									{#each sp.husband as item}
+										<div class="text-[12px] text-navy">
+											{item.assetName}{item.approximateValue ? ` — ~${item.approximateValue}` : ''}
+										</div>
+									{/each}
+								</div>
+							{/if}
+							{#if sp.wife.length > 0}
+								<div>
+									<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Wife</div>
+									{#each sp.wife as item}
+										<div class="text-[12px] text-navy">
+											{item.assetName}{item.approximateValue ? ` — ~${item.approximateValue}` : ''}
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<span class="text-[13px] text-navy/25">None</span>
+					{/if}
+				{:else if q.type === 'personal-property'}
+					{@const items = Array.isArray(raw) ? (raw as PersonalPropertyEntry[]) : []}
+					{#if items.length > 0}
+						<div class="space-y-1">
+							{#each items as item}
+								<div class="text-[12px] text-navy">
+									<span class="font-medium">{item.itemDescription}</span>
+									<span class="text-navy/40"> — {formatSpouse(item.spouse)}</span>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<span class="text-[13px] text-navy/25">None</span>
+					{/if}
+				{:else if q.type === 'successor-trustees' || q.type === 'pour-over-representatives'}
+					{@const people = Array.isArray(raw) ? (raw as (SuccessorTrusteeEntry | PourOverRepresentativeEntry)[]) : []}
+					{#if people.length > 0}
+						<div class="space-y-1">
+							{#each people as person, idx}
+								<div class="text-[12px] text-navy flex items-baseline gap-1.5">
+									<span class="text-navy/30 tabular-nums text-[11px] shrink-0">{idx + 1}.</span>
+									<span>
+										<span class="font-medium">{person.fullName}</span>
+										<span class="text-navy/40"> ({person.relationship}{person.contact ? ` · ${person.contact}` : ''})</span>
+									</span>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<span class="text-[13px] text-navy/25">—</span>
+					{/if}
+				{:else if q.type === 'minor-distribution'}
+					{@const md = isMinorDistributionShape(raw) ? raw : null}
+					{#if md}
+						{#if md.mode === 'age-of-majority'}
+							<span class="text-[13px] text-navy font-medium">At age of majority</span>
+						{:else if md.mode === 'single-age'}
+							{@const smd = md as { mode: 'single-age'; age: number }}
+							<span class="text-[13px] text-navy font-medium">All at age {smd.age}</span>
+						{:else if md.mode === 'staggered'}
+							{@const s = md as { mode: 'staggered'; firstPercent: number; firstAge: number; secondPercent: number; secondAge: number; remainderAge: number }}
+							<div class="text-[12px] text-navy space-y-0.5">
+								<div>{s.firstPercent}% at age {s.firstAge}</div>
+								<div>{s.secondPercent}% at age {s.secondAge}</div>
+								<div>{100 - s.firstPercent - s.secondPercent}% at age {s.remainderAge}</div>
+							</div>
 						{/if}
 					{:else}
-						<span class="text-[13px] text-navy font-medium {answer === '—' ? 'text-navy/25' : ''}">{answer}</span>
+						<span class="text-[13px] text-navy/25">—</span>
 					{/if}
+				{:else if q.type === 'non-charitable-bequests'}
+					{@const ncb = isNonCharitableBequestsShape(raw) ? raw : null}
+					{#if ncb && (ncb.husbandInterested || ncb.wifeInterested)}
+						<div class="space-y-2">
+							{#if ncb.husbandInterested && ncb.husbandBequests.length > 0}
+								<div>
+									<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Husband</div>
+									{#each ncb.husbandBequests as b}
+										<div class="text-[12px] text-navy">
+											<span class="font-medium">{b.recipientName}</span>
+											<span class="text-navy/40"> ({b.relationship} — {b.percentage}%)</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+							{#if ncb.wifeInterested && ncb.wifeBequests.length > 0}
+								<div>
+									<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Wife</div>
+									{#each ncb.wifeBequests as b}
+										<div class="text-[12px] text-navy">
+											<span class="font-medium">{b.recipientName}</span>
+											<span class="text-navy/40"> ({b.relationship} — {b.percentage}%)</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<span class="text-[13px] text-navy/25">{ncb ? 'None' : '—'}</span>
+					{/if}
+				{:else}
+					<span class="text-[13px] text-navy font-medium {answer === '—' ? 'text-navy/25' : ''}">{answer}</span>
 				{/if}
-			</div>
-		{/each}
+			{/if}
+		</div>
+	{/each}
 		</div>
 	</div>
 </div>

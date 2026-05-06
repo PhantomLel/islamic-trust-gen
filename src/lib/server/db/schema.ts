@@ -19,6 +19,19 @@ export type GeneratedFile = {
 	generatedAt: string;
 }
 
+export type UserFileKind = 'trust-document' | 'pour-over-will-husband' | 'pour-over-will-wife' | 'other';
+
+export type UserFile = {
+	id: string;
+	kind: UserFileKind;
+	url: string;
+	filename: string;
+	/** Storage provider key (uploadthing key) for deletion. */
+	storageKey?: string;
+	/** ISO timestamp of when this file was uploaded. */
+	uploadedAt: string;
+}
+
 enum Charities {
 	IslamicSocietyOfNorthAmerica = 'islamic-society-of-north-america',
 	AmericanRedCross = 'american-red-cross',
@@ -62,6 +75,7 @@ export const trust = pgTable('trust', {
 	file_urls: text('file_urls').array(),
 	house_deed_url: text('house_deed_url'),
 	generated_files: jsonb('generated_files').$type<GeneratedFile[]>(),
+	user_files: jsonb('user_files').$type<UserFile[]>(),
 	charities: jsonb('charities').$type<string[]>(),
 	selectedPlan: text('selected_plan'), // 'full' or 'discounted'
 	deedRetrievalRequested: boolean('deed_retrieval_requested').notNull().default(false),
