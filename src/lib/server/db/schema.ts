@@ -49,9 +49,8 @@ export enum TrustStatus {
 	AwaitingAnswers = 'awaiting-answers',
 	/** Full intake submitted; awaiting admin review. Current final stage in the product workflow. */
 	RequiresReview = 'review',
-	/** (Future) Admin approved; trust awaits notarization. */
 	NotarizationPending = 'notarization-pending',
-	/** (Future) Notarization complete. */
+	/** Notarization complete. */
 	Completed = 'completed',
 }
 

@@ -44,6 +44,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			joint: t.joint,
 			complete: t.complete,
 			isEligible: t.isEligible,
+			status: t.status,
+			approved: t.approved,
 			awaitingPayment: t.status === TrustStatus.AwaitingPayment && t.selectedPlan === null,
 			responses: (t.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
 			houseDeedUrl: t.house_deed_url ?? null,
@@ -83,6 +85,25 @@ export const actions: Actions = {
 		}).where(eq(trust.id, trustId));
 
 		return { toggled: true };
+	},
+
+	approveDocuments: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		if (Number.isNaN(trustId)) return fail(400, { message: 'Missing trust ID' });
+
+		await db
+			.update(trust)
+			.set({
+				approved: true,
+				status: TrustStatus.NotarizationPending,
+				updatedAt: new Date(),
+			})
+			.where(eq(trust.id, trustId));
+
+		return { approved: true };
 	},
 
 	toggleConsultation: async ({ request, locals }) => {
@@ -136,7 +157,7 @@ export const actions: Actions = {
 		const current = (existingTrust.user_files ?? []) as UserFile[];
 		await db
 			.update(trust)
-			.set({ user_files: [...current, newFile], updatedAt: new Date() })
+			.set({ user_files: [...current, newFile] })
 			.where(eq(trust.id, trustId));
 
 		return { saved: true };
@@ -164,7 +185,7 @@ export const actions: Actions = {
 		if (!target) return fail(404, { message: 'File not found' });
 
 		const next = current.filter((f) => f.id !== fileId);
-		await db.update(trust).set({ user_files: next, updatedAt: new Date() }).where(eq(trust.id, trustId));
+		await db.update(trust).set({ user_files: next }).where(eq(trust.id, trustId));
 
 		if (target.storageKey) {
 			try { await utapi.deleteFiles(target.storageKey); } catch (err) {
@@ -196,7 +217,7 @@ export const actions: Actions = {
 		if (!target) return fail(404, { message: 'File not found' });
 
 		const next = current.filter((f) => f.kind !== kind);
-		await db.update(trust).set({ generated_files: next, updatedAt: new Date() }).where(eq(trust.id, trustId));
+		await db.update(trust).set({ generated_files: next }).where(eq(trust.id, trustId));
 
 		if (target.storageKey) {
 			try { await utapi.deleteFiles(target.storageKey); } catch (err) {

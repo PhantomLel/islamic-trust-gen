@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { tick } from 'svelte';
+	import { renderAsync } from 'docx-preview';
 	import { siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { goto, invalidateAll } from '$app/navigation';
@@ -19,6 +21,10 @@
 	let showDeleteModal = $state(false);
 	let deleteError = $state<string | null>(null);
 
+	let showApproveModal = $state(false);
+	let approveError = $state<string | null>(null);
+	let approving = $state(false);
+
 	let copiedEmail = $state(false);
 
 	type TabId = 'questionnaire' | 'files';
@@ -32,6 +38,12 @@
 	};
 	let fileRows = $derived<FileRow[]>(buildFileRows(trust));
 	let deletingKey = $state<string | null>(null);
+
+	let showDocxPreview = $state(false);
+	let docxPreviewEl = $state<HTMLDivElement | null>(null);
+	let docxPreviewTitle = $state('');
+	let docxPreviewLoading = $state(false);
+	let docxPreviewError = $state('');
 
 	function buildFileRows(t: typeof trust): FileRow[] {
 		if (!t) return [];
@@ -83,6 +95,60 @@
 		}
 	}
 
+	function isLikelyDocx(row: FileRow): boolean {
+		if (/\.docx$/i.test(row.label.trim())) return true;
+		try {
+			return /\.docx$/i.test(new URL(row.url).pathname);
+		} catch {
+			return false;
+		}
+	}
+
+	function closeDocxPreview() {
+		if (docxPreviewEl) docxPreviewEl.innerHTML = '';
+		showDocxPreview = false;
+		docxPreviewLoading = false;
+		docxPreviewError = '';
+		docxPreviewTitle = '';
+	}
+
+	async function openDocxPreview(row: FileRow) {
+		const t = trust;
+		if (!t) return;
+		docxPreviewTitle = row.label;
+		docxPreviewError = '';
+		docxPreviewLoading = true;
+		showDocxPreview = true;
+		await tick();
+		const el = docxPreviewEl;
+		if (!el) {
+			docxPreviewLoading = false;
+			docxPreviewError = 'Preview could not open.';
+			return;
+		}
+		el.innerHTML = '';
+		try {
+			const res = await fetch(`/api/admin/trust/${t.id}/file?url=${encodeURIComponent(row.url)}`);
+			if (!res.ok) {
+				docxPreviewError =
+					res.status === 413
+						? 'File is too large to preview.'
+						: 'Could not load this file for preview.';
+				return;
+			}
+			const buf = await res.arrayBuffer();
+			await renderAsync(buf, el, undefined, {
+				inWrapper: true,
+				ignoreLastRenderedPageBreak: false,
+			});
+		} catch {
+			el.innerHTML = '';
+			docxPreviewError = 'Preview failed. Try downloading the file instead.';
+		} finally {
+			docxPreviewLoading = false;
+		}
+	}
+
 	async function deleteFile(row: FileRow) {
 		if (!row.deleteAction) return;
 		const key = row.deleteAction.fields.kind ?? row.deleteAction.fields.fileId;
@@ -106,6 +172,9 @@
 	let uploadError = $state('');
 	let uploadSaved = $state(false);
 	let uploadSaving = $state(false);
+
+	let generateLoading = $state(false);
+	let generateError = $state('');
 
 	const dropzoneAppearance = {
 		container:
@@ -170,6 +239,33 @@
 		await invalidateAll();
 	}
 
+	async function generateJointTrustDoc() {
+		if (!trust?.complete) return;
+		generateError = '';
+		generateLoading = true;
+		try {
+			const res = await fetch(`/api/admin/trust/${trust.id}/document`, { method: 'POST' });
+			let body: { message?: string } = {};
+			try {
+				body = await res.json();
+			} catch {
+				/* non-JSON */
+			}
+			if (!res.ok) {
+				generateError =
+					typeof body.message === 'string' && body.message
+						? body.message
+						: `Generation failed (${res.status}).`;
+				return;
+			}
+			await invalidateAll();
+		} catch {
+			generateError = 'Something went wrong. Please try again.';
+		} finally {
+			generateLoading = false;
+		}
+	}
+
 	async function handleLogout() {
 		await authClient.signOut();
 		window.location.href = '/';
@@ -182,6 +278,37 @@
 
 	function closeDeleteModal() {
 		showDeleteModal = false;
+	}
+
+	function openApproveModal() {
+		approveError = null;
+		showApproveModal = true;
+	}
+
+	function closeApproveModal() {
+		if (approving) return;
+		showApproveModal = false;
+	}
+
+	async function confirmApproveDocuments() {
+		if (!trust) return;
+		approveError = null;
+		approving = true;
+		try {
+			const formData = new FormData();
+			formData.set('trustId', String(trust.id));
+			const res = await fetch('?/approveDocuments', { method: 'POST', body: formData });
+			if (!res.ok) {
+				approveError = 'Could not approve documents. Please try again.';
+				return;
+			}
+			showApproveModal = false;
+			await invalidateAll();
+		} catch {
+			approveError = 'Something went wrong. Please try again.';
+		} finally {
+			approving = false;
+		}
 	}
 </script>
 
@@ -276,21 +403,17 @@
 					</span>
 				{/if}
 
-				{#if trust}
-					{@const canGenerate = trust.complete}
-					<a
-						href={canGenerate ? `/api/admin/trust/${trust.id}/document` : undefined}
-						aria-disabled={!canGenerate}
-						title={canGenerate ? 'Download the rendered joint trust .docx' : 'Available once the user completes the questionnaire.'}
-						class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition-all
-							{canGenerate
-								? 'bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 cursor-pointer'
-								: 'bg-navy/[0.03] text-navy/35 border-navy/10 cursor-not-allowed pointer-events-none'}"
-					>
-						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
-						Generate joint trust (.docx)
-					</a>
-				{/if}
+					{#if trust && trust.status === 'review' && !trust.approved}
+						<button
+							type="button"
+							onclick={openApproveModal}
+							class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition-all cursor-pointer
+								border-emerald-accent/30 bg-emerald-accent/10 text-emerald-accent hover:bg-emerald-accent/20"
+						>
+							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+							Approve Documents
+						</button>
+					{/if}
 
 					{#if canDeleteUser}
 						<button
@@ -341,8 +464,45 @@
 			{#if activeTab === 'questionnaire'}
 				<AdminQuestionResponses {trust} />
 		{:else if activeTab === 'files'}
-			<!-- upload panel -->
 			{#if trust}
+				{@const canGenerate = trust.complete}
+				<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-5 mb-4 flex flex-col gap-4">
+					<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+						<div class="min-w-0">
+							<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-1">Generate</p>
+							<p class="text-[12px] text-navy/45">
+								Create the joint trust .docx, store it for this client, and show it in the list below. Use Preview to read Word files in the browser, or Download to save a copy.
+							</p>
+						</div>
+						<button
+							type="button"
+							disabled={!canGenerate || generateLoading}
+							onclick={() => generateJointTrustDoc()}
+							title={canGenerate ? 'Generate and save the joint trust document' : 'Available once the user completes the questionnaire.'}
+							class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition-all shrink-0
+								{canGenerate && !generateLoading
+									? 'bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 cursor-pointer'
+									: 'bg-navy/[0.03] text-navy/35 border-navy/10 cursor-not-allowed'}"
+						>
+							{#if generateLoading}
+								<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+								</svg>
+								Generating…
+							{:else}
+								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+								</svg>
+								Generate joint trust (.docx)
+							{/if}
+						</button>
+					</div>
+					{#if generateError}
+						<p class="text-[12px] text-red-600">{generateError}</p>
+					{/if}
+				</div>
+				<!-- upload panel -->
 				<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-5 mb-4">
 					<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-4">Upload a file for this client</p>
 					<div class="mb-3">
@@ -418,6 +578,19 @@
 										<div class="text-[11px] text-navy/45 mt-0.5">{f.sublabel}</div>
 									</div>
 									<div class="flex items-center gap-2 shrink-0">
+										{#if isLikelyDocx(f)}
+											<button
+												type="button"
+												onclick={() => openDocxPreview(f)}
+												class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border border-navy/12 bg-white text-navy hover:bg-navy/[0.04] transition-all cursor-pointer"
+											>
+												<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+													<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+												</svg>
+												Preview
+											</button>
+										{/if}
 										<a
 											href={f.url}
 											download
@@ -456,6 +629,128 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if showDocxPreview}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-navy/25 backdrop-blur-sm"
+			onclick={closeDocxPreview}
+			role="presentation"
+		>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="relative w-full max-w-4xl max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl shadow-navy/15 outline-none border border-navy/[0.06]"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="docx-preview-title"
+				tabindex="-1"
+			>
+				<div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-navy/[0.06] shrink-0">
+					<div class="min-w-0 flex-1 pr-2">
+						<h3 id="docx-preview-title" class="text-[15px] font-semibold text-navy truncate">
+							{docxPreviewTitle || 'Document preview'}
+						</h3>
+						<p class="text-[11px] text-navy/45 leading-snug mt-1.5 max-w-xl">
+							This preview is approximate; spacing, fonts, and layout may differ from Microsoft Word or the final PDF.
+						</p>
+					</div>
+					<button
+						type="button"
+						onclick={closeDocxPreview}
+						class="shrink-0 w-9 h-9 rounded-lg border border-navy/10 text-navy/50 hover:text-navy hover:bg-navy/[0.04] transition-colors cursor-pointer"
+						aria-label="Close preview"
+					>
+						<svg class="w-5 h-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+				<div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+					{#if docxPreviewLoading}
+						<div class="flex flex-col items-center justify-center gap-3 py-16 text-navy/45">
+							<svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+							</svg>
+							<p class="text-[13px]">Loading preview…</p>
+						</div>
+					{:else if docxPreviewError}
+						<div class="p-8 text-center">
+							<p class="text-[13px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-4 py-3">{docxPreviewError}</p>
+						</div>
+					{/if}
+					<div
+						class="docx-admin-preview flex-1 min-h-0 overflow-auto px-4 py-4 bg-navy/[0.02] {docxPreviewLoading || docxPreviewError ? 'hidden' : ''}"
+						bind:this={docxPreviewEl}
+					></div>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if showApproveModal}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-navy/25 backdrop-blur-sm"
+			onclick={closeApproveModal}
+			role="presentation"
+		>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="relative max-w-md w-full bg-white rounded-2xl shadow-2xl shadow-navy/15 p-7 outline-none border border-navy/[0.06]"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="approve-docs-title"
+				tabindex="-1"
+			>
+				<h3 id="approve-docs-title" class="text-lg font-semibold text-navy mb-2">
+					Approve documents?
+				</h3>
+				<p class="text-[13px] text-navy/65 leading-relaxed">
+					This will mark <span class="font-medium text-navy">{data.targetUser.name}</span>'s
+					documents as approved and move them to the Notarization phase. They will see a link on
+					their dashboard to book a notarization appointment.
+				</p>
+				{#if approveError}
+					<p class="mt-3 text-[13px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
+						{approveError}
+					</p>
+				{/if}
+				<div class="mt-6 flex flex-col-reverse sm:flex-row gap-3">
+					<button
+						type="button"
+						onclick={closeApproveModal}
+						disabled={approving}
+						class="flex-1 py-2.5 rounded-xl text-sm font-medium text-navy bg-navy/6 hover:bg-navy/10 transition-colors cursor-pointer disabled:opacity-60"
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						onclick={confirmApproveDocuments}
+						disabled={approving}
+						class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-emerald-accent hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-60 inline-flex items-center justify-center gap-2"
+					>
+						{#if approving}
+							<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+							</svg>
+							Approving…
+						{:else}
+							Approve & move to Notarization
+						{/if}
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	{#if showDeleteModal}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->

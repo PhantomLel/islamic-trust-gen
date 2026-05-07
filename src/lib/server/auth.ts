@@ -44,7 +44,7 @@ export const auth = betterAuth({
 					if (!created.userId || typeof ua !== 'string' || !ua.trim()) return;
 					await db
 						.update(user)
-						.set({ lastLoginUserAgent: ua })
+						.set({ lastLoginUserAgent: ua, updatedAt: new Date() })
 						.where(eq(user.id, created.userId));
 				},
 			},

@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { consultationBookingUrl, siteName } from '$lib/config';
+	import { tick } from 'svelte';
+	import { renderAsync } from 'docx-preview';
+	import { consultationBookingUrl, notarizationBookingUrl, siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import HouseDeedUploadCard from '$lib/components/HouseDeedUploadCard.svelte';
 
@@ -68,10 +70,10 @@
 				href: `/create-trust/${t.id}`,
 				desc: 'Choose individual or joint',
 			},
-			t.approved && t.fileUrls.length === 0 && {
+			t.approved && {
 				label: 'Schedule Notarization',
-				href: '#',
-				desc: 'Book an appointment',
+				href: notarizationBookingUrl,
+				desc: 'Book an appointment to notarize your documents',
 				external: true,
 			},
 		].filter(Boolean) as { label: string; href: string; desc: string; external?: boolean; progress?: number }[]
@@ -90,12 +92,72 @@
 		return KIND_LABELS[kind] ?? kind;
 	}
 
+	type DashboardDoc = { name: string; label: string; url: string };
+
 	/** All files shown to the user: admin-uploaded user files + generated files + legacy file_urls */
-	let allDocuments = $derived([
+	let allDocuments = $derived<DashboardDoc[]>([
 		...t.userFiles.map((f) => ({ name: f.filename, label: kindLabel(f.kind), url: f.url })),
 		...t.generatedFiles.map((f) => ({ name: f.filename, label: kindLabel(f.kind), url: f.url })),
 		...t.fileUrls.map((url, i) => ({ name: `Document ${i + 1}`, label: 'Document', url })),
 	]);
+
+	let showDocxPreview = $state(false);
+	let docxPreviewEl = $state<HTMLDivElement | null>(null);
+	let docxPreviewTitle = $state('');
+	let docxPreviewLoading = $state(false);
+	let docxPreviewError = $state('');
+
+	function isLikelyDocx(doc: DashboardDoc): boolean {
+		if (/\.docx$/i.test(doc.name.trim())) return true;
+		try {
+			return /\.docx$/i.test(new URL(doc.url).pathname);
+		} catch {
+			return false;
+		}
+	}
+
+	function closeDocxPreview() {
+		if (docxPreviewEl) docxPreviewEl.innerHTML = '';
+		showDocxPreview = false;
+		docxPreviewLoading = false;
+		docxPreviewError = '';
+		docxPreviewTitle = '';
+	}
+
+	async function openDocxPreview(doc: DashboardDoc) {
+		docxPreviewTitle = doc.name;
+		docxPreviewError = '';
+		docxPreviewLoading = true;
+		showDocxPreview = true;
+		await tick();
+		const el = docxPreviewEl;
+		if (!el) {
+			docxPreviewLoading = false;
+			docxPreviewError = 'Preview could not open.';
+			return;
+		}
+		el.innerHTML = '';
+		try {
+			const res = await fetch(`/api/trust/${t.id}/file?url=${encodeURIComponent(doc.url)}`);
+			if (!res.ok) {
+				docxPreviewError =
+					res.status === 413
+						? 'File is too large to preview.'
+						: 'Could not load this file for preview.';
+				return;
+			}
+			const buf = await res.arrayBuffer();
+			await renderAsync(buf, el, undefined, {
+				inWrapper: true,
+				ignoreLastRenderedPageBreak: false,
+			});
+		} catch {
+			el.innerHTML = '';
+			docxPreviewError = 'Preview failed. Try downloading the file instead.';
+		} finally {
+			docxPreviewLoading = false;
+		}
+	}
 
 	function formatDate(iso: string): string {
 		return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -223,22 +285,47 @@
 						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-4">Your Documents</p>
 						<div class="space-y-2">
 							{#each allDocuments as doc}
-								<a href={doc.url} target="_blank" rel="noopener noreferrer"
-									class="flex items-center justify-between px-4 py-3 rounded-xl border border-navy/[0.07] bg-white/50
-										   hover:bg-white hover:border-emerald-accent/20 transition-all group">
-									<div class="flex items-center gap-3 min-w-0">
-										<svg class="w-4 h-4 text-navy/30 group-hover:text-emerald-accent transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+								<div
+									class="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-navy/[0.07] bg-white/50
+										   hover:bg-white hover:border-emerald-accent/20 transition-all"
+								>
+									<div class="flex items-center gap-3 min-w-0 flex-1">
+										<svg class="w-4 h-4 text-navy/30 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
 										</svg>
 										<div class="min-w-0">
-											<p class="text-sm text-navy group-hover:text-emerald-accent transition-colors truncate">{doc.name}</p>
+											<p class="text-sm text-navy truncate">{doc.name}</p>
 											<p class="text-[11px] text-navy/40 mt-0.5">{doc.label}</p>
 										</div>
 									</div>
-									<svg class="w-4 h-4 text-navy/20 group-hover:text-emerald-accent transition-colors shrink-0 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-									</svg>
-								</a>
+									<div class="flex items-center gap-2 shrink-0">
+										{#if isLikelyDocx(doc)}
+											<button
+												type="button"
+												onclick={() => openDocxPreview(doc)}
+												class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border border-navy/12 bg-white text-navy hover:bg-navy/[0.04] transition-colors cursor-pointer"
+											>
+												<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+													<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+												</svg>
+												Preview
+											</button>
+										{/if}
+										<a
+											href={doc.url}
+											download
+											target="_blank"
+											rel="noopener noreferrer"
+											class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 transition-colors cursor-pointer"
+										>
+											<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" />
+											</svg>
+											Download
+										</a>
+									</div>
+								</div>
 							{/each}
 						</div>
 					</div>
@@ -304,7 +391,7 @@
 						<p class="text-[13px] text-navy/50 leading-relaxed mb-4">
 							Your trust has been approved. Schedule a notarization appointment to finalize your documents.
 						</p>
-						<a href="#" target="_blank" rel="noopener noreferrer"
+						<a href={notarizationBookingUrl} target="_blank" rel="noopener noreferrer"
 							class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12px] font-medium
 								   bg-navy text-cream hover:bg-navy-light transition-all">
 							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
@@ -316,4 +403,65 @@
 			</div>
 		</div>
 	</div>
+
+	{#if showDocxPreview}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-navy/25 backdrop-blur-sm"
+			onclick={closeDocxPreview}
+			role="presentation"
+		>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="relative w-full max-w-4xl max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl shadow-navy/15 outline-none border border-navy/[0.06]"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="dashboard-docx-preview-title"
+				tabindex="-1"
+			>
+				<div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-navy/[0.06] shrink-0">
+					<div class="min-w-0 flex-1 pr-2">
+						<h3 id="dashboard-docx-preview-title" class="text-[15px] font-semibold text-navy truncate">
+							{docxPreviewTitle || 'Document preview'}
+						</h3>
+						<p class="text-[11px] text-navy/45 leading-snug mt-1.5 max-w-xl">
+							This preview is approximate; spacing, fonts, and layout may differ from Microsoft Word or the final PDF.
+						</p>
+					</div>
+					<button
+						type="button"
+						onclick={closeDocxPreview}
+						class="shrink-0 w-9 h-9 rounded-lg border border-navy/10 text-navy/50 hover:text-navy hover:bg-navy/[0.04] transition-colors cursor-pointer"
+						aria-label="Close preview"
+					>
+						<svg class="w-5 h-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+				<div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+					{#if docxPreviewLoading}
+						<div class="flex flex-col items-center justify-center gap-3 py-16 text-navy/45">
+							<svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+							</svg>
+							<p class="text-[13px]">Loading preview…</p>
+						</div>
+					{:else if docxPreviewError}
+						<div class="p-8 text-center">
+							<p class="text-[13px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-4 py-3">{docxPreviewError}</p>
+						</div>
+					{/if}
+					<div
+						class="docx-dashboard-preview flex-1 min-h-0 overflow-auto px-4 py-4 bg-navy/[0.02] {docxPreviewLoading || docxPreviewError ? 'hidden' : ''}"
+						bind:this={docxPreviewEl}
+					></div>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>

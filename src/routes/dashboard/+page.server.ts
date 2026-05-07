@@ -131,7 +131,7 @@ export const actions: Actions = {
 
 		await db
 			.update(trust)
-			.set({ house_deed_url: houseDeedUrl, updatedAt: new Date() })
+			.set({ house_deed_url: houseDeedUrl })
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
 		return { saved: true };

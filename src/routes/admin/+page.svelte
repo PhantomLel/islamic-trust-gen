@@ -217,15 +217,25 @@
 
 									<!-- Progress -->
 									<td class="px-4 py-3">
-										<div class="flex items-center gap-2">
-											<div class="w-16 h-1.5 rounded-full bg-navy/[0.06] overflow-hidden">
-												<div
-													class="h-full rounded-full {progress === 100 ? 'bg-emerald-accent' : progress > 0 ? 'bg-amber-400' : 'bg-navy/10'}"
-													style="width: {progress}%"
-												></div>
+										{#if t.complete}
+											<div class="flex items-center gap-2">
+												<span
+													class="inline-block w-2 h-2 rounded-full shrink-0 bg-emerald-accent"
+													aria-hidden="true"
+												></span>
+												<span class="text-[11px] text-navy/60">Completed</span>
 											</div>
-											<span class="text-[11px] text-navy/40 tabular-nums">{progress}%</span>
-										</div>
+										{:else}
+											<div class="flex items-center gap-2">
+												<div class="w-16 h-1.5 rounded-full bg-navy/[0.06] overflow-hidden">
+													<div
+														class="h-full rounded-full {progress === 100 ? 'bg-emerald-accent' : progress > 0 ? 'bg-amber-400' : 'bg-navy/10'}"
+														style="width: {progress}%"
+													></div>
+												</div>
+												<span class="text-[11px] text-navy/40 tabular-nums">{progress}%</span>
+											</div>
+										{/if}
 									</td>
 
 									<!-- Price -->

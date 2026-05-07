@@ -123,10 +123,7 @@ export const actions: Actions = {
 			})
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
-		await db
-			.update(user)
-			.set({ county, updatedAt: new Date() })
-			.where(eq(user.id, locals.user.id));
+		await db.update(user).set({ county }).where(eq(user.id, locals.user.id));
 
 		return { screened: true, eligible };
 	},
@@ -191,6 +188,8 @@ export const actions: Actions = {
 			})
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
+		await db.update(user).set({ updatedAt: new Date() }).where(eq(user.id, locals.user.id));
+
 		return { saved: true };
 	},
 
@@ -221,6 +220,8 @@ export const actions: Actions = {
 			.update(trust)
 			.set({ status: TrustStatus.AwaitingPayment, updatedAt: new Date() })
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
+
+		await db.update(user).set({ updatedAt: new Date() }).where(eq(user.id, locals.user.id));
 
 		return { completedPre: true };
 	},
@@ -272,6 +273,8 @@ export const actions: Actions = {
 			})
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
+		await db.update(user).set({ updatedAt: new Date() }).where(eq(user.id, locals.user.id));
+
 		const [profile, trustSnapshot] = await Promise.all([
 			db.query.user.findFirst({
 				where: eq(user.id, locals.user.id),
@@ -319,7 +322,7 @@ export const actions: Actions = {
 
 		await db
 			.update(trust)
-			.set({ house_deed_url: houseDeedUrl, updatedAt: new Date() })
+			.set({ house_deed_url: houseDeedUrl })
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
 		return { saved: true };
