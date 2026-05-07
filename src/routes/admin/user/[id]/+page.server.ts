@@ -1,7 +1,10 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { Resend } from 'resend';
+import { siteName } from '$lib/config';
 import { db } from '$lib/server/db';
 import { trust, user, TrustStatus } from '$lib/server/db/schema';
 import type { UserFile } from '$lib/server/db/schema';
+import { documentsApprovedEmail } from '$lib/server/emails/documentsApproved';
 import { eq, desc } from 'drizzle-orm';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
@@ -87,12 +90,20 @@ export const actions: Actions = {
 		return { toggled: true };
 	},
 
-	approveDocuments: async ({ request, locals }) => {
+	approveDocuments: async ({ request, locals, params }) => {
 		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
 
 		const formData = await request.formData();
 		const trustId = Number(formData.get('trustId'));
 		if (Number.isNaN(trustId)) return fail(400, { message: 'Missing trust ID' });
+
+		const row = await db.query.trust.findFirst({
+			where: eq(trust.id, trustId),
+			columns: { id: true, userId: true },
+			with: { user: { columns: { email: true } } },
+		});
+		if (!row) return fail(404, { message: 'Trust not found' });
+		if (row.userId !== params.id) return fail(400, { message: 'Trust does not belong to this user' });
 
 		await db
 			.update(trust)
@@ -102,6 +113,26 @@ export const actions: Actions = {
 				updatedAt: new Date(),
 			})
 			.where(eq(trust.id, trustId));
+
+		const to = row.user.email?.trim();
+		if (to && env.RESEND_API_KEY && env.FROM_EMAIL) {
+			try {
+				const resend = new Resend(env.RESEND_API_KEY);
+				const origin = (env.ORIGIN ?? '').replace(/\/$/, '');
+				const dashboardUrl = origin ? `${origin}/dashboard` : null;
+				await resend.emails.send({
+					from: env.FROM_EMAIL,
+					to,
+					subject: `Documents approved — schedule notarization (${siteName})`,
+					html: documentsApprovedEmail({
+						trustId,
+						dashboardUrl,
+					}),
+				});
+			} catch (err) {
+				console.error('[approveDocuments] User notification email failed:', err);
+			}
+		}
 
 		return { approved: true };
 	},
