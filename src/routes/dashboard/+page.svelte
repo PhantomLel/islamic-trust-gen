@@ -165,6 +165,65 @@
 		return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 	}
 
+	type Notarization = {
+		monthShort: string;
+		day: string;
+		weekday: string;
+		fullDate: string;
+		timeRange: string;
+		timeZone: string;
+		relative: string;
+	};
+
+	function buildNotarizationView(startIso: string, endIso: string | null): Notarization {
+		const start = new Date(startIso);
+		const end = endIso ? new Date(endIso) : null;
+		const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		const shortTz =
+			new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' })
+				.formatToParts(start)
+				.find((p) => p.type === 'timeZoneName')?.value ?? tz;
+
+		const startTime = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+		const timeRange = end
+			? `${startTime} – ${end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+			: startTime;
+
+		return {
+			monthShort: start.toLocaleDateString('en-US', { month: 'short' }),
+			day: start.toLocaleDateString('en-US', { day: 'numeric' }),
+			weekday: start.toLocaleDateString('en-US', { weekday: 'long' }),
+			fullDate: start.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+			timeRange,
+			timeZone: shortTz,
+			relative: relativeDayLabel(start),
+		};
+	}
+
+	function relativeDayLabel(date: Date): string {
+		const startOfDay = (d: Date) => {
+			const x = new Date(d);
+			x.setHours(0, 0, 0, 0);
+			return x;
+		};
+		const diffDays = Math.round(
+			(startOfDay(date).getTime() - startOfDay(new Date()).getTime()) / 86_400_000
+		);
+		if (diffDays === 0) return 'Today';
+		if (diffDays === 1) return 'Tomorrow';
+		if (diffDays === -1) return 'Yesterday';
+		if (diffDays > 1 && diffDays < 7) return `In ${diffDays} days`;
+		if (diffDays >= 7 && diffDays < 14) return 'Next week';
+		if (diffDays < 0) return `${Math.abs(diffDays)} days ago`;
+		return '';
+	}
+
+	let notarization = $derived<Notarization | null>(
+		t.status === 'notarization-scheduled' && t.notarizationStartTime
+			? buildNotarizationView(t.notarizationStartTime, t.notarizationEndTime)
+			: null
+	);
+
 	async function handleLogout() {
 		await authClient.signOut();
 		window.location.href = '/';
@@ -218,6 +277,44 @@
 						<span class="text-[11px] text-navy/35 shrink-0">{doneCount}/{steps.length}</span>
 					</div>
 				</div>
+
+				{#if notarization}
+					<div class="rounded-2xl border border-emerald-accent/20 bg-white/70 backdrop-blur-sm p-6 md:p-7 shadow-sm">
+						<div class="flex flex-col sm:flex-row sm:items-stretch gap-5">
+							<!-- calendar block -->
+							<div class="shrink-0 w-20 sm:w-24 rounded-xl border border-emerald-accent/30 bg-white overflow-hidden text-center shadow-sm">
+								<div class="bg-emerald-accent text-white text-[10px] tracking-[0.18em] uppercase font-semibold py-1.5">
+									{notarization.monthShort}
+								</div>
+								<div class="py-2.5">
+									<div class="text-[32px] leading-none font-semibold text-navy tabular-nums">{notarization.day}</div>
+									<div class="text-[10px] text-navy/45 mt-1.5 tracking-wider uppercase">{notarization.weekday.slice(0, 3)}</div>
+								</div>
+							</div>
+
+							<div class="min-w-0 flex-1 flex flex-col">
+								<div class="flex flex-wrap items-center gap-2 mb-2">
+									<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-emerald-accent/12 text-emerald-accent border border-emerald-accent/30">
+										<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+										Notarization scheduled
+									</span>
+									{#if notarization.relative}
+										<span class="text-[11px] text-navy/45">{notarization.relative}</span>
+									{/if}
+								</div>
+								<p class="text-[17px] md:text-[18px] font-semibold text-navy tracking-tight leading-snug">
+									{notarization.weekday}, {notarization.fullDate}
+								</p>
+								<p class="text-[13px] text-navy/55 mt-1">
+									<span class="font-medium text-navy/75">{notarization.timeRange}</span>
+									<span class="text-navy/40"> · {notarization.timeZone}</span>
+								</p>
+								<p class="text-[12px] text-navy/45 leading-relaxed mt-3">
+									Calendly will email you a confirmation with the meeting link and a reminder before the appointment. 
+							</div>
+						</div>
+					</div>
+				{/if}
 
 				{#if t.intakeUnderReview}
 					<div class="rounded-2xl border border-emerald-accent/15 from-white/90 to-emerald-accent/[0.04] backdrop-blur-sm p-6 md:p-7 shadow-sm">
@@ -390,20 +487,24 @@
 				{#if t.approved}
 					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6">
 						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-3">Notarization</p>
-						{#if t.status === 'notarization-scheduled' && t.notarizationStartTime}
-							<div class="inline-flex items-center gap-1.5 mb-3 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-accent/10 text-emerald-accent border border-emerald-accent/30">
-								<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-								Scheduled
+						{#if notarization}
+							<div class="flex items-center gap-3">
+								<div class="shrink-0 w-12 rounded-lg border border-emerald-accent/30 bg-white overflow-hidden text-center">
+									<div class="bg-emerald-accent text-white text-[8px] tracking-[0.18em] uppercase font-semibold py-1">
+										{notarization.monthShort}
+									</div>
+									<div class="py-1">
+										<div class="text-[18px] leading-none font-semibold text-navy tabular-nums">{notarization.day}</div>
+									</div>
+								</div>
+								<div class="min-w-0">
+									<p class="text-[13px] font-medium text-navy truncate">{notarization.weekday}</p>
+									<p class="text-[12px] text-navy/55 truncate">{notarization.timeRange}</p>
+									{#if notarization.relative}
+										<p class="text-[10px] text-emerald-accent mt-0.5 tracking-wider uppercase font-medium">{notarization.relative}</p>
+									{/if}
+								</div>
 							</div>
-							<p class="text-[13px] text-navy/70 leading-relaxed">
-								Your appointment is set for
-								<span class="font-medium text-navy">
-									{new Date(t.notarizationStartTime).toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
-								</span>.
-							</p>
-							<p class="text-[12px] text-navy/45 leading-relaxed mt-2">
-								You should receive a confirmation email from Calendly with the meeting details. We'll see you then.
-							</p>
 						{:else}
 							<p class="text-[13px] text-navy/50 leading-relaxed mb-4">
 								Your trust has been approved. Schedule a notarization appointment to finalize your documents.
