@@ -168,7 +168,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				`Open in admin: ${adminUserUrl(matched.user.id)}`,
 			].join('\n')
 		);
-		return json({ received: true, matched: true });
+	return json({ received: true, matched: true });
 	}
 
 	return json({ received: true });

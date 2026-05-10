@@ -24,6 +24,7 @@ export type JointTrustContext = {
 	trustName: string;
 	trustDate: string;
 	husbandFullName: string;
+	county: string;
 	wifeFullName: string;
 	dateOfMarriage: string;
 	childrenCount: number;
@@ -218,6 +219,7 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 		trustName,
 		trustDate: formatToday(),
 		husbandFullName: husband?.name ?? '',
+		county: husband?.county ?? '',
 		wifeFullName: wife?.name ?? '',
 		dateOfMarriage: formatDate(marriageDate),
 		childrenCount: countChildren(husbandHeirs?.namedHeirs),
