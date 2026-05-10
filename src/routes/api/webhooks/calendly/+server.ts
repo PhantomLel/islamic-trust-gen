@@ -13,7 +13,11 @@
 import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { trust, TrustStatus } from '$lib/server/db/schema';
-import { verifyCalendlyWebhookSignature } from '$lib/server/calendly';
+import {
+	createSingleUseSchedulingLink,
+	isCalendlyConfigured,
+	verifyCalendlyWebhookSignature,
+} from '$lib/server/calendly';
 import { adminUserUrl, notifyAdmins } from '$lib/server/notifyAdmins';
 import { eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
@@ -120,11 +124,30 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	if (eventType === 'invitee.canceled') {
-		// Revert to NotarizationPending so the user is prompted to re-book.
+		// The previous scheduling link was single-use and is now exhausted, so we mint a fresh
+		// one before reverting the status. Failure to mint is non-fatal — the dashboard falls
+		// back to the generic notarization URL when notarizationLinkUrl is null.
+		let newLinkUrl: string | null = null;
+		let newLinkToken: string | null = null;
+		if (isCalendlyConfigured()) {
+			try {
+				const link = await createSingleUseSchedulingLink();
+				newLinkUrl = link.bookingUrl;
+				newLinkToken = link.token;
+			} catch (err) {
+				console.error(
+					`[Calendly webhook] Failed to mint replacement link for trust #${matched.id}:`,
+					err
+				);
+			}
+		}
+
 		await db
 			.update(trust)
 			.set({
 				status: TrustStatus.NotarizationPending,
+				notarizationLinkUrl: newLinkUrl,
+				notarizationLinkToken: newLinkToken,
 				notarizationEventUri: null,
 				notarizationInviteeUri: null,
 				notarizationBookedAt: null,
@@ -141,6 +164,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				`Trust ID: ${matched.id}`,
 				`Trust status: ${TrustStatus.NotarizationPending} (reverted, awaiting re-book)`,
 				`User: ${matched.user.name} <${matched.user.email}>`,
+				`Replacement link: ${newLinkUrl ?? '(failed to mint — fallback to generic link)'}`,
 				`Open in admin: ${adminUserUrl(matched.user.id)}`,
 			].join('\n')
 		);
