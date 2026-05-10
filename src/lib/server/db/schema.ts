@@ -49,7 +49,10 @@ export enum TrustStatus {
 	AwaitingAnswers = 'awaiting-answers',
 	/** Full intake submitted; awaiting admin review. Current final stage in the product workflow. */
 	RequiresReview = 'review',
+	/** Documents approved; awaiting the user to book a notarization slot via Calendly. */
 	NotarizationPending = 'notarization-pending',
+	/** Notarization appointment booked via Calendly; awaiting the meeting itself. */
+	NotarizationScheduled = 'notarization-scheduled',
 	/** Notarization complete. */
 	Completed = 'completed',
 }
@@ -79,6 +82,21 @@ export const trust = pgTable('trust', {
 	selectedPlan: text('selected_plan'), // 'full' or 'discounted'
 	deedRetrievalRequested: boolean('deed_retrieval_requested').notNull().default(false),
 	customPrice: integer('custom_price'), // admin-set override for the base $849 fee (in whole dollars)
+	// ── Notarization (Calendly) ───────────────────────────────────────
+	/** Per-trust single-use Calendly booking URL (already includes our tracking token as utm_content). */
+	notarizationLinkUrl: text('notarization_link_url'),
+	/** Opaque tracking token sent as utm_content on the booking URL; matched server-side from the Calendly webhook. */
+	notarizationLinkToken: text('notarization_link_token'),
+	/** Calendly scheduled_event URI, set when the user books. */
+	notarizationEventUri: text('notarization_event_uri'),
+	/** Calendly invitee URI, set when the user books. */
+	notarizationInviteeUri: text('notarization_invitee_uri'),
+	/** When the booking was created (i.e. when Calendly fired invitee.created). */
+	notarizationBookedAt: timestamp('notarization_booked_at'),
+	/** Scheduled start time of the notarization meeting. */
+	notarizationStartTime: timestamp('notarization_start_time'),
+	/** Scheduled end time of the notarization meeting. */
+	notarizationEndTime: timestamp('notarization_end_time'),
 });
 
 export const invoice = pgTable('invoice', {

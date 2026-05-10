@@ -17,7 +17,8 @@
 		{ status: 'awaiting-payment', label: 'Payment' },
 		{ status: 'awaiting-answers', label: 'Trust details' },
 		{ status: 'review', label: 'Under review' },
-		{ status: 'notarization-pending', label: 'Notarization' },
+		{ status: 'notarization-pending', label: 'Schedule notarization' },
+		{ status: 'notarization-scheduled', label: 'Notarization scheduled' },
 		{ status: 'completed', label: 'Documents delivered' },
 	] as const;
 
@@ -38,6 +39,7 @@
 	let doneCount = $derived(steps.filter((s) => s.done).length);
 	let statusLabel = $derived(
 		t.status === 'completed' ? 'Completed' :
+		t.status === 'notarization-scheduled' ? 'Notarization scheduled' :
 		t.status === 'notarization-pending' ? 'Notarization pending' :
 		t.intakeUnderReview ? 'Under review' :
 		t.status === 'awaiting-answers' && !t.complete ? 'Trust details in progress' :
@@ -70,9 +72,9 @@
 				href: `/create-trust/${t.id}`,
 				desc: 'Choose individual or joint',
 			},
-			t.approved && {
+			t.approved && t.status !== 'notarization-scheduled' && t.status !== 'completed' && {
 				label: 'Schedule Notarization',
-				href: notarizationBookingUrl,
+				href: t.notarizationLinkUrl ?? notarizationBookingUrl,
 				desc: 'Book an appointment to notarize your documents',
 				external: true,
 			},
@@ -388,15 +390,31 @@
 				{#if t.approved}
 					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6">
 						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-3">Notarization</p>
-						<p class="text-[13px] text-navy/50 leading-relaxed mb-4">
-							Your trust has been approved. Schedule a notarization appointment to finalize your documents.
-						</p>
-						<a href={notarizationBookingUrl} target="_blank" rel="noopener noreferrer"
-							class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12px] font-medium
-								   bg-navy text-cream hover:bg-navy-light transition-all">
-							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
-							Schedule Notarization
-						</a>
+						{#if t.status === 'notarization-scheduled' && t.notarizationStartTime}
+							<div class="inline-flex items-center gap-1.5 mb-3 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-accent/10 text-emerald-accent border border-emerald-accent/30">
+								<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+								Scheduled
+							</div>
+							<p class="text-[13px] text-navy/70 leading-relaxed">
+								Your appointment is set for
+								<span class="font-medium text-navy">
+									{new Date(t.notarizationStartTime).toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+								</span>.
+							</p>
+							<p class="text-[12px] text-navy/45 leading-relaxed mt-2">
+								You should receive a confirmation email from Calendly with the meeting details. We'll see you then.
+							</p>
+						{:else}
+							<p class="text-[13px] text-navy/50 leading-relaxed mb-4">
+								Your trust has been approved. Schedule a notarization appointment to finalize your documents.
+							</p>
+							<a href={t.notarizationLinkUrl ?? notarizationBookingUrl} target="_blank" rel="noopener noreferrer"
+								class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12px] font-medium
+									   bg-navy text-cream hover:bg-navy-light transition-all">
+								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+								Schedule Notarization
+							</a>
+						{/if}
 					</div>
 				{/if}
 

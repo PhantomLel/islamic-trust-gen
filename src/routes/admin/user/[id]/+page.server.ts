@@ -5,6 +5,7 @@ import { db } from '$lib/server/db';
 import { trust, user, TrustStatus } from '$lib/server/db/schema';
 import type { UserFile } from '$lib/server/db/schema';
 import { documentsApprovedEmail } from '$lib/server/emails/documentsApproved';
+import { createSingleUseSchedulingLink, isCalendlyConfigured } from '$lib/server/calendly';
 import { eq, desc } from 'drizzle-orm';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
@@ -99,17 +100,33 @@ export const actions: Actions = {
 
 		const row = await db.query.trust.findFirst({
 			where: eq(trust.id, trustId),
-			columns: { id: true, userId: true },
+			columns: { id: true, userId: true, notarizationLinkUrl: true, notarizationLinkToken: true },
 			with: { user: { columns: { email: true } } },
 		});
 		if (!row) return fail(404, { message: 'Trust not found' });
 		if (row.userId !== params.id) return fail(400, { message: 'Trust does not belong to this user' });
+
+		// Provision a per-trust single-use Calendly link if we don't already have one and Calendly
+		// is configured. Failure here is non-fatal: the user can fall back to the generic link.
+		let bookingUrl = row.notarizationLinkUrl;
+		let bookingToken = row.notarizationLinkToken;
+		if (!bookingUrl && isCalendlyConfigured()) {
+			try {
+				const link = await createSingleUseSchedulingLink();
+				bookingUrl = link.bookingUrl;
+				bookingToken = link.token;
+			} catch (err) {
+				console.error('[approveDocuments] Failed to create Calendly scheduling link:', err);
+			}
+		}
 
 		await db
 			.update(trust)
 			.set({
 				approved: true,
 				status: TrustStatus.NotarizationPending,
+				notarizationLinkUrl: bookingUrl ?? null,
+				notarizationLinkToken: bookingToken ?? null,
 				updatedAt: new Date(),
 			})
 			.where(eq(trust.id, trustId));
@@ -127,6 +144,7 @@ export const actions: Actions = {
 					html: documentsApprovedEmail({
 						trustId,
 						dashboardUrl,
+						schedulingUrl: bookingUrl ?? undefined,
 					}),
 				});
 			} catch (err) {

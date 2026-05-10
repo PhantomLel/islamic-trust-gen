@@ -94,6 +94,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 			intakeUnderReview,
 			userFiles: (existing.user_files ?? []) as UserFile[],
 			generatedFiles: existing.generated_files ?? [],
+			notarizationLinkUrl: existing.notarizationLinkUrl ?? null,
+			notarizationBookedAt: existing.notarizationBookedAt?.toISOString() ?? null,
+			notarizationStartTime: existing.notarizationStartTime?.toISOString() ?? null,
+			notarizationEndTime: existing.notarizationEndTime?.toISOString() ?? null,
 		},
 	};
 };

@@ -5,11 +5,14 @@ export type DocumentsApprovedEmailInput = {
 	trustId: number;
 	/** Absolute dashboard URL; omit when ORIGIN is not configured. */
 	dashboardUrl?: string | null;
+	/** Per-trust Calendly scheduling URL. Falls back to the generic link if omitted. */
+	schedulingUrl?: string;
 };
 
 export function documentsApprovedEmail(input: DocumentsApprovedEmailInput): string {
-	const scheduleHref = escapeHtmlAttr(notarizationBookingUrl);
-	const scheduleText = escapeHtmlText(notarizationBookingUrl);
+	const schedulingUrl = input.schedulingUrl?.trim() || notarizationBookingUrl;
+	const scheduleHref = escapeHtmlAttr(schedulingUrl);
+	const scheduleText = escapeHtmlText(schedulingUrl);
 	const trustRef = escapeHtmlText(`Trust #${input.trustId}`);
 
 	const dashboardSection =
