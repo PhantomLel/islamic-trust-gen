@@ -32,6 +32,9 @@ export type UserFile = {
 	uploadedAt: string;
 }
 
+/** Keys match `screeningQuestions` ids in config; values are Yes (true) / No (false). */
+export type TrustScreeningAnswers = Record<string, boolean>;
+
 enum Charities {
 	IslamicSocietyOfNorthAmerica = 'islamic-society-of-north-america',
 	AmericanRedCross = 'american-red-cross',
@@ -70,6 +73,8 @@ export const trust = pgTable('trust', {
 	userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
 	isEligible: boolean('is_eligible'),
 	joint: boolean('joint'),
+	/** Pre-intake eligibility questions; persisted when the user completes screening. */
+	screeningAnswers: jsonb('screening_answers').$type<TrustScreeningAnswers | null>(),
 	responses: jsonb('responses').$type<Response[]>(),
 	complete: boolean('complete').notNull().default(false),
 	status: text('status').notNull().default(TrustStatus.Started),

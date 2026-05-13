@@ -8,13 +8,42 @@ export const notarizationBookingUrl = 'https://calendly.com/sumayya-mcdanielesta
 export const defaultPrepFee = 849;
 
 
-export const screeningQuestions = [
-	{ id: 'business_ownership', text: 'Do you own a business?' },
+export type ScreeningQuestion = {
+	id: string;
+	text: string;
+	subtext?: string;
+	/**
+	 * When `false`, answering Yes does not send the user to the consultation path.
+	 * Default: true (Yes → consultation flow).
+	 */
+	consultationIfYes?: boolean;
+	/** When set, shown after the user selects Yes until they tap Next (same step). */
+	advisoryAfterYes?: string;
+};
+
+export const screeningQuestions: ScreeningQuestion[] = [
+	{
+		id: 'business_ownership',
+		text: 'Do you own a business?',
+		consultationIfYes: false,
+		advisoryAfterYes:
+			'If you own a business, you should still have a trust and you can still use this app. However we strongly advise that you make amendments to your bylaws and operating agreements so that they interact with your trust. Please continue with the process, however we will reach out to you via email for a free consultation to discuss writing your trust into your corporate documents.',
+	},
 	{ id: 'multiple_properties', text: 'Do you own more than one property?' },
 	{ id: 'blended_family', text: 'Do you have a blended family?', subtext: 'A blended family generally means you or your spouse have children from a prior relationship, or there are stepchildren involved. These situations often require customized planning beyond this online trust.' },
 	{ id: 'special_needs', text: 'Do you have a special needs beneficiary?', subtext: 'A special needs beneficiary is someone who receives or may qualify for government benefits such as SSI or Medicaid due to a disability. These situations typically require specialized trust planning.' },
 	{ id: 'taxable_estate', text: 'Is your estate at risk of exceeding the taxable-estate threshold?', subtext: 'Federal estate tax only applies to very large estates (generally many millions of dollars per individual). Most families will not owe federal estate tax. If you believe your estate may require advanced tax planning, a consultation is recommended.' },
 ];
+
+/** True when the user may continue the online trust (no screening “Yes” on a gating question). */
+export function isEligibleForOnlineTrustFromScreening(answers: Record<string, boolean>): boolean {
+	for (const q of screeningQuestions) {
+		if (answers[q.id] !== true) continue;
+		if (q.consultationIfYes === false) continue;
+		return false;
+	}
+	return true;
+}
 
 export type QuestionDependency = { field: string; eq: string | boolean };
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { renderAsync } from 'docx-preview';
-	import { siteName } from '$lib/config';
+	import { siteName, screeningQuestions } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
@@ -94,6 +94,92 @@
 			return url;
 		}
 	}
+
+	function trustStatusLabel(status: string): string {
+		const map: Record<string, string> = {
+			started: 'Started',
+			'awaiting-payment': 'Awaiting Payment',
+			'awaiting-answers': 'Awaiting Answers',
+			review: 'Requires Review',
+			'notarization-pending': 'Notarization Pending',
+			'notarization-scheduled': 'Notarization Scheduled',
+			completed: 'Completed',
+		};
+		return map[status] ?? status;
+	}
+
+	function trustStatusColor(status: string): string {
+		const map: Record<string, string> = {
+			started: 'bg-navy/10 text-navy/60',
+			'awaiting-payment': 'bg-amber-50 text-amber-700',
+			'awaiting-answers': 'bg-blue-50 text-blue-700',
+			review: 'bg-purple-50 text-purple-700',
+			'notarization-pending': 'bg-orange-50 text-orange-700',
+			'notarization-scheduled': 'bg-sky-50 text-sky-700',
+			completed: 'bg-emerald-50 text-emerald-700',
+		};
+		return map[status] ?? 'bg-navy/10 text-navy/60';
+	}
+
+	type NotarizationCard = {
+		monthShort: string;
+		day: string;
+		weekday: string;
+		fullDate: string;
+		timeRange: string;
+		timeZone: string;
+		relative: string;
+	};
+
+	function buildNotarizationCard(startIso: string, endIso: string | null): NotarizationCard {
+		const start = new Date(startIso);
+		const end = endIso ? new Date(endIso) : null;
+		const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		const shortTz =
+			new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' })
+				.formatToParts(start)
+				.find((p) => p.type === 'timeZoneName')?.value ?? tz;
+
+		const startTime = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+		const timeRange = end
+			? `${startTime} – ${end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+			: startTime;
+
+		return {
+			monthShort: start.toLocaleDateString('en-US', { month: 'short' }),
+			day: start.toLocaleDateString('en-US', { day: 'numeric' }),
+			weekday: start.toLocaleDateString('en-US', { weekday: 'long' }),
+			fullDate: start.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+			timeRange,
+			timeZone: shortTz,
+			relative: relativeDayLabel(start),
+		};
+	}
+
+	function relativeDayLabel(date: Date): string {
+		const startOfDay = (d: Date) => {
+			const x = new Date(d);
+			x.setHours(0, 0, 0, 0);
+			return x;
+		};
+		const diffDays = Math.round(
+			(startOfDay(date).getTime() - startOfDay(new Date()).getTime()) / 86_400_000
+		);
+		if (diffDays === 0) return 'Today';
+		if (diffDays === 1) return 'Tomorrow';
+		if (diffDays === -1) return 'Yesterday';
+		if (diffDays > 1 && diffDays < 7) return `In ${diffDays} days`;
+		if (diffDays >= 7 && diffDays < 14) return 'Next week';
+		if (diffDays < 0) return `${Math.abs(diffDays)} days ago`;
+		return '';
+	}
+
+	let notarizationCard = $derived.by(() => {
+		const t = trust;
+		if (!t?.notarizationStartTime) return null;
+		if (t.status !== 'notarization-scheduled') return null;
+		return buildNotarizationCard(t.notarizationStartTime, t.notarizationEndTime);
+	});
 
 	function isLikelyDocx(row: FileRow): boolean {
 		if (/\.docx$/i.test(row.label.trim())) return true;
@@ -356,15 +442,15 @@
 					</div>
 					<div class="flex items-center gap-3 mt-2 text-[11px] text-navy/35 flex-wrap">
 						<span>Joined {formatDate(data.targetUser.createdAt)}</span>
-						<span class="text-navy/15">&middot;</span>
-						<span>Role: {data.targetUser.role ?? 'client'}</span>
-						<span class="text-navy/15">&middot;</span>
-						<span>User ID: {data.targetUser.id}</span>
 						{#if trust}
 							<span class="text-navy/15">&middot;</span>
 							<span>{trust.joint === null ? 'Type not selected' : trust.joint ? 'Joint trust' : 'Individual trust'}</span>
 							<span class="text-navy/15">&middot;</span>
-							<span>{trust.awaitingPayment ? 'Awaiting payment' : trust.complete ? 'Complete' : 'In progress'}</span>
+							<span
+								class="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium {trustStatusColor(trust.status)}"
+							>
+								{trustStatusLabel(trust.status)}
+							</span>
 						{/if}
 					</div>
 				</div>
@@ -430,6 +516,49 @@
 		</div>
 
 		{#if trust}
+			{#if notarizationCard}
+				<div class="rounded-2xl border border-emerald-accent/20 bg-white/70 backdrop-blur-sm p-6 md:p-7 shadow-sm mb-6">
+					<div class="flex flex-col sm:flex-row sm:items-stretch gap-5">
+						<div class="shrink-0 w-20 sm:w-24 rounded-xl border border-emerald-accent/30 bg-white overflow-hidden text-center shadow-sm">
+							<div class="bg-emerald-accent text-white text-[10px] tracking-[0.18em] uppercase font-semibold py-1.5">
+								{notarizationCard.monthShort}
+							</div>
+							<div class="py-2.5">
+								<div class="text-[32px] leading-none font-semibold text-navy tabular-nums">{notarizationCard.day}</div>
+								<div class="text-[10px] text-navy/45 mt-1.5 tracking-wider uppercase">{notarizationCard.weekday.slice(0, 3)}</div>
+							</div>
+						</div>
+
+						<div class="min-w-0 flex-1 flex flex-col">
+							<div class="flex flex-wrap items-center gap-2 mb-2">
+								<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-emerald-accent/12 text-emerald-accent border border-emerald-accent/30">
+									<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+									Notarization scheduled
+								</span>
+								{#if notarizationCard.relative}
+									<span class="text-[11px] text-navy/45">{notarizationCard.relative}</span>
+								{/if}
+							</div>
+							<p class="text-[17px] md:text-[18px] font-semibold text-navy tracking-tight leading-snug">
+								{notarizationCard.weekday}, {notarizationCard.fullDate}
+							</p>
+							<p class="text-[13px] text-navy/55 mt-1">
+								<span class="font-medium text-navy/75">{notarizationCard.timeRange}</span>
+								<span class="text-navy/40"> · {notarizationCard.timeZone}</span>
+							</p>
+							<p class="text-[12px] text-navy/45 leading-relaxed mt-3">
+								Calendly emails the client a confirmation with the meeting link and a reminder before the appointment.
+							</p>
+							{#if trust.notarizationBookedAt}
+								<p class="text-[11px] text-navy/35 mt-2 tabular-nums">
+									Booking confirmed {formatDate(trust.notarizationBookedAt)}
+								</p>
+							{/if}
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			<!-- tabs -->
 			<div class="flex items-center gap-1 mb-4 border-b border-navy/[0.08]" role="tablist">
 				<button
@@ -462,6 +591,37 @@
 			</div>
 
 			{#if activeTab === 'questionnaire'}
+				{#if trust && (trust.screeningAnswers || trust.isEligible !== null)}
+					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6 md:p-7 mb-6">
+						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-4">Eligibility screening</p>
+						{#if data.targetUser.county}
+							<p class="text-[13px] text-navy/70 mb-4">
+								<span class="text-navy/45">Texas county (profile):</span>
+								<span class="font-medium text-navy/85">{data.targetUser.county}</span>
+							</p>
+						{/if}
+						{#if trust.screeningAnswers}
+							<ul class="space-y-3">
+								{#each screeningQuestions as q}
+									{@const ans = trust.screeningAnswers?.[q.id]}
+									<li class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4 text-[13px] border-b border-navy/[0.06] last:border-0 pb-3 last:pb-0">
+										<span class="text-navy/70 leading-relaxed">{q.text}</span>
+										<span
+											class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium tabular-nums
+												{ans === true ? 'bg-amber-50 text-amber-800 border border-amber-200/80' : ans === false ? 'bg-emerald-accent/8 text-navy/75 border border-emerald-accent/25' : 'bg-navy/[0.06] text-navy/45 border border-navy/10'}"
+										>
+											{ans === true ? 'Yes' : ans === false ? 'No' : '—'}
+										</span>
+									</li>
+								{/each}
+							</ul>
+						{:else}
+							<p class="text-[13px] text-navy/50 leading-relaxed">
+								Screening answers were not stored for this trust (submitted before this feature was added).
+							</p>
+						{/if}
+					</div>
+				{/if}
 				<AdminQuestionResponses {trust} />
 		{:else if activeTab === 'files'}
 			{#if trust}

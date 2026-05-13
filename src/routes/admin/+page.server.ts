@@ -1,7 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { trust, TrustStatus } from '$lib/server/db/schema';
-import { deviceKindFromUserAgent } from '$lib/userAgent';
+import { trust } from '$lib/server/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -25,6 +24,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 				complete: t.complete,
 				approved: t.approved,
 				isEligible: t.isEligible,
+				businessOwnership:
+					t.screeningAnswers == null
+						? null
+						: typeof t.screeningAnswers.business_ownership === 'boolean'
+							? t.screeningAnswers.business_ownership
+							: null,
 				status: t.status,
 				selectedPlan: t.selectedPlan,
 				deedRetrievalRequested: t.deedRetrievalRequested,
@@ -34,8 +39,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 					id: t.user.id,
 					name: t.user.name,
 					email: t.user.email,
-					lastLoginUserAgent: t.user.lastLoginUserAgent ?? null,
-					lastLoginDeviceKind: deviceKindFromUserAgent(t.user.lastLoginUserAgent),
 				},
 			})),
 	};

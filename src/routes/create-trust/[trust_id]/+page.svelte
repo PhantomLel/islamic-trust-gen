@@ -6,6 +6,7 @@
 		allIntakeQuestions,
 		postPaymentEntryQuestionId,
 		buckets,
+		isEligibleForOnlineTrustFromScreening,
 		type QuestionResponseValue
 	} from '$lib/config';
 	import {
@@ -49,13 +50,16 @@
 				: 'questionnaire'
 	);
 
-	async function handleScreeningSubmit(eligible: boolean, county: string) {
+	async function handleScreeningSubmit(payload: {
+		county: string;
+		answers: Record<string, boolean>;
+	}) {
 		const form = new FormData();
-		form.set('eligible', String(eligible));
-		form.set('county', county);
+		form.set('county', payload.county);
+		form.set('answers', JSON.stringify(payload.answers));
 		await fetch('?/screen', { method: 'POST', body: form });
 		await invalidateAll();
-		if (!eligible) goto(`/consultation/${data.trust.id}`);
+		if (!isEligibleForOnlineTrustFromScreening(payload.answers)) goto(`/consultation/${data.trust.id}`);
 	}
 
 	let currentIndex = $state(0);

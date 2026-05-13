@@ -8,7 +8,7 @@
 		firstName: string;
 		userEmail: string;
 		trustId: number;
-		onsubmit: (eligible: boolean, county: string) => void;
+		onsubmit: (payload: { county: string; answers: Record<string, boolean> }) => void;
 	} = $props();
 
 	let screeningAnswers = $state<Record<string, boolean | null>>(
@@ -23,7 +23,7 @@
 	let hasCounty = $derived(county.trim().length > 0);
 
 	let allAnswered = $derived(hasCounty && screeningQuestions.every((q) => screeningAnswers[q.id] !== null));
-	let anyYes = $derived(screeningQuestions.some((q) => screeningAnswers[q.id] === true));
+	let businessOwnerContinuing = $derived(screeningAnswers['business_ownership'] === true);
 	let isCountyStep = $derived(screeningIndex === 0);
 	let currentQ = $derived(isCountyStep ? null : screeningQuestions[screeningIndex - 1]);
 	let isFinalQuestionStep = $derived(screeningIndex === totalSteps - 1 && !isCountyStep);
@@ -33,15 +33,26 @@
 
 	function answer(id: string, value: boolean) {
 		screeningAnswers = { ...screeningAnswers, [id]: value };
-		if (screeningIndex < totalSteps - 1) {
+		const q = screeningQuestions.find((x) => x.id === id);
+		const pauseForAdvisory = Boolean(q?.advisoryAfterYes && value === true);
+		if (!pauseForAdvisory && screeningIndex < totalSteps - 1) {
 			screeningIndex++;
 		}
 	}
 
 	async function submit() {
 		if (!hasCounty || !screeningConfirmed) return;
+		const answers: Record<string, boolean> = {};
+		for (const q of screeningQuestions) {
+			const v = screeningAnswers[q.id];
+			if (v === null) return;
+			answers[q.id] = v;
+		}
 		submitting = true;
-		onsubmitProp(!anyYes, county.trim());
+		onsubmitProp({
+			county: county.trim(),
+			answers
+		});
 	}
 
 	async function handleLogout() {
@@ -138,12 +149,29 @@
 							<WhatsAppHelpLink />
 						</div>
 
+						{#if currentQ?.advisoryAfterYes && screeningAnswers[currentQ.id] === true}
+							<div
+								class="mb-8 rounded-xl border border-emerald-accent/30 bg-emerald-accent/[0.07] p-4 md:p-5"
+								role="status"
+							>
+								<p class="text-[13px] md:text-sm text-navy/80 leading-relaxed">
+									{currentQ.advisoryAfterYes}
+								</p>
+							</div>
+						{/if}
+
 						{#if finalQuestionAnswered}
 							<div class="mb-8 rounded-xl border border-navy/10 bg-white/70 p-4 md:p-5">
 								<ul class="list-disc pl-5 space-y-3 text-[13px] text-navy/65 leading-relaxed">
-									<li>
-										I confirm my situation fits this online plan (Texas resident, one primary residence, no business ownership, no blended-family or special needs planning). If my situation is more complex, I understand I should schedule a consultation instead.
-									</li>
+									{#if businessOwnerContinuing}
+										<li>
+											I own a business and confirm I may still use this online trust. I understand I should amend my bylaws and operating agreements so they work with my trust, and that Amana Legacy will email me about a free consultation regarding my corporate documents. I otherwise confirm this plan fits my situation (Texas resident, one primary residence, no blended-family or special needs planning beyond this trust). If my situation is more complex, I understand I should schedule a consultation instead.
+										</li>
+									{:else}
+										<li>
+											I confirm my situation fits this online plan (Texas resident, one primary residence, no business ownership, no blended-family or special needs planning). If my situation is more complex, I understand I should schedule a consultation instead.
+										</li>
+									{/if}
 									<li>
 										I understand this trust is structured in accordance with established Islamic inheritance principles. The prescribed shares are not customizable.
 									</li>

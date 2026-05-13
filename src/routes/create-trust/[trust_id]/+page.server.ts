@@ -3,7 +3,14 @@ import { db } from '$lib/server/db';
 import { trust, user, TrustStatus } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
-import { allIntakeQuestions, prePaymentQuestions, postPaymentQuestions } from '$lib/config';
+import {
+	allIntakeQuestions,
+	prePaymentQuestions,
+	postPaymentQuestions,
+	screeningQuestions,
+	isEligibleForOnlineTrustFromScreening
+} from '$lib/config';
+import type { TrustScreeningAnswers } from '$lib/server/db/schema';
 import {
 	isIntakePhaseComplete,
 	meetsDiscountedCharityPledge,
@@ -23,6 +30,29 @@ function responsesToRecord(
 	return Object.fromEntries(
 		rows.map((r) => [r.id, r.response as QuestionResponseValue])
 	);
+}
+
+const SCREENING_QUESTION_IDS = screeningQuestions.map((q) => q.id);
+
+function parseScreeningAnswersJson(raw: string | FormDataEntryValue | null): TrustScreeningAnswers {
+	if (typeof raw !== 'string' || !raw.trim()) throw error(400, 'Screening answers are required');
+
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		throw error(400, 'Invalid screening answers');
+	}
+	if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+		throw error(400, 'Invalid screening answers');
+	}
+	const obj = parsed as Record<string, unknown>;
+	const out: TrustScreeningAnswers = {};
+	for (const id of SCREENING_QUESTION_IDS) {
+		if (typeof obj[id] !== 'boolean') throw error(400, 'Invalid screening answers');
+		out[id] = obj[id];
+	}
+	return out;
 }
 
 function mergeResponses(
@@ -108,9 +138,10 @@ export const actions: Actions = {
 		if (isNaN(trustId)) throw error(400, 'Invalid trust');
 
 		const data = await request.formData();
-		const eligible = data.get('eligible') === 'true';
 		const countyRaw = data.get('county');
 		const county = typeof countyRaw === 'string' ? countyRaw.trim() : '';
+		const screeningAnswers = parseScreeningAnswersJson(data.get('answers'));
+		const eligible = isEligibleForOnlineTrustFromScreening(screeningAnswers);
 
 		if (!county) throw error(400, 'County is required');
 
@@ -118,12 +149,33 @@ export const actions: Actions = {
 			.update(trust)
 			.set({
 				isEligible: eligible,
+				screeningAnswers,
 				...(eligible ? { joint: true } : {}),
 				updatedAt: new Date(),
 			})
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
 		await db.update(user).set({ county }).where(eq(user.id, locals.user.id));
+
+		if (eligible && screeningAnswers.business_ownership === true) {
+			const profile = await db.query.user.findFirst({
+				where: eq(user.id, locals.user.id),
+				columns: { id: true, name: true, email: true },
+			});
+			if (profile) {
+				await notifyAdmins(
+					`Business owner continued after screening — trust #${trustId}`,
+					[
+						'Event: User answered Yes to business ownership and continued the online trust (not sent to consultation).',
+						`Trust ID: ${trustId}`,
+						`User ID: ${profile.id}`,
+						`User name: ${profile.name}`,
+						`User email: ${profile.email}`,
+						`Open in admin: ${adminUserUrl(profile.id)}`,
+					].join('\n')
+				);
+			}
+		}
 
 		return { screened: true, eligible };
 	},

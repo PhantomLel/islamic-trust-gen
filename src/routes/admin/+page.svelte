@@ -10,6 +10,106 @@
 	let editingTrustId = $state<number | null>(null);
 	let editPrice = $state('');
 
+	// Filters & sorting
+	type StatusFilter = 'all' | 'started' | 'awaiting-payment' | 'awaiting-answers' | 'review' | 'notarization-pending' | 'notarization-scheduled' | 'completed';
+	type TypeFilter = 'all' | 'individual' | 'joint' | 'unset';
+	type EligibilityFilter = 'all' | 'eligible' | 'ineligible' | 'unscreened';
+	type SortKey = 'updated' | 'created' | 'business' | 'type';
+	type SortDir = 'asc' | 'desc';
+
+	let statusFilter = $state<StatusFilter>('all');
+	let typeFilter = $state<TypeFilter>('all');
+	let eligibilityFilter = $state<EligibilityFilter>('all');
+	let sortKey = $state<SortKey>('updated');
+	let sortDir = $state<SortDir>('desc');
+
+	const statusOptions: { value: StatusFilter; label: string }[] = [
+		{ value: 'all', label: 'All statuses' },
+		{ value: 'started', label: 'Started' },
+		{ value: 'awaiting-payment', label: 'Awaiting Payment' },
+		{ value: 'awaiting-answers', label: 'Awaiting Answers' },
+		{ value: 'review', label: 'Requires Review' },
+		{ value: 'notarization-pending', label: 'Notarization Pending' },
+		{ value: 'notarization-scheduled', label: 'Notarization Scheduled' },
+		{ value: 'completed', label: 'Completed' },
+	];
+
+	const typeOptions: { value: TypeFilter; label: string }[] = [
+		{ value: 'all', label: 'All types' },
+		{ value: 'individual', label: 'Individual' },
+		{ value: 'joint', label: 'Joint' },
+		{ value: 'unset', label: 'Unset' },
+	];
+
+	const eligibilityOptions: { value: EligibilityFilter; label: string }[] = [
+		{ value: 'all', label: 'All eligibility' },
+		{ value: 'eligible', label: 'Eligible' },
+		{ value: 'ineligible', label: 'Ineligible' },
+		{ value: 'unscreened', label: 'Unscreened' },
+	];
+
+	const sortOptions: { value: SortKey; label: string }[] = [
+		{ value: 'updated', label: 'Last updated' },
+		{ value: 'created', label: 'Created' },
+		{ value: 'business', label: 'Business' },
+		{ value: 'type', label: 'Type' },
+	];
+
+	const filteredTrusts = $derived.by(() => {
+		const filtered = data.trusts.filter((t) => {
+			if (statusFilter !== 'all' && t.status !== statusFilter) return false;
+			if (typeFilter !== 'all') {
+				if (typeFilter === 'individual' && t.joint !== false) return false;
+				if (typeFilter === 'joint' && t.joint !== true) return false;
+				if (typeFilter === 'unset' && t.joint !== null) return false;
+			}
+			if (eligibilityFilter !== 'all') {
+				if (eligibilityFilter === 'eligible' && t.isEligible !== true) return false;
+				if (eligibilityFilter === 'ineligible' && t.isEligible !== false) return false;
+				if (eligibilityFilter === 'unscreened' && t.isEligible !== null) return false;
+			}
+			return true;
+		});
+
+		const dirMult = sortDir === 'asc' ? 1 : -1;
+		const compareNullable = (a: unknown, b: unknown): number => {
+			// null/undefined sort last regardless of direction
+			const aNull = a === null || a === undefined;
+			const bNull = b === null || b === undefined;
+			if (aNull && bNull) return 0;
+			if (aNull) return 1;
+			if (bNull) return -1;
+			if (typeof a === 'number' && typeof b === 'number') return (a - b) * dirMult;
+			if (typeof a === 'boolean' && typeof b === 'boolean') return (Number(a) - Number(b)) * dirMult;
+			return String(a).localeCompare(String(b)) * dirMult;
+		};
+
+		return [...filtered].sort((a, b) => {
+			switch (sortKey) {
+				case 'updated':
+					return (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()) * dirMult;
+				case 'created':
+					return (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * dirMult;
+				case 'business':
+					return compareNullable(a.businessOwnership, b.businessOwnership);
+				case 'type':
+					return compareNullable(a.joint, b.joint);
+			}
+		});
+	});
+
+	function resetFilters() {
+		statusFilter = 'all';
+		typeFilter = 'all';
+		eligibilityFilter = 'all';
+		sortKey = 'updated';
+		sortDir = 'desc';
+	}
+
+	const hasActiveFilters = $derived(
+		statusFilter !== 'all' || typeFilter !== 'all' || eligibilityFilter !== 'all',
+	);
+
 
 	function getProgress(responses: { id: string; response: unknown }[]): number {
 		if (allIntakeQuestions.length === 0) return 0;
@@ -72,6 +172,7 @@
 			'awaiting-answers': 'Awaiting Answers',
 			'review': 'Requires Review',
 			'notarization-pending': 'Notarization Pending',
+			'notarization-scheduled': 'Notarization Scheduled',
 			'completed': 'Completed',
 		};
 		return map[status] ?? status;
@@ -84,6 +185,7 @@
 			'awaiting-answers': 'bg-blue-50 text-blue-700',
 			'review': 'bg-purple-50 text-purple-700',
 			'notarization-pending': 'bg-orange-50 text-orange-700',
+			'notarization-scheduled': 'bg-sky-50 text-sky-700',
 			'completed': 'bg-emerald-50 text-emerald-700',
 		};
 		return map[status] ?? 'bg-navy/10 text-navy/60';
@@ -119,14 +221,93 @@
 	</nav>
 
 	<div class="max-w-7xl mx-auto px-6 md:px-8 py-10">
-		<div class="mb-8">
+		<div class="mb-6">
 			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">Trusts</h1>
-			<p class="text-navy/45 text-sm">{data.trusts.length} total</p>
+			<p class="text-navy/45 text-sm">
+				{filteredTrusts.length} of {data.trusts.length}{hasActiveFilters ? ' (filtered)' : ''}
+			</p>
 		</div>
+
+		{#if data.trusts.length > 0}
+			<div class="mb-4 flex flex-wrap items-end gap-3">
+				<label class="flex flex-col gap-1">
+					<span class="text-[11px] uppercase tracking-wider text-navy/40 font-medium">Status</span>
+					<select
+						bind:value={statusFilter}
+						class="px-3 py-1.5 rounded-md border border-navy/15 bg-white text-sm text-navy focus:outline-none focus:border-emerald-accent cursor-pointer"
+					>
+						{#each statusOptions as opt}
+							<option value={opt.value}>{opt.label}</option>
+						{/each}
+					</select>
+				</label>
+
+				<label class="flex flex-col gap-1">
+					<span class="text-[11px] uppercase tracking-wider text-navy/40 font-medium">Type</span>
+					<select
+						bind:value={typeFilter}
+						class="px-3 py-1.5 rounded-md border border-navy/15 bg-white text-sm text-navy focus:outline-none focus:border-emerald-accent cursor-pointer"
+					>
+						{#each typeOptions as opt}
+							<option value={opt.value}>{opt.label}</option>
+						{/each}
+					</select>
+				</label>
+
+				<label class="flex flex-col gap-1">
+					<span class="text-[11px] uppercase tracking-wider text-navy/40 font-medium">Eligibility</span>
+					<select
+						bind:value={eligibilityFilter}
+						class="px-3 py-1.5 rounded-md border border-navy/15 bg-white text-sm text-navy focus:outline-none focus:border-emerald-accent cursor-pointer"
+					>
+						{#each eligibilityOptions as opt}
+							<option value={opt.value}>{opt.label}</option>
+						{/each}
+					</select>
+				</label>
+
+				<div class="ml-auto flex items-end gap-2">
+					<label class="flex flex-col gap-1">
+						<span class="text-[11px] uppercase tracking-wider text-navy/40 font-medium">Sort by</span>
+						<select
+							bind:value={sortKey}
+							class="px-3 py-1.5 rounded-md border border-navy/15 bg-white text-sm text-navy focus:outline-none focus:border-emerald-accent cursor-pointer"
+						>
+							{#each sortOptions as opt}
+								<option value={opt.value}>{opt.label}</option>
+							{/each}
+						</select>
+					</label>
+
+					<button
+						type="button"
+						onclick={() => (sortDir = sortDir === 'asc' ? 'desc' : 'asc')}
+						title={sortDir === 'asc' ? 'Ascending' : 'Descending'}
+						class="px-3 py-1.5 rounded-md border border-navy/15 bg-white text-sm text-navy hover:border-emerald-accent cursor-pointer tabular-nums"
+					>
+						{sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
+					</button>
+
+					{#if hasActiveFilters || sortKey !== 'updated' || sortDir !== 'desc'}
+						<button
+							type="button"
+							onclick={resetFilters}
+							class="px-3 py-1.5 rounded-md text-sm text-navy/60 hover:text-navy cursor-pointer"
+						>
+							Reset
+						</button>
+					{/if}
+				</div>
+			</div>
+		{/if}
 
 		{#if data.trusts.length === 0}
 			<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center">
 				<p class="text-navy/40 text-sm">No trusts yet.</p>
+			</div>
+		{:else if filteredTrusts.length === 0}
+			<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center">
+				<p class="text-navy/40 text-sm">No trusts match the selected filters.</p>
 			</div>
 		{:else}
 			<div class="rounded-xl border border-navy/[0.06] overflow-hidden bg-white/70">
@@ -136,11 +317,11 @@
 							<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
 								<th class="px-4 py-3 font-medium">User</th>
 								<th class="px-4 py-3 font-medium">Last updated</th>
-								<th class="px-4 py-3 font-medium">Last device</th>
 								<th class="px-4 py-3 font-medium">Status</th>
 								<th class="px-4 py-3 font-medium">Type</th>
 								<th class="px-4 py-3 font-medium">Plan</th>
 								<th class="px-4 py-3 font-medium">Eligible</th>
+								<th class="px-4 py-3 font-medium">Business</th>
 								<th class="px-4 py-3 font-medium">Progress</th>
 								<th class="px-4 py-3 font-medium">Price</th>
 								<th class="px-4 py-3 font-medium">Created</th>
@@ -148,7 +329,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.trusts as t}
+							{#each filteredTrusts as t}
 								{@const progress = getProgress(t.responses)}
 								{@const effectivePrice = t.customPrice ?? defaultPrepFee}
 								{@const isCustom = t.customPrice !== null && t.customPrice !== defaultPrepFee}
@@ -172,19 +353,6 @@
 												<div class="text-[11px] text-navy/40">{timeAgo(t.updatedAt)}</div>
 											</div>
 										</div>
-									</td>
-
-									<td class="px-4 py-3 text-navy/60 text-[12px]">
-										{#if t.user.lastLoginDeviceKind}
-											<span
-												class="cursor-default border-b border-dotted border-navy/25"
-												title={t.user.lastLoginUserAgent ?? ''}
-											>
-												{t.user.lastLoginDeviceKind === 'mobile' ? 'Mobile' : 'Desktop'}
-											</span>
-										{:else}
-											<span class="text-navy/30">—</span>
-										{/if}
 									</td>
 
 									<!-- Status -->
@@ -212,6 +380,30 @@
 											<span class="inline-block w-2 h-2 rounded-full bg-rose-400" title="Ineligible"></span>
 										{:else}
 											<span class="inline-block w-2 h-2 rounded-full bg-navy/20" title="Not screened"></span>
+										{/if}
+									</td>
+
+									<!-- Business (screening) — chip styling matches admin user eligibility screening panel -->
+									<td class="px-4 py-3">
+										{#if t.businessOwnership === true}
+											<span
+												class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium tabular-nums bg-amber-50 text-amber-800 border border-amber-200/80"
+											>
+												Yes
+											</span>
+										{:else if t.businessOwnership === false}
+											<span
+												class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium tabular-nums bg-emerald-accent/8 text-navy/75 border border-emerald-accent/25"
+											>
+												No
+											</span>
+										{:else}
+											<span
+												class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium tabular-nums bg-navy/[0.06] text-navy/45 border border-navy/10"
+												title="No screening data for this trust"
+											>
+												—
+											</span>
 										{/if}
 									</td>
 
