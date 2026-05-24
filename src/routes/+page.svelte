@@ -95,23 +95,7 @@
 
 	const plans = [
 		{
-			eyebrow: 'Online — Texas residents',
-			name: 'Amana Trust',
-			price: '$849',
-			priceNote: 'flat fee · attorney-supervised',
-			tagline: 'Online Islamic trust for one Texas homestead.',
-			body: 'Build an attorney-supervised revocable trust at your own pace, online. We draft and record your deed, and walk you through preserving your homestead exemption.',
-			features: [
-				'Revocable living trust',
-				'Pour-over will & POAs',
-				'Deed prepared & recorded',
-				'Homestead exemption guide'
-			],
-			cta: { label: 'Start Online', href: '/trust' },
-			highlighted: false
-		},
-		{
-			eyebrow: 'In-person — most popular',
+			eyebrow: 'In-person — community',
 			name: 'Community Trust',
 			price: '$1,250',
 			priceNote: 'or $104.16/mo × 12, riba-free · free for zakat-eligible families',
@@ -124,6 +108,22 @@
 				'Covers one primary residence'
 			],
 			cta: { label: 'Book Consultation', href: consultationBookingUrl },
+			highlighted: false
+		},
+		{
+			eyebrow: 'Online — most popular',
+			name: 'Amana Trust',
+			price: '$849',
+			priceNote: 'flat fee · attorney-supervised · notarization included',
+			tagline: 'Online Islamic trust for one Texas homestead.',
+			body: 'Build an attorney-supervised revocable trust at your own pace, online. We draft and record your deed, and walk you through preserving your homestead exemption.',
+			features: [
+				'Revocable living trust',
+				'Pour-over wills + certification',
+				'Deed prepared & recorded',
+				'Homestead exemption guide'
+			],
+			cta: { label: 'Start Online', href: '/trust' },
 			highlighted: true
 		},
 		{
