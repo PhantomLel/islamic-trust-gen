@@ -61,23 +61,35 @@
 	const compareRows = [
 		{
 			label: 'Probate court',
-			will: 'Required. Months of delay before heirs receive anything.',
-			trust: 'Avoided entirely. Assets pass privately to your trustee.'
+			icon: 'M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6',
+			willHeadline: 'Required',
+			will: 'Months of court delay before heirs receive anything, with the estate exposed on the public record.',
+			trustHeadline: 'Avoided entirely',
+			trust: 'Assets pass privately to your trustee the moment they are needed — no court, no public file.'
 		},
 		{
 			label: 'Children\'s inheritance',
-			will: 'Locked until 18, then handed over in a lump sum.',
-			trust: 'Held by a trustee and released at an age you choose — 21, 25, or staggered.'
+			icon: 'M12 11a4 4 0 100-8 4 4 0 000 8zM6 21v-1a6 6 0 0112 0v1',
+			willHeadline: 'Lump sum at 18',
+			will: 'Locked until your child turns 18, then handed over in full on a single day — no matter the amount.',
+			trustHeadline: 'Released on your terms',
+			trust: 'Held by a trustee and released at an age you choose — 21, 25, or staggered over several milestones.'
 		},
 		{
-			label: 'Islamic shares',
-			will: 'Texas courts apply Texas intestacy rules and routinely override Qur\'anic fractions.',
-			trust: 'Qur\'anic shares are enforced privately, exactly as written.'
+			label: 'Islamic inheritance',
+			icon: 'M4 4h12a4 4 0 014 4v12H8a4 4 0 01-4-4V4z M4 4v12a4 4 0 004 4',
+			willHeadline: 'Often overridden',
+			will: 'Texas courts apply state intestacy rules and routinely override Qur\'anic fractions written in a will.',
+			trustHeadline: 'Enforced as written',
+			trust: 'Qur\'anic shares are carried out privately by your trustee, exactly as you and the attorney structured them.'
 		},
 		{
 			label: 'True cost',
-			will: 'Appears cheap. Probate fees often run into the thousands later.',
-			trust: 'Higher upfront. Saves the estate thousands and months of court time.'
+			icon: 'M12 8c-2 0-3 1-3 2.5S10 13 12 13s3 1 3 2.5S14 18 12 18m0-10V6m0 12v2',
+			willHeadline: 'Cheap up front',
+			will: 'Looks inexpensive on day one. Probate fees and attorney time often run into the thousands later.',
+			trustHeadline: 'Pays for itself',
+			trust: 'Higher upfront. Saves the estate thousands of dollars and months of court time when it matters.'
 		}
 	];
 
@@ -376,25 +388,66 @@
 				<h2 class="text-3xl md:text-4xl tracking-tight text-navy text-balance">Why a trust matters for Muslim families.</h2>
 			</div>
 
-			<div class="grid grid-cols-1 md:grid-cols-[1.1fr_1fr_1.4fr] bg-cream border border-navy/10 rounded-2xl overflow-hidden">
-				<div class="hidden md:block px-6 py-4 text-[11px] tracking-[0.25em] uppercase text-navy/40 border-b border-navy/10">Topic</div>
-				<div class="hidden md:block px-6 py-4 text-[11px] tracking-[0.25em] uppercase text-navy/40 border-b border-l border-navy/10">A Will Alone</div>
-				<div class="hidden md:block px-6 py-4 text-[11px] tracking-[0.25em] uppercase text-emerald-accent border-b border-l border-navy/10 bg-emerald-accent/5">A Properly Funded Trust</div>
+			<div class="hidden md:grid grid-cols-[1fr_1fr] gap-6 mb-4 px-1">
+				<div class="flex items-center gap-3">
+					<span class="w-7 h-7 rounded-full bg-navy/8 flex items-center justify-center">
+						<svg class="w-3.5 h-3.5 text-navy/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</span>
+					<span class="text-navy/50 text-[11px] tracking-[0.25em] uppercase font-medium">With only a will</span>
+				</div>
+				<div class="flex items-center gap-3">
+					<span class="w-7 h-7 rounded-full bg-emerald-accent/15 flex items-center justify-center">
+						<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+						</svg>
+					</span>
+					<span class="text-emerald-accent text-[11px] tracking-[0.25em] uppercase font-medium">With a properly funded trust</span>
+				</div>
+			</div>
 
+			<div class="flex flex-col gap-4">
 				{#each compareRows as row, i}
-					<div class="px-6 py-5 md:py-6 text-navy font-medium text-sm md:text-[15px] {i > 0 ? 'border-t border-navy/10' : ''}">
-						{row.label}
-					</div>
-					<div class="px-6 py-5 md:py-6 text-navy/55 text-sm leading-relaxed md:border-l border-navy/10 border-t md:border-t border-navy/10">
-						{row.will}
-					</div>
-					<div class="px-6 py-5 md:py-6 text-navy/75 text-sm leading-relaxed md:border-l border-navy/10 bg-emerald-accent/5 border-t border-navy/10">
-						{row.trust}
-					</div>
+					<article class="bg-cream border border-navy/10 rounded-2xl overflow-hidden">
+						<header class="flex items-center gap-3 px-6 md:px-7 py-4 border-b border-navy/8">
+							<span class="text-emerald-accent/70 text-[10px] tabular-nums tracking-widest">0{i + 1}</span>
+							<svg class="w-4 h-4 text-navy/55" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+								<path stroke-linecap="round" stroke-linejoin="round" d={row.icon} />
+							</svg>
+							<h3 class="text-navy text-base md:text-lg tracking-tight">{row.label}</h3>
+						</header>
+
+						<div class="grid md:grid-cols-2">
+							<!-- Will side -->
+							<div class="relative p-6 md:p-7 md:border-r border-navy/8 border-b md:border-b-0">
+								<div class="flex items-baseline gap-3 mb-2 md:hidden">
+									<svg class="w-3.5 h-3.5 text-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+									<span class="text-navy/45 text-[10px] tracking-[0.25em] uppercase">With only a will</span>
+								</div>
+								<div class="text-navy/85 text-base md:text-lg tracking-tight mb-1.5 line-through decoration-navy/25 decoration-1 underline-offset-4">
+									{row.willHeadline}
+								</div>
+								<p class="text-navy/55 text-sm leading-relaxed">{row.will}</p>
+							</div>
+
+							<!-- Trust side -->
+							<div class="relative p-6 md:p-7 bg-emerald-accent/6">
+								<div class="flex items-baseline gap-3 mb-2 md:hidden">
+									<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+									<span class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase">With a trust</span>
+								</div>
+								<div class="text-navy text-base md:text-lg tracking-tight mb-1.5 font-medium">
+									{row.trustHeadline}
+								</div>
+								<p class="text-navy/70 text-sm leading-relaxed">{row.trust}</p>
+							</div>
+						</div>
+					</article>
 				{/each}
 			</div>
 
-			<p class="text-center text-navy/45 text-xs mt-6 italic">
+			<p class="text-center text-navy/45 text-xs mt-8 italic max-w-2xl mx-auto leading-relaxed">
 				Texas courts apply Texas law and will block Qur'anic shares unless your plan is structured to enforce them privately.
 			</p>
 		</div>
