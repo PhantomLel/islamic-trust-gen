@@ -1,5 +1,7 @@
 import {
+	allIntakeQuestions,
 	charities as configuredCharities,
+	prePaymentQuestions,
 	type ChildResponse,
 	type CharityResponse,
 	type HeirResponse,
@@ -372,4 +374,31 @@ export function getActiveQuestions(
 		return true;
 	});
 	return { active, autoValues };
+}
+
+export type IntakeProgressOptions = {
+	/** When false, only pre-payment questions count (matches create-trust gating). */
+	hasPaid?: boolean;
+};
+
+export function responsesRowsToRecord(
+	rows: { id: string; response: unknown }[]
+): Record<string, QuestionResponseValue> {
+	return Object.fromEntries(
+		rows.map((r) => [r.id, r.response as QuestionResponseValue])
+	);
+}
+
+/** Progress for admin/dashboard: active intake questions only, capped at 100%. */
+export function getIntakeQuestionnaireProgress(
+	responseRows: { id: string; response: unknown }[],
+	options: IntakeProgressOptions = {}
+): number {
+	const hasPaid = options.hasPaid ?? false;
+	const record = responsesRowsToRecord(responseRows);
+	const questionList = hasPaid ? allIntakeQuestions : prePaymentQuestions;
+	const { active } = getActiveQuestions(record, questionList);
+	if (active.length === 0) return 0;
+	const answered = active.filter((q) => isQuestionResponseAnswered(record[q.id])).length;
+	return Math.min(100, Math.round((answered / active.length) * 100));
 }

@@ -1,10 +1,12 @@
+import { siteName } from '$lib/config';
+
 export function magicLinkEmail(url: string): string {
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign in to Islamic Trust Generator</title>
+  <title>Sign in to ${siteName}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f5f0eb;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0eb;padding:40px 0;">
@@ -16,7 +18,7 @@ export function magicLinkEmail(url: string): string {
           <tr>
             <td style="background:linear-gradient(135deg,#1a4a3a 0%,#2d7a5e 100%);padding:40px 48px;text-align:center;">
               <p style="margin:0 0 8px 0;font-size:24px;color:#c8a96e;letter-spacing:4px;font-weight:400;">&#9670;</p>
-              <h1 style="margin:0;font-size:22px;font-weight:600;color:#ffffff;letter-spacing:0.5px;">Islamic Trust Generator</h1>
+              <h1 style="margin:0;font-size:22px;font-weight:600;color:#ffffff;letter-spacing:0.5px;">${siteName}</h1>
               <p style="margin:8px 0 0 0;font-size:13px;color:#a8d5c2;letter-spacing:1px;text-transform:uppercase;">Secure Access</p>
             </td>
           </tr>
@@ -69,7 +71,7 @@ export function magicLinkEmail(url: string): string {
           <!-- Footer -->
           <tr>
             <td style="background-color:#f9f5f0;padding:24px 48px;text-align:center;border-top:1px solid #e8e0d5;">
-              <p style="margin:0 0 4px 0;font-size:12px;color:#9ca3af;">Islamic Trust Generator &mdash; Trusted Estate Planning</p>
+              <p style="margin:0 0 4px 0;font-size:12px;color:#9ca3af;">${siteName} &mdash; Trusted Estate Planning</p>
               <p style="margin:0;font-size:11px;color:#c3bfb8;">This is an automated message, please do not reply to this email.</p>
             </td>
           </tr>

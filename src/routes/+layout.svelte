@@ -26,7 +26,8 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>{ (isLocalOrigin ? 'LOCAL - ' : '') + siteName }</title>
+	<title>{ (isLocalOrigin ? 'LOCAL - ' : '') + siteName + ' — Islamic Estate Planning' }</title>
+	<meta name="description" content="Attorney-led Islamic estate planning for Muslim families. Wills, trusts, prenuptials, and business succession grounded in Qur'anic principles and U.S. law." />
 </svelte:head>
 
 {@render children()}

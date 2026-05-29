@@ -134,7 +134,7 @@
 								I understand this trust is structured in accordance with established Islamic inheritance principles. The prescribed shares are not customizable.
 							</li>
 							<li>
-								I understand Amana Legacy provides detailed, attorney-prepared guidance for securing my Texas homestead exemption, but does not file the exemption application on my behalf.
+								I understand {siteName} provides detailed, attorney-prepared guidance for securing my Texas homestead exemption, but does not file the exemption application on my behalf.
 							</li>
 						</ul>
 

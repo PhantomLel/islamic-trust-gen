@@ -37,6 +37,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			joint: t.joint,
 			complete: t.complete,
 			isEligible: t.isEligible,
+			hasPaid: t.selectedPlan !== null,
 			awaitingPayment: t.status === TrustStatus.AwaitingPayment && t.selectedPlan === null,
 			responses: (t.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
 		})),

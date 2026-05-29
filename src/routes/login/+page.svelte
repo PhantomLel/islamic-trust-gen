@@ -2,6 +2,7 @@
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { authClient } from '$lib/auth-client';
+	import { siteName } from '$lib/config';
 
 	let email = $state('');
 	let magicLinkSent = $state(false);
@@ -69,7 +70,7 @@
 		<!-- header -->
 		<div class="mb-10">
 			<h1 class="text-2xl font-semibold text-navy tracking-tight">Sign in</h1>
-			<p class="text-navy/45 text-sm mt-1.5">Welcome back to Amanah Trust</p>
+			<p class="text-navy/45 text-sm mt-1.5">Welcome back to {siteName}</p>
 		</div>
 
 		{#if magicLinkSent}
