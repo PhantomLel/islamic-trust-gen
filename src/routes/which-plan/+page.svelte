@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
-	import { consultationBookingUrl } from '$lib/config';
+	import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
 
 	/* ─── Questions ─────────────────────────────────────────────────────── */
 	const questions = [
@@ -113,7 +113,7 @@
 		goodtree: {
 			eyebrow: 'Self-service · Online · TX & CA',
 			name: 'GoodTree Trust',
-			price: '$850',
+			price: formatUsd(defaultPrepFee),
 			priceNote: 'flat fee · attorney-supervised · notarization included',
 			body: 'Build an attorney-supervised Islamic revocable trust at your own pace. Includes deed preparation, two pour-over wills, and WhatsApp attorney access throughout.',
 			cta: { label: 'Start Your GoodTree Trust', href: '/trust' },

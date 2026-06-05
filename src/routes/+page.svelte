@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { consultationBookingUrl } from '$lib/config';
+	import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
 	import { slide } from 'svelte/transition';
 	import { authClient } from '$lib/auth-client';
 
@@ -456,7 +456,7 @@
 					</ul>
 
 					<div class="flex items-baseline gap-1.5 pt-4 border-t border-navy/8 mt-auto">
-						<span class="text-2xl tracking-tight text-navy">$850</span>
+						<span class="text-2xl tracking-tight text-navy">{formatUsd(defaultPrepFee)}</span>
 						<span class="text-navy/40 text-xs">flat fee · attorney-supervised</span>
 					</div>
 

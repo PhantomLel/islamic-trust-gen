@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { consultationBookingUrl } from '$lib/config';
+	import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
 </script>
 
 <svelte:head>
@@ -146,7 +146,7 @@
 							<p class="text-navy/45 text-xs mt-1">Islamic Trust Builder by Muslim Legacy Planning</p>
 						</div>
 						<div class="text-right shrink-0">
-							<div class="text-3xl tracking-tight text-navy">$850</div>
+							<div class="text-3xl tracking-tight text-navy">{formatUsd(defaultPrepFee)}</div>
 							<div class="text-navy/40 text-xs mt-0.5">flat fee</div>
 						</div>
 					</div>

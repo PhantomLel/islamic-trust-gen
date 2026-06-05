@@ -4,7 +4,11 @@ export type { EstateInput, BlockedHeir, FractionValue, HeirType, ShareType };
 export const siteName = 'Muslim Legacy Planning';
 export const siteTagline = 'Islamic Estate Planning';
 export const consultationBookingUrl = 'https://mcdaniel.cliogrow.com/book/504611575cd41f17542e14c8c9c0dbde';
-export const defaultPrepFee = 849;
+export const defaultPrepFee = 1199;
+
+export function formatUsd(amount: number): string {
+	return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
 
 
 export const screeningQuestions = [

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName, defaultPrepFee } from '$lib/config';
+	import { siteName, defaultPrepFee, formatUsd } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { slide } from 'svelte/transition';
 
@@ -238,7 +238,7 @@
 			<div class="flex items-center gap-6 mt-6 px-6 py-4 bg-white/55 backdrop-blur border border-navy/8 rounded-2xl">
 				<div class="text-left">
 					<div class="text-[10px] tracking-[0.25em] uppercase text-navy/40 mb-1">Flat fee</div>
-					<div class="text-3xl tabular-nums tracking-tight text-navy">${defaultPrepFee}</div>
+					<div class="text-3xl tabular-nums tracking-tight text-navy">{formatUsd(defaultPrepFee)}</div>
 				</div>
 				<div class="w-px h-12 bg-navy/10"></div>
 				<div class="text-left text-xs text-navy/55 leading-relaxed max-w-[18rem]">
@@ -325,7 +325,7 @@
 					</p>
 
 					<div class="inline-flex items-baseline gap-3 px-5 py-4 bg-cream border border-navy/10 rounded-2xl mb-5">
-						<span class="text-3xl tabular-nums tracking-tight text-navy">${defaultPrepFee}</span>
+						<span class="text-3xl tabular-nums tracking-tight text-navy">{formatUsd(defaultPrepFee)}</span>
 						<span class="text-navy/50 text-xs">flat · everything below</span>
 					</div>
 

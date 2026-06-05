@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { consultationBookingUrl } from '$lib/config';
+	import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
 
 	let emailInput = $state('');
 	let emailStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -153,7 +153,7 @@
 							<div class="flex flex-col gap-2">
 								<a href="/trust" class="text-sm text-navy/65 hover:text-emerald-accent transition-colors flex items-center gap-1.5 group">
 									<svg class="w-3 h-3 shrink-0 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-									GoodTree Trust — $850
+									GoodTree Trust — {formatUsd(defaultPrepFee)}
 								</a>
 								<a href={consultationBookingUrl} class="text-sm text-navy/65 hover:text-emerald-accent transition-colors flex items-center gap-1.5 group">
 									<svg class="w-3 h-3 shrink-0 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
