@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { trust } from '$lib/server/db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { invoice, trust } from '$lib/server/db/schema';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -12,6 +12,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 		with: { user: true },
 		orderBy: [desc(trust.createdAt)],
 	});
+
+	const userIds = [...new Set(trusts.map((t) => t.userId))];
+	const paidTotalByUserId = new Map<string, number>();
+
+	if (userIds.length > 0) {
+		const paidInvoices = await db.query.invoice.findMany({
+			where: and(inArray(invoice.userId, userIds), eq(invoice.paid, true)),
+			columns: { userId: true, amount: true },
+		});
+
+		for (const inv of paidInvoices) {
+			paidTotalByUserId.set(inv.userId, (paidTotalByUserId.get(inv.userId) ?? 0) + inv.amount);
+		}
+	}
 
 	return {
 		trusts: trusts
@@ -34,6 +48,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 				selectedPlan: t.selectedPlan,
 				deedRetrievalRequested: t.deedRetrievalRequested,
 				customPrice: t.customPrice,
+				paidAmount:
+					t.selectedPlan !== null ? (paidTotalByUserId.get(t.userId) ?? null) : null,
 				responses: (t.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
 				user: {
 					id: t.user.id,

@@ -331,8 +331,9 @@
 						<tbody>
 							{#each filteredTrusts as t}
 								{@const progress = getProgress(t.responses)}
-								{@const effectivePrice = t.customPrice ?? defaultPrepFee}
-								{@const isCustom = t.customPrice !== null && t.customPrice !== defaultPrepFee}
+								{@const quotedPrice = t.customPrice ?? defaultPrepFee}
+								{@const displayPrice = t.paidAmount ?? quotedPrice}
+								{@const isCustom = t.paidAmount === null && t.customPrice !== null && t.customPrice !== defaultPrepFee}
 								{@const hasPaid = t.selectedPlan !== null}
 								<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
 									<!-- User -->
@@ -465,8 +466,11 @@
 											</span>
 										{:else}
 											<span class="text-navy tabular-nums" class:text-emerald-700={isCustom} class:font-medium={isCustom}>
-												${effectivePrice}
+												${displayPrice}
 											</span>
+											{#if t.paidAmount !== null}
+												<span class="ml-1 text-[10px] text-navy/40">paid</span>
+											{/if}
 											{#if !hasPaid}
 												<button
 													type="button"
