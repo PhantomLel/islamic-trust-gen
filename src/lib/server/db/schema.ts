@@ -104,6 +104,23 @@ export const trust = pgTable('trust', {
 	notarizationEndTime: timestamp('notarization_end_time'),
 });
 
+/**
+ * Free-form admin notes attached to a specific user. Visible only to admins on the
+ * user detail screen. `authorId` records which admin wrote it; left nullable + set null
+ * on delete so a note survives if the authoring admin account is removed.
+ */
+export const adminNote = pgTable('admin_note', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
+	authorId: text('author_id').references(() => user.id, { onDelete: 'set null' }),
+	/** Cached author display name so notes still show an author after account changes. */
+	authorName: text('author_name'),
+	body: text('body').notNull(),
+	pinned: boolean('pinned').notNull().default(false),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const invoice = pgTable('invoice', {
 	id: serial('id').primaryKey(),
 	userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),

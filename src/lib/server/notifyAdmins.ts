@@ -32,6 +32,11 @@ function isLocalDevOrigin(origin: string | undefined): boolean {
  * Fails open: logs and returns if Resend or admins are missing.
  */
 export async function notifyAdmins(subject: string, body: string): Promise<void> {
+	if (process.env.NODE_ENV !== 'production') {
+		console.warn('[notifyAdmins] Skipping send: not in production (NODE_ENV=%s)', process.env.NODE_ENV);
+		return;
+	}
+
 	if (isLocalDevOrigin(env.ORIGIN)) {
 		console.warn('[notifyAdmins] Skipping send: ORIGIN is local (dev)');
 		return;

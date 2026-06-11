@@ -1,14 +1,17 @@
 <script lang="ts">
-	import { siteName, screeningQuestions } from '$lib/config';
+	import { siteName, screeningQuestions, consultationBookingUrl } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
+	import { slide } from 'svelte/transition';
 	import CountySelector from './CountySelector.svelte';
 	import WhatsAppHelpLink from './WhatsAppHelpLink.svelte';
 
-	let { firstName, userEmail, trustId, onsubmit: onsubmitProp }: {
+	let { firstName, userEmail, trustId, onsubmit: onsubmitProp, onIneligible }: {
 		firstName: string;
 		userEmail: string;
 		trustId: number;
 		onsubmit: (payload: { county: string; answers: Record<string, boolean> }) => void;
+		/** Called silently when a hard-stop gating question is answered Yes — records ineligibility in the DB without navigating away. */
+		onIneligible?: (payload: { county: string; answers: Record<string, boolean> }) => void;
 	} = $props();
 
 	let screeningAnswers = $state<Record<string, boolean | null>>(
@@ -18,12 +21,14 @@
 	let submitting = $state(false);
 	let county = $state('');
 	let screeningConfirmed = $state(false);
+	/** Tracks the answer to the S corp sub-question (null = unanswered). */
+	let scorp = $state<boolean | null>(null);
 	const totalSteps = screeningQuestions.length + 1;
 
 	let hasCounty = $derived(county.trim().length > 0);
 
 	let allAnswered = $derived(hasCounty && screeningQuestions.every((q) => screeningAnswers[q.id] !== null));
-	let businessOwnerContinuing = $derived(screeningAnswers['business_ownership'] === true);
+	let businessOwnerContinuing = $derived(screeningAnswers['business_ownership'] === true && scorp === false);
 	let isCountyStep = $derived(screeningIndex === 0);
 	let currentQ = $derived(isCountyStep ? null : screeningQuestions[screeningIndex - 1]);
 	let isFinalQuestionStep = $derived(screeningIndex === totalSteps - 1 && !isCountyStep);
@@ -31,12 +36,43 @@
 		isFinalQuestionStep && currentQ ? screeningAnswers[currentQ.id] !== null : false
 	);
 
+	/** True when the S corp follow-up question needs to be answered. */
+	let showScorpQuestion = $derived(
+		currentQ?.id === 'business_ownership' && screeningAnswers['business_ownership'] === true && scorp === null
+	);
+	/** True when the user confirmed they have an S Corp — hard stop, must consult. */
+	let scorpHardStop = $derived(
+		currentQ?.id === 'business_ownership' && screeningAnswers['business_ownership'] === true && scorp === true
+	);
+	/** True when a standard gating question has been answered Yes — hard stop, must consult. */
+	let gatingHardStop = $derived(
+		currentQ !== null &&
+		currentQ.id !== 'business_ownership' &&
+		currentQ.consultationIfYes !== false &&
+		screeningAnswers[currentQ.id] === true
+	);
+
 	function answer(id: string, value: boolean) {
+		if (id === 'business_ownership' && screeningAnswers[id] !== value) {
+			scorp = null;
+		}
 		screeningAnswers = { ...screeningAnswers, [id]: value };
 		const q = screeningQuestions.find((x) => x.id === id);
-		const pauseForAdvisory = Boolean(q?.advisoryAfterYes && value === true);
-		if (!pauseForAdvisory && screeningIndex < totalSteps - 1) {
+		// Pause on this step if: advisory to show, OR gating question answered Yes
+		const pauseOnStep = Boolean(
+			(q?.advisoryAfterYes && value === true) ||
+			(q?.consultationIfYes !== false && value === true)
+		);
+		if (!pauseOnStep && screeningIndex < totalSteps - 1) {
 			screeningIndex++;
+		}
+		// Silently record ineligibility when a gating question is answered Yes
+		if (q?.consultationIfYes !== false && value === true && onIneligible && county.trim()) {
+			const answers: Record<string, boolean> = {};
+			for (const sq of screeningQuestions) {
+				answers[sq.id] = screeningAnswers[sq.id] === true;
+			}
+			onIneligible({ county: county.trim(), answers });
 		}
 	}
 
@@ -149,10 +185,91 @@
 							<WhatsAppHelpLink />
 						</div>
 
-						{#if currentQ?.advisoryAfterYes && screeningAnswers[currentQ.id] === true}
+						<!-- S Corp sub-question (shown when business_ownership = Yes) -->
+						{#if currentQ?.id === 'business_ownership' && screeningAnswers['business_ownership'] === true}
+							{#if scorp === null}
+								<div class="mb-6" transition:slide={{ duration: 200 }}>
+									<p class="text-lg font-semibold text-navy tracking-tight leading-snug mb-4">
+										Are any of your businesses S Corporations?
+									</p>
+									<div class="flex gap-3">
+										{#each [{ label: 'Yes', value: true }, { label: 'No', value: false }] as opt}
+											<button
+												onclick={() => scorp = opt.value}
+												class="flex-1 px-5 py-4 rounded-xl border text-center transition-all duration-200 cursor-pointer bg-white border-navy/10 text-navy/70 hover:border-navy/20"
+											>
+												{opt.label}
+											</button>
+										{/each}
+									</div>
+								</div>
+							{:else if scorp === true}
+								<!-- Hard stop: S Corp requires consultation -->
+								<div
+									class="mb-8 rounded-xl border border-amber-300/50 bg-amber-50/70 p-4 md:p-5"
+									role="alert"
+									transition:slide={{ duration: 200 }}
+								>
+									<p class="text-[13px] md:text-sm text-navy/80 leading-relaxed mb-4">
+										S Corporations are particularly complex to plan for in a trust context and cannot be properly handled through this online tool. You will need a direct consultation with our attorney to structure your estate plan correctly.
+									</p>
+									<a
+										href={consultationBookingUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy transition-all duration-200 hover:bg-navy-light"
+									>
+										Schedule a Consultation
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+										</svg>
+									</a>
+									<button
+										onclick={() => scorp = null}
+										class="mt-3 block text-[12px] text-navy/40 underline underline-offset-2 cursor-pointer hover:text-navy/60 transition-colors"
+									>
+										Go back
+									</button>
+								</div>
+							{/if}
+						{/if}
+
+						<!-- Hard stop for all other gating questions -->
+						{#if gatingHardStop && currentQ}
+							<div
+								class="mb-8 rounded-xl border border-amber-300/50 bg-amber-50/70 p-4 md:p-5"
+								role="alert"
+								transition:slide={{ duration: 200 }}
+							>
+								<p class="text-[13px] md:text-sm text-navy/80 leading-relaxed mb-4">
+									Based on your answer, your situation requires personalized planning that goes beyond the scope of this online tool. Please schedule a consultation with our attorney to ensure your estate plan is structured correctly.
+								</p>
+								<a
+									href={consultationBookingUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy transition-all duration-200 hover:bg-navy-light"
+								>
+									Schedule a Consultation
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+									</svg>
+								</a>
+								<button
+									onclick={() => { if (currentQ) screeningAnswers = { ...screeningAnswers, [currentQ.id]: null }; }}
+									class="mt-3 block text-[12px] text-navy/40 underline underline-offset-2 cursor-pointer hover:text-navy/60 transition-colors"
+								>
+									Go back
+								</button>
+							</div>
+						{/if}
+
+						<!-- Existing advisory (only for non-S-corp business owners) -->
+						{#if currentQ?.advisoryAfterYes && screeningAnswers[currentQ.id] === true && (currentQ.id !== 'business_ownership' || scorp === false)}
 							<div
 								class="mb-8 rounded-xl border border-emerald-accent/30 bg-emerald-accent/[0.07] p-4 md:p-5"
 								role="status"
+								transition:slide={{ duration: 200 }}
 							>
 								<p class="text-[13px] md:text-sm text-navy/80 leading-relaxed">
 									{currentQ.advisoryAfterYes}
@@ -222,7 +339,9 @@
 							}
 							if (currentQ && screeningAnswers[currentQ.id] !== null) screeningIndex++;
 						}}
-						disabled={isCountyStep ? !hasCounty : (currentQ ? screeningAnswers[currentQ.id] === null : true)}
+						disabled={isCountyStep
+							? !hasCounty
+							: (currentQ ? screeningAnswers[currentQ.id] === null : true) || showScorpQuestion || scorpHardStop || gatingHardStop}
 						class="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy
 							   transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10
 							   disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">

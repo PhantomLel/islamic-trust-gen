@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type {
 		AssetAllocationEntry,
+		HebaAssetEntry,
 		CharityResponse,
 		CharitiesResponse,
 		HeirsCalculatorResponse,
@@ -92,6 +93,13 @@
 	let assetsData = $derived.by(() => {
 		const v = allResponses['assets'];
 		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.assetName === 'string') return v as AssetAllocationEntry[];
+		return null;
+	});
+	let hebaAssetsData = $derived.by(() => {
+		const v = allResponses['heba-assets'];
+		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.assetName === 'string') {
+			return (v as HebaAssetEntry[]).filter((e) => e.assetName.trim());
+		}
 		return null;
 	});
 	let separateProperty = $derived.by(() => {
@@ -242,6 +250,21 @@
 						</p>
 					</div>
 				{/if}
+				<div class="mt-4">
+					<div class="flex items-center justify-between mb-2">
+						<div class="text-[11px] font-medium text-navy/40 tracking-wider uppercase">Listed Assets</div>
+						<button type="button" onclick={() => onnavigate?.('heba-assets')} class={editBtnClass}>Edit</button>
+					</div>
+					{#if hebaAssetsData && hebaAssetsData.length > 0}
+						<ul class="space-y-1">
+							{#each hebaAssetsData as item}
+								<li class="text-[13px] text-navy">{item.assetName}{item.accountId ? ` · ${item.accountId}` : ''}</li>
+							{/each}
+						</ul>
+					{:else}
+						<p class="text-[13px] text-navy/40">None listed</p>
+					{/if}
+				</div>
 			{:else if ownershipChoice === 'assets'}
 				<p class="text-sm text-navy font-medium">Asset by Asset</p>
 				{#if assetsData && assetsData.length > 0}
@@ -270,6 +293,7 @@
 		</div>
 	</div>
 
+	{#if ownershipChoice !== 'heba'}
 	<!-- Separate Property -->
 	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
 		<div class="flex items-center justify-between px-5 py-3 bg-navy/3 border-b border-navy/8">
@@ -335,6 +359,7 @@
 			{/if}
 		</div>
 	</div>
+	{/if}
 
 	<!-- Trustee Upon First Death -->
 	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
@@ -505,7 +530,7 @@
 	<!-- Minor Distribution -->
 	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
 		<div class="flex items-center justify-between px-5 py-3 bg-navy/3 border-b border-navy/8">
-			<h3 class="text-sm font-semibold text-navy">Minor Distribution</h3>
+			<h3 class="text-sm font-semibold text-navy">Distribution age for children after your death</h3>
 			<button type="button" onclick={() => onnavigate?.('minor-distribution')} class={editBtnClass}>Edit</button>
 		</div>
 		<div class="px-5 py-4">

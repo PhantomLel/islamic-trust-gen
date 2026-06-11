@@ -12,6 +12,7 @@ import {
 	type QuestionResponseValue,
 	type HebaResponse,
 	type AssetAllocationEntry,
+	type HebaAssetEntry,
 	type SeparatePropertyResponse,
 	type PersonalPropertyEntry,
 	type SuccessorTrusteeEntry,
@@ -885,6 +886,22 @@ import {
 										<span class="text-navy/35 text-[11px]"> #{asset.accountId}</span>
 									{/if}
 									<span class="text-navy/40"> — {formatSpouse(asset.spouse)}</span>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<span class="text-[13px] text-navy/25">—</span>
+					{/if}
+				{:else if q.type === 'heba-assets'}
+					{@const hebaAssets = Array.isArray(raw) ? (raw as HebaAssetEntry[]) : []}
+					{#if hebaAssets.length > 0}
+						<div class="space-y-1">
+							{#each hebaAssets as asset}
+								<div class="text-[12px] text-navy">
+									<span class="font-medium">{asset.assetName}</span>
+									{#if asset.accountId}
+										<span class="text-navy/35 text-[11px]"> #{asset.accountId}</span>
+									{/if}
 								</div>
 							{/each}
 						</div>

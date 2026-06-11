@@ -57,7 +57,7 @@ export type Question = {
 	id: string;
 	text: string;
 	subtext?: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'assets' | 'separate-property' | 'personal-property' | 'trustee-on-first-death' | 'successor-trustees' | 'pour-over-representatives' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests' | 'house-deed' | 'summary-review';
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'heba-assets' | 'assets' | 'separate-property' | 'personal-property' | 'trustee-on-first-death' | 'successor-trustees' | 'pour-over-representatives' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests' | 'house-deed' | 'summary-review';
 	required: boolean;
 	bucket: string;
 	options?: string[];
@@ -133,6 +133,12 @@ export type AssetAllocationEntry = {
 	assetName: string;
 	accountId?: string;
 	spouse: 'husband' | 'wife' | '50-50';
+};
+
+/** Heba path asset list — all property is jointly owned, so no per-spouse designation. */
+export type HebaAssetEntry = {
+	assetName: string;
+	accountId?: string;
 };
 
 export type SeparatePropertyEntry = {
@@ -213,6 +219,7 @@ export type QuestionResponseValue =
 	| PersonalDataResponse
 	| HebaResponse
 	| AssetAllocationEntry[]
+	| HebaAssetEntry[]
 	| SeparatePropertyResponse
 	| PersonalPropertyEntry[]
 	| SuccessorTrusteeEntry[]
@@ -314,6 +321,15 @@ export const postPaymentQuestions: Question[] = [
 		depends: { field: 'ownership-allocation', eq: 'heba' },
 	},
 	{
+		id: "heba-assets",
+		text: "List your assets.",
+		subtext: "Because you've chosen the mutual gift (heba), everything is owned jointly — there's no need to designate who owns what. Just list your major assets so we can fund your trust accurately.",
+		type: 'heba-assets',
+		required: false,
+		bucket: 'property',
+		depends: { field: 'ownership-allocation', eq: 'heba' },
+	},
+	{
 		id: "assets",
 		text: "Let's designate who owns what.",
 		type: 'assets',
@@ -327,6 +343,7 @@ export const postPaymentQuestions: Question[] = [
 		type: 'separate-property',
 		required: false,
 		bucket: 'property',
+		depends: { field: 'ownership-allocation', eq: 'assets' },
 	},
 	{
 		id: "personal-property",
@@ -334,6 +351,7 @@ export const postPaymentQuestions: Question[] = [
 		type: 'personal-property',
 		required: false,
 		bucket: 'property',
+		depends: { field: 'ownership-allocation', eq: 'assets' },
 	},
 	{
 		id: "charities",

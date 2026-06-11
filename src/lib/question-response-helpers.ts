@@ -345,6 +345,9 @@ export function isQuestionResponseComplete(
 		const heba = value as { husbandConfirmation: string | null; wifeConfirmation: string | null };
 		return heba.husbandConfirmation !== null && heba.wifeConfirmation !== null;
 	}
+	if (type === 'heba-assets') {
+		return true; // optional — all heba property is jointly owned regardless of what's listed
+	}
 	if (type === 'separate-property') {
 		return true; // optional — user can leave it blank
 	}

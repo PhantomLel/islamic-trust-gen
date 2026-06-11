@@ -13,6 +13,7 @@
 	import CountySelector from './CountySelector.svelte';
 	import OwnershipAllocationInput from './OwnershipAllocationInput.svelte';
 	import HebaAcknowledgmentInput from './HebaAcknowledgmentInput.svelte';
+	import HebaAssetsInput from './HebaAssetsInput.svelte';
 	import AssetAllocationInput from './AssetAllocationInput.svelte';
 	import SeparatePropertyInput from './SeparatePropertyInput.svelte';
 	import PersonalPropertyInput from './PersonalPropertyInput.svelte';
@@ -350,6 +351,9 @@
 
 {:else if question.type === 'heba'}
 	<HebaAcknowledgmentInput {value} {onresponse} {allResponses} />
+
+{:else if question.type === 'heba-assets'}
+	<HebaAssetsInput {value} {onresponse} />
 
 {:else if question.type === 'assets'}
 	<AssetAllocationInput {value} {onresponse} />

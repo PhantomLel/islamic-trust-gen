@@ -62,6 +62,18 @@
 		if (!isEligibleForOnlineTrustFromScreening(payload.answers)) goto(`/consultation/${data.trust.id}`);
 	}
 
+	/** Silently records ineligibility in the DB when a hard-stop question is answered Yes.
+	 *  Does not navigate away — the user stays on the screening page and sees the inline popup. */
+	async function handleIneligibleScreening(payload: {
+		county: string;
+		answers: Record<string, boolean>;
+	}) {
+		const form = new FormData();
+		form.set('county', payload.county);
+		form.set('answers', JSON.stringify(payload.answers));
+		await fetch('?/screen', { method: 'POST', body: form });
+	}
+
 	let currentIndex = $state(0);
 	let responses = $state<Record<string, QuestionResponseValue>>(
 		Object.fromEntries(
@@ -288,7 +300,7 @@
 </script>
 
 {#if step === 'screening'}
-<ScreeningStep {firstName} {userEmail} trustId={data.trust.id} onsubmit={handleScreeningSubmit} />
+<ScreeningStep {firstName} {userEmail} trustId={data.trust.id} onsubmit={handleScreeningSubmit} onIneligible={handleIneligibleScreening} />
 
 {:else if step === 'type'}
 <!-- ─── TRUST TYPE SELECTION (only when showTrustTypeSelection is true; otherwise joint defaults to true on server) ─── -->

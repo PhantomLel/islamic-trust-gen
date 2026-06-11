@@ -3,6 +3,7 @@ import {
 	type AssetAllocationEntry,
 	type CharitiesResponse,
 	type CharityResponse,
+	type HebaAssetEntry,
 	type HeirsCalculatorResponse,
 	type MinorDistributionResponse,
 	type NamedHeir,
@@ -55,6 +56,13 @@ export type JointTrustContext = {
 	 */
 	assetAllocation: { assetName: string; accountId: string; owner: string }[];
 
+	/**
+	 * Heba asset list — only populated when `isHeba` is true. All assets are
+	 * jointly owned, so there is no per-spouse owner column.
+	 * Wrap in `{#isHeba}...{/isHeba}` in the template.
+	 */
+	hebaAssets: { assetName: string; accountId: string }[];
+
 	/** Loop-ready arrays — use these once you convert the template to {#...} loops. */
 	husbandSeparateProperty: { assetName: string; accountId: string; approximateValue: string }[];
 	wifeSeparateProperty: { assetName: string; accountId: string; approximateValue: string }[];
@@ -66,6 +74,7 @@ export type JointTrustContext = {
 	wifeCharitableText: string;
 	wifeNonCharitableText: string;
 	heirsTableText: string;
+	hebaAssetsText: string;
 	husbandSeparatePropertyText: string;
 	wifeSeparatePropertyText: string;
 	highValueItemsText: string;
@@ -152,6 +161,15 @@ function formatBequests(list: NonCharitableBequestEntry[] | undefined): string {
 	);
 }
 
+function formatHebaAssets(list: HebaAssetEntry[] | undefined): string {
+	if (!list || list.length === 0) return 'No assets listed';
+	return bulletList(
+		list
+			.filter((a) => a.assetName && a.assetName.trim().length > 0)
+			.map((a) => (a.accountId ? `${a.assetName} \u2014 acct ${a.accountId}` : a.assetName)),
+	);
+}
+
 function formatSeparateProperty(list: SeparatePropertyEntry[] | undefined): string {
 	if (!list || list.length === 0) return 'No separate property';
 	return bulletList(
@@ -192,6 +210,7 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 	const wifeHeirs = getResponse<HeirsCalculatorResponse>(trust, 'wife-heirs');
 	const ownership = getResponse<string>(trust, 'ownership-allocation');
 	const assetAllocationEntries = getResponse<AssetAllocationEntry[]>(trust, 'assets') ?? [];
+	const hebaAssetEntries = getResponse<HebaAssetEntry[]>(trust, 'heba-assets') ?? [];
 	const successors = getResponse<SuccessorTrusteeEntry[]>(trust, 'successor-trustees') ?? [];
 	const charitiesResp = getResponse<CharitiesResponse>(trust, 'charities');
 	const bequestsResp = getResponse<NonCharitableBequestsResponse>(trust, 'non-charitable-bequests');
@@ -242,6 +261,13 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 			owner: a.spouse ?? '',
 		})),
 
+		hebaAssets: hebaAssetEntries
+			.filter((a) => (a.assetName ?? '').trim().length > 0)
+			.map((a) => ({
+				assetName: a.assetName ?? '',
+				accountId: a.accountId ?? '',
+			})),
+
 		husbandSeparateProperty: (sepProp?.husband ?? []).map((p) => ({
 			assetName: p.assetName ?? '',
 			accountId: p.accountId ?? '',
@@ -262,6 +288,7 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 		wifeCharitableText: formatCharities(charitiesResp?.wifeCharities),
 		wifeNonCharitableText: formatBequests(bequestsResp?.wifeBequests),
 		heirsTableText: formatHeirsTable(husbandHeirs?.namedHeirs ?? wifeHeirs?.namedHeirs),
+		hebaAssetsText: formatHebaAssets(hebaAssetEntries),
 		husbandSeparatePropertyText: formatSeparateProperty(sepProp?.husband),
 		wifeSeparatePropertyText: formatSeparateProperty(sepProp?.wife),
 		highValueItemsText: formatPersonalProperty(personalProp),
