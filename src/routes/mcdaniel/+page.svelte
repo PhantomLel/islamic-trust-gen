@@ -113,20 +113,25 @@
 
 	const testimonials = [
 		{
-			quote: 'Leonard walked us through every clause of our trust and explained exactly how the Islamic shares would be carried out under Texas law. For the first time, we felt our plan was both correct religiously and airtight legally.',
-			name: 'Placeholder — Trust Planning Client',
-			detail: 'Revocable Living Trust · Texas',
+			quote: "Brother Leonard built a comprehensive estate plan for our complex estate that will allow us to avoid probate and fulfill our shariah obligations. His knowledge of Islamic law, Texas law, and tax rules gave us real confidence.",
+			name: 'Dr. Mohammad Haque, MD',
+			detail: 'Masjid Hamza · Houston, TX',
 			featured: true
 		},
 		{
-			quote: 'After my father passed, the probate process felt impossible to navigate. Leonard handled the court filings and kept our family informed at every step.',
-			name: 'Placeholder — Probate Client',
-			detail: 'Estate Administration · California'
+			quote: "I have personally witnessed Brother Leonard's professionalism and integrity. His sincere concern for clients makes him a trustworthy advocate.",
+			name: 'Dr. Sh. Mamdouh Mahmoud',
+			detail: 'Klein Islamic Center · Houston, TX'
 		},
 		{
-			quote: 'I refer community members to Leonard because he understands both the fiqh of inheritance and the realities of American courts. That combination is rare.',
-			name: 'Placeholder — Community Endorsement',
-			detail: 'Professional Referral'
+			quote: 'After my father\'s passing, Leonard guided me through probate with care. He made a difficult time genuinely easier.',
+			name: 'Aidah Aqil',
+			detail: 'Atlanta, GA'
+		},
+		{
+			quote: 'As a father of four, I wanted my family secure. Leonard explained both Islamic inheritance and Texas law clearly, reduced costs where possible, and offered unmatched value.',
+			name: 'Muhammed Johnson',
+			detail: 'Bear Creek Masjid · Houston, TX'
 		}
 	];
 </script>
