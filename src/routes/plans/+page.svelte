@@ -233,7 +233,7 @@
 					</div>
 
 					<div class="text-cream/30 text-xs leading-relaxed">
-						Riba-free financing available · 50% down · Texas & California
+						Texas & California
 					</div>
 
 					<div class="pt-2 mt-auto">

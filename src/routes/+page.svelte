@@ -106,8 +106,8 @@
 		},
 		{
 			num: '02',
-			title: 'A standard will may not reach your assets',
-			body: 'Your home, retirement accounts, and joint bank accounts often pass outside of a will entirely. Standard legal documents may leave your most valuable assets unprotected.'
+			title: 'Without a trust, your home goes through probate',
+			body: 'Probate is a court process that takes control of your estate after death. It can take a year or more, cost thousands in fees, and put your family\'s affairs on public record — all while your loved ones are grieving. A properly funded trust avoids it entirely.'
 		},
 		{
 			num: '03',
@@ -141,6 +141,10 @@
 
 	const faqs = [
 		{
+			q: 'What is probate and why should I avoid it?',
+			a: "Probate is a court process that takes control of your estate after you die. A judge — not your family — oversees who receives your home, accounts, and belongings. It commonly takes a year or longer, costs thousands of dollars in court and attorney fees, and everything becomes public record, all while your family is grieving. A properly funded revocable living trust avoids probate entirely: your assets pass privately and directly to your loved ones, according to Islamic inheritance, without ever going through court."
+		},
+		{
 			q: 'What is the difference between a will and a trust?',
 			a: "A will expresses your wishes but must go through probate court before anyone receives anything — a process that can take months and is public record. A trust is a legal entity that holds your assets during your lifetime and distributes them privately and immediately when needed. For Muslim families, a trust also enforces Qur'anic shares in a way that courts cannot override."
 		},
@@ -154,11 +158,14 @@
 		},
 		{
 			q: 'What if I cannot afford the fee?',
-			a: 'Start with the free Islamic will — it costs nothing and is the right starting point for every Muslim family. The GoodTree Trust offers riba-free installment financing. Families who qualify as zakat-eligible may qualify for free or reduced-cost services through our community program. Contact us directly to discuss your situation.'
+			a: 'Start with the free Islamic will — it costs nothing and is the right starting point for every Muslim family. Families who qualify as zakat-eligible may qualify for free or reduced-cost services through our community program. Contact us directly to discuss your situation.'
 		}
 	];
 
-	const videoCards = [
+	// When videos are published, set `youtubeId` on each card and the thumbnail is
+	// pulled directly from YouTube — so updates to a video's thumbnail on YouTube
+	// appear here automatically with no code change. Placeholder used until then.
+	const videoCards: { seed: string; title: string; length: string; youtubeId?: string }[] = [
 		{
 			seed: 'vid1legal',
 			title: "What happens to your home when you die — and why your will may not help",
@@ -175,6 +182,12 @@
 			length: '14:02'
 		}
 	];
+
+	function videoThumbnail(v: { seed: string; youtubeId?: string }): string {
+		return v.youtubeId
+			? `https://i.ytimg.com/vi/${v.youtubeId}/hqdefault.jpg`
+			: `https://picsum.photos/seed/${v.seed}/800/450`;
+	}
 </script>
 
 <svelte:window onscroll={updateScroll} />
@@ -223,10 +236,10 @@
 					<a href="/login" class="px-4 py-1.5 text-sm text-navy/60 transition-colors hover:text-navy">Log in</a>
 				{/if}
 				<a
-					href="/free-islamic-will"
+					href={consultationBookingUrl}
 					class="px-5 py-2 text-sm font-medium text-cream bg-emerald-accent rounded-lg transition-all duration-200 hover:bg-emerald-light hover:-translate-y-px"
 				>
-					Free Islamic Will
+					Book a Consultation
 				</a>
 			</div>
 		</div>
@@ -264,8 +277,8 @@
 				{:else}
 					<a href="/login" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Log in</a>
 				{/if}
-				<a href="/free-islamic-will" onclick={() => mobileMenuOpen = false} class="mx-2 mt-1 py-2.5 text-sm font-medium text-cream bg-emerald-accent rounded-xl text-center hover:bg-emerald-light">
-					Free Islamic Will
+				<a href={consultationBookingUrl} onclick={() => mobileMenuOpen = false} class="mx-2 mt-1 py-2.5 text-sm font-medium text-cream bg-emerald-accent rounded-xl text-center hover:bg-emerald-light">
+					Book a Consultation
 				</a>
 			</div>
 		</div>
@@ -298,25 +311,17 @@
 				</h1>
 
 				<p class="text-navy/60 text-base md:text-[17px] leading-relaxed max-w-[52ch] mb-9">
-					Muslim Legacy Planning offers attorney-led Islamic estate planning across the United States — wills, trusts, prenuptials, and business succession grounded in Qur'anic principles and U.S. law.
+					Most Muslim families in Texas have no plan to keep their home and assets out of probate court — and no plan that follows Islamic inheritance. We fix both.
 				</p>
 
 				<div class="flex flex-col gap-3.5 mb-8">
 					<a
-						href="/free-islamic-will"
-						class="group inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-emerald-accent text-cream text-sm font-medium rounded-lg w-full sm:w-auto
+						href={consultationBookingUrl}
+						class="group inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-emerald-accent text-cream text-sm font-medium rounded-lg w-full
 							   transition-all duration-300 hover:bg-emerald-light hover:shadow-lg hover:shadow-emerald-accent/20 hover:-translate-y-0.5 active:scale-[0.98]"
 					>
-						Create Your Free Islamic Will
+						Book a Free Consultation
 						<svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-					</a>
-
-					<a
-						href="#products"
-						class="text-navy/55 text-sm transition-colors hover:text-navy flex items-center gap-1.5 group pl-1"
-					>
-						<span>Explore all plans</span>
-						<svg class="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 					</a>
 				</div>
 
@@ -384,57 +389,14 @@
 			</div>
 			<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-14">
 				<h2 class="text-3xl md:text-4xl tracking-tight text-navy text-balance max-w-md">
-					Three ways to protect your family's future.
+					Two ways to protect your family's future.
 				</h2>
 				<p class="text-navy/50 text-sm leading-relaxed max-w-xs">
-					Every plan is shariah-compliant and attorney-supervised. Start free, or go as deep as your situation requires.
+					Every plan is shariah-compliant and attorney-supervised. Choose the level of support your situation requires.
 				</p>
 			</div>
 
 			<div use:revealStagger class="grid lg:grid-cols-2 gap-5">
-				<!-- Free Islamic Will — primary, large card -->
-				<article class="group/spot relative isolate rounded-2xl bg-emerald-accent overflow-hidden flex flex-col p-9 md:p-11 lg:row-span-2" use:spotlight>
-					<div class="spotlight-glow is-light"></div>
-					<!-- Subtle geometric texture -->
-					<div class="absolute top-0 right-0 w-64 h-64 opacity-10 pointer-events-none"
-						style="background: radial-gradient(circle at 100% 0%, rgba(255,255,255,0.6) 0%, transparent 60%);">
-					</div>
-
-					<div class="relative flex flex-col flex-1">
-						<div class="text-cream/65 text-[10px] tracking-[0.28em] uppercase mb-5">No cost · Starting point for every Muslim family</div>
-
-						<h3 class="text-3xl md:text-4xl tracking-tight text-cream leading-tight mb-3">
-							Free Islamic Will
-						</h3>
-						<p class="text-cream/70 text-base leading-relaxed mb-8 max-w-[46ch]">
-							Attorney-informed and shariah-grounded. The right first step for any Muslim family, regardless of estate size. Includes an Islamic distribution schedule, community property acknowledgment, and complete signing instructions.
-						</p>
-
-						<ul class="flex flex-col gap-3 mb-10 mt-auto">
-							{#each ['Islamic distribution schedule', 'Community property acknowledgment', 'Islamic reconciliation letter', 'Signing instructions included', 'Valid in all 50 states'] as feature}
-								<li class="flex items-start gap-2.5 text-sm text-cream/80">
-									<svg class="w-3.5 h-3.5 shrink-0 mt-0.5 text-cream/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-									{feature}
-								</li>
-							{/each}
-						</ul>
-
-						<div class="flex items-baseline gap-2 mb-8 pt-6 border-t border-cream/15">
-							<span class="text-4xl tracking-tight text-cream font-light">Free</span>
-							<span class="text-cream/55 text-sm">· no credit card required</span>
-						</div>
-
-						<a
-							href="/free-islamic-will"
-							class="group inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-cream text-navy text-sm font-medium rounded-lg
-								   transition-all duration-300 hover:bg-white hover:-translate-y-0.5 active:scale-[0.98]"
-						>
-							Create Your Free Islamic Will
-							<svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-						</a>
-					</div>
-				</article>
-
 				<!-- GoodTree Trust -->
 				<article class="group/spot relative isolate rounded-2xl bg-white/60 backdrop-blur border border-navy/10 p-8 md:p-9 flex flex-col gap-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-navy/6" use:spotlight>
 					<div class="spotlight-glow"></div>
@@ -455,9 +417,14 @@
 						{/each}
 					</ul>
 
-					<div class="flex items-baseline gap-1.5 pt-4 border-t border-navy/8 mt-auto">
-						<span class="text-2xl tracking-tight text-navy">{formatUsd(defaultPrepFee)}</span>
-						<span class="text-navy/40 text-xs">flat fee · attorney-supervised</span>
+					<div class="flex flex-col gap-1.5 pt-4 border-t border-navy/8 mt-auto">
+						<div class="flex items-baseline gap-1.5">
+							<span class="text-2xl tracking-tight text-navy">{formatUsd(defaultPrepFee)}</span>
+							<span class="text-navy/40 text-xs">flat fee · attorney-supervised</span>
+						</div>
+						<p class="text-emerald-accent text-xs leading-relaxed">
+							Save $200 with a charitable contribution to a masjid or Islamic institution of your choice.
+						</p>
 					</div>
 
 					<a
@@ -492,7 +459,6 @@
 
 					<div class="flex items-baseline gap-1.5 pt-4 border-t border-navy/8 mt-auto">
 						<span class="text-2xl tracking-tight text-navy">from $3,200</span>
-						<span class="text-navy/40 text-xs">riba-free financing available</span>
 					</div>
 
 					<a
@@ -506,7 +472,11 @@
 				</article>
 			</div>
 
-			<div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-8 text-xs text-navy/38">
+			<p class="text-center text-xs text-navy/38 mt-8">
+				Not ready yet? Start with a free Islamic will at <a href="https://freemuslimwill.org" class="underline underline-offset-2 hover:text-navy/60 transition-colors">freemuslimwill.org</a>.
+			</p>
+
+			<div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-4 text-xs text-navy/38">
 				<span>Not sure which plan fits your situation? <a href="/which-plan" class="underline underline-offset-2 hover:text-navy/60 transition-colors">Take the two-minute routing quiz →</a></span>
 				<span class="hidden sm:inline w-px h-3 bg-navy/15"></span>
 				<a href="/plans" class="hover:text-navy/60 transition-colors">View all five plans →</a>
@@ -604,7 +574,7 @@
 						Built at the intersection of fiqh and U.S. law.
 					</h2>
 					<p class="text-navy/62 text-base leading-relaxed">
-						Brother Leonard embraced Islam in 2014 while studying history at UCLA, graduating magna cum laude. Inspired by a desire to serve his community with both faith and expertise, he earned his Juris Doctor at the University of Houston Law Center in 2017.
+						Brother Leonard embraced Islam in 2014 while studying history at UCLA, graduating magna cum laude. Having come to Islam as an adult, Leonard understands firsthand how converts and lifelong Muslims alike navigate the intersection of faith, family, and American law. Inspired by a desire to serve his community with both faith and expertise, he earned his Juris Doctor at the University of Houston Law Center in 2017.
 					</p>
 					<p class="text-navy/62 text-base leading-relaxed">
 						For the last five years, he has focused on probate and estate planning — helping Muslim families protect their wealth through thoughtful legal work grounded in classical fiqh and Texas and California law.
@@ -647,9 +617,20 @@
 				<span class="text-emerald-accent text-[11px] tracking-[0.28em] uppercase font-medium">Community</span>
 			</div>
 			<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-14">
-				<h2 class="text-3xl md:text-4xl tracking-tight text-navy text-balance">
-					Trusted by families and imams across Texas.
-				</h2>
+				<div>
+					<h2 class="text-3xl md:text-4xl tracking-tight text-navy text-balance">
+						Trusted by families and imams across Texas.
+					</h2>
+					<a
+						href="https://g.page/r/review"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center gap-1.5 mt-3 text-emerald-accent text-sm font-medium hover:text-emerald-light transition-colors"
+					>
+						<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.92 6.26L21.6 9.27l-4.96 4.6 1.24 6.77L12 17.4l-5.88 3.24 1.24-6.77-4.96-4.6 6.68-1.01L12 2z"/></svg>
+						13 five-star Google reviews
+					</a>
+				</div>
 				<a href="https://g.page/r/review" target="_blank" rel="noopener noreferrer"
 					class="text-navy/45 text-xs underline underline-offset-2 hover:text-navy/70 transition-colors whitespace-nowrap">
 					Read Google Reviews
@@ -707,7 +688,7 @@
 					>
 						<div class="relative aspect-video overflow-hidden">
 							<img
-								src="https://picsum.photos/seed/{v.seed}/800/450"
+								src={videoThumbnail(v)}
 								alt=""
 								class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
 								loading="lazy"
@@ -841,19 +822,19 @@
 
 					<div class="flex flex-col gap-3 shrink-0">
 						<a
-							href="/free-islamic-will"
+							href={consultationBookingUrl}
 							class="group inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-cream text-navy text-sm font-medium rounded-lg whitespace-nowrap
 								   transition-all duration-300 hover:bg-white hover:-translate-y-0.5 active:scale-[0.98]"
 						>
-							Create Your Free Islamic Will
+							Book a Consultation
 							<svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
 						</a>
 						<a
-							href={consultationBookingUrl}
+							href="/free-islamic-will"
 							class="group inline-flex items-center justify-center gap-2 px-8 py-3.5 border border-cream/18 text-cream text-sm font-medium rounded-lg whitespace-nowrap
 								   transition-all duration-200 hover:border-cream/40 hover:bg-cream/5"
 						>
-							Book a Consultation
+							Create Your Free Islamic Will
 						</a>
 						<div class="flex flex-col gap-1 pt-2 text-center">
 							<a href="tel:+17136599668" class="text-cream/40 text-xs hover:text-cream/60 transition-colors">+1 (713) 659-9668</a>
