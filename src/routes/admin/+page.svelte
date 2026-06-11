@@ -152,6 +152,31 @@
 		return rtf.format(0, 'second');
 	}
 
+	// ── Notes hover popover ───────────────────────────────────────
+	type RecentNote = { body: string; authorName: string | null; createdAt: string; pinned: boolean };
+	let notesPopover = $state<{
+		notes: RecentNote[];
+		total: number;
+		name: string;
+		x: number;
+		y: number;
+	} | null>(null);
+
+	function showNotesPopover(event: MouseEvent | FocusEvent, user: { name: string; noteCount: number; recentNotes: RecentNote[] }) {
+		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		notesPopover = {
+			notes: user.recentNotes,
+			total: user.noteCount,
+			name: user.name,
+			x: rect.left,
+			y: rect.bottom + 8,
+		};
+	}
+
+	function hideNotesPopover() {
+		notesPopover = null;
+	}
+
 	/** Visual hint: warmer = more recently updated */
 	function recencyDotClass(iso: string): string {
 		const hours = (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60);
@@ -338,7 +363,24 @@
 								<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
 									<!-- User -->
 									<td class="px-4 py-3">
-										<div class="font-medium text-navy">{t.user.name}</div>
+										<div class="flex items-center gap-1.5">
+											<span class="font-medium text-navy">{t.user.name}</span>
+											{#if t.user.noteCount > 0}
+												<span
+													role="button"
+													tabindex="0"
+													aria-label="{t.user.noteCount} admin note{t.user.noteCount === 1 ? '' : 's'} — hover to preview"
+													class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/70 cursor-default focus:outline-none focus:ring-1 focus:ring-amber-300"
+													onmouseenter={(e) => showNotesPopover(e, t.user)}
+													onmouseleave={hideNotesPopover}
+													onfocus={(e) => showNotesPopover(e, t.user)}
+													onblur={hideNotesPopover}
+												>
+													<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h4m1-12H7a2 2 0 00-2 2v14l4-3h8a2 2 0 002-2V6a2 2 0 00-2-2h-2" /></svg>
+													{t.user.noteCount}
+												</span>
+											{/if}
+										</div>
 										<div class="text-[11px] text-navy/40 break-all">{t.user.email}</div>
 									</td>
 
@@ -500,4 +542,34 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if notesPopover}
+		<div
+			class="fixed z-50 w-80 max-w-[calc(100vw-1.5rem)] rounded-xl border border-navy/[0.08] bg-white shadow-xl shadow-navy/10 p-3.5 pointer-events-none"
+			style="left: {notesPopover.x}px; top: {notesPopover.y}px;"
+			role="tooltip"
+		>
+			<div class="flex items-center justify-between gap-2 mb-2.5">
+				<span class="text-[11px] font-medium text-navy/45 tracking-wide uppercase">Recent notes · {notesPopover.name}</span>
+				{#if notesPopover.total > notesPopover.notes.length}
+					<span class="text-[10px] text-navy/35 shrink-0">+{notesPopover.total - notesPopover.notes.length} more</span>
+				{/if}
+			</div>
+			<ul class="space-y-2.5">
+				{#each notesPopover.notes as note}
+					<li class="border-b border-navy/[0.05] last:border-0 pb-2.5 last:pb-0">
+						<p class="text-[12px] text-navy/80 leading-relaxed line-clamp-2 whitespace-pre-wrap">{note.body}</p>
+						<div class="flex items-center gap-1.5 mt-1 text-[10px] text-navy/35">
+							{#if note.pinned}
+								<svg class="w-2.5 h-2.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M9 4h6l-1 7 3 3v2H7v-2l3-3-1-7z" /></svg>
+							{/if}
+							<span>{note.authorName ?? 'Admin'}</span>
+							<span class="text-navy/20">·</span>
+							<span>{timeAgo(note.createdAt)}</span>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 </div>

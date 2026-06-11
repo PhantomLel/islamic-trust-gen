@@ -6,6 +6,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import AdminQuestionResponses from '$lib/components/AdminQuestionResponses.svelte';
+	import AdminUserNotes from '$lib/components/AdminUserNotes.svelte';
 	import type { UserFile } from '$lib/server/db/schema';
 	import { createUploader } from '$lib/uploadthing';
 	import { UploadDropzone } from '@uploadthing/svelte';
@@ -27,7 +28,7 @@
 
 	let copiedEmail = $state(false);
 
-	type TabId = 'questionnaire' | 'files';
+	type TabId = 'questionnaire' | 'files' | 'notes';
 	let activeTab = $state<TabId>('questionnaire');
 
 	type FileRow = {
@@ -588,6 +589,23 @@
 						{fileRows.length}
 					</span>
 				</button>
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === 'notes'}
+					onclick={() => (activeTab = 'notes')}
+					class="px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors cursor-pointer flex items-center gap-1.5
+						{activeTab === 'notes'
+							? 'text-navy border-emerald-accent'
+							: 'text-navy/45 border-transparent hover:text-navy/70'}"
+				>
+					Notes
+					{#if data.notes.length > 0}
+						<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-accent/15 text-[10px] text-emerald-accent tabular-nums">
+							{data.notes.length}
+						</span>
+					{/if}
+				</button>
 			</div>
 
 			{#if activeTab === 'questionnaire'}
@@ -782,11 +800,17 @@
 						</ul>
 					{/if}
 				</div>
+			{:else if activeTab === 'notes'}
+				<AdminUserNotes notes={data.notes} userName={data.targetUser.name} />
 			{/if}
 		{:else}
-			<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center">
+			<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center mb-6">
 				<p class="text-navy/40 text-sm">No trust created yet.</p>
 			</div>
+			<div class="mb-2">
+				<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-3">Notes</p>
+			</div>
+			<AdminUserNotes notes={data.notes} userName={data.targetUser.name} />
 		{/if}
 	</div>
 

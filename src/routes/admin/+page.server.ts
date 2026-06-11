@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { invoice, trust } from '$lib/server/db/schema';
+import { invoice, trust, adminNote } from '$lib/server/db/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -24,6 +24,31 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 		for (const inv of paidInvoices) {
 			paidTotalByUserId.set(inv.userId, (paidTotalByUserId.get(inv.userId) ?? 0) + inv.amount);
+		}
+	}
+
+	type RecentNote = { body: string; authorName: string | null; createdAt: string; pinned: boolean };
+	const noteCountByUserId = new Map<string, number>();
+	const recentNotesByUserId = new Map<string, RecentNote[]>();
+	if (userIds.length > 0) {
+		const notes = await db.query.adminNote.findMany({
+			where: inArray(adminNote.userId, userIds),
+			orderBy: [desc(adminNote.pinned), desc(adminNote.createdAt)],
+			columns: { userId: true, body: true, authorName: true, createdAt: true, pinned: true },
+		});
+
+		for (const n of notes) {
+			noteCountByUserId.set(n.userId, (noteCountByUserId.get(n.userId) ?? 0) + 1);
+			const list = recentNotesByUserId.get(n.userId) ?? [];
+			if (list.length < 3) {
+				list.push({
+					body: n.body,
+					authorName: n.authorName,
+					createdAt: n.createdAt.toISOString(),
+					pinned: n.pinned,
+				});
+				recentNotesByUserId.set(n.userId, list);
+			}
 		}
 	}
 
@@ -55,6 +80,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 					id: t.user.id,
 					name: t.user.name,
 					email: t.user.email,
+					noteCount: noteCountByUserId.get(t.user.id) ?? 0,
+					recentNotes: recentNotesByUserId.get(t.user.id) ?? [],
 				},
 			})),
 	};

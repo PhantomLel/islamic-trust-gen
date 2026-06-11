@@ -2,11 +2,11 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { Resend } from 'resend';
 import { siteName } from '$lib/config';
 import { db } from '$lib/server/db';
-import { trust, user, TrustStatus } from '$lib/server/db/schema';
+import { trust, user, adminNote, TrustStatus } from '$lib/server/db/schema';
 import type { UserFile } from '$lib/server/db/schema';
 import { documentsApprovedEmail } from '$lib/server/emails/documentsApproved';
 import { createSingleUseSchedulingLink, isCalendlyConfigured } from '$lib/server/calendly';
-import { eq, desc } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
 import { randomUUID } from 'crypto';
@@ -30,8 +30,22 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	});
 	const hasPaid = trusts.some((t) => t.selectedPlan !== null);
 
+	const notes = await db.query.adminNote.findMany({
+		where: eq(adminNote.userId, params.id),
+		orderBy: [desc(adminNote.pinned), desc(adminNote.createdAt)],
+	});
+
 	return {
 		currentAdminId: locals.user.id,
+		notes: notes.map((n) => ({
+			id: n.id,
+			body: n.body,
+			authorId: n.authorId,
+			authorName: n.authorName,
+			pinned: n.pinned,
+			createdAt: n.createdAt.toISOString(),
+			updatedAt: n.updatedAt.toISOString(),
+		})),
 		targetUser: {
 			id: targetUser.id,
 			name: targetUser.name,
@@ -172,6 +186,95 @@ export const actions: Actions = {
 		}).where(eq(user.id, userId));
 
 		return { toggled: true };
+	},
+
+	addNote: async ({ request, locals, params }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const body = (formData.get('body') as string | null)?.trim() ?? '';
+		const pinned = formData.get('pinned') === 'true';
+
+		if (!body) return fail(400, { message: 'Note cannot be empty.' });
+		if (body.length > 5000) return fail(400, { message: 'Note is too long (max 5000 characters).' });
+
+		const target = await db.query.user.findFirst({
+			where: eq(user.id, params.id),
+			columns: { id: true },
+		});
+		if (!target) return fail(404, { message: 'User not found.' });
+
+		await db.insert(adminNote).values({
+			userId: params.id,
+			authorId: locals.user.id,
+			authorName: locals.user.name ?? null,
+			body,
+			pinned,
+		});
+
+		return { noteSaved: true };
+	},
+
+	editNote: async ({ request, locals, params }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const noteId = Number(formData.get('noteId'));
+		const body = (formData.get('body') as string | null)?.trim() ?? '';
+
+		if (Number.isNaN(noteId)) return fail(400, { message: 'Missing note ID.' });
+		if (!body) return fail(400, { message: 'Note cannot be empty.' });
+		if (body.length > 5000) return fail(400, { message: 'Note is too long (max 5000 characters).' });
+
+		const existing = await db.query.adminNote.findFirst({
+			where: and(eq(adminNote.id, noteId), eq(adminNote.userId, params.id)),
+			columns: { id: true },
+		});
+		if (!existing) return fail(404, { message: 'Note not found.' });
+
+		await db
+			.update(adminNote)
+			.set({ body, updatedAt: new Date() })
+			.where(eq(adminNote.id, noteId));
+
+		return { noteSaved: true };
+	},
+
+	toggleNotePin: async ({ request, locals, params }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const noteId = Number(formData.get('noteId'));
+		const pinned = formData.get('pinned') === 'true';
+
+		if (Number.isNaN(noteId)) return fail(400, { message: 'Missing note ID.' });
+
+		const existing = await db.query.adminNote.findFirst({
+			where: and(eq(adminNote.id, noteId), eq(adminNote.userId, params.id)),
+			columns: { id: true },
+		});
+		if (!existing) return fail(404, { message: 'Note not found.' });
+
+		await db
+			.update(adminNote)
+			.set({ pinned, updatedAt: new Date() })
+			.where(eq(adminNote.id, noteId));
+
+		return { noteSaved: true };
+	},
+
+	deleteNote: async ({ request, locals, params }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const noteId = Number(formData.get('noteId'));
+		if (Number.isNaN(noteId)) return fail(400, { message: 'Missing note ID.' });
+
+		await db
+			.delete(adminNote)
+			.where(and(eq(adminNote.id, noteId), eq(adminNote.userId, params.id)));
+
+		return { noteDeleted: true };
 	},
 
 	saveUserFile: async ({ request, locals }) => {
