@@ -1,4 +1,4 @@
-import { ORIGIN } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -41,7 +41,7 @@ function safeFilenameFragment(s: string | null | undefined, fallback: string): s
 export async function renderJointTrust(trust: TrustLike): Promise<RenderedDocument> {
 	const data = buildJointTrustContext(trust);
 
-	const response = await fetch(`${ORIGIN}/templates/joint_template.docx`);
+	const response = await fetch(`${env.ORIGIN}/templates/joint_template.docx`);
 	if (!response.ok) {
 		throw new Error(
 			`Failed to load joint trust template: ${response.status} ${response.statusText}`,
