@@ -220,6 +220,7 @@
 				<a href="/plans" class="text-navy/55 text-sm transition-colors hover:text-navy">Plans</a>
 				<a href="#learn" class="text-navy/55 text-sm transition-colors hover:text-navy">Learn</a>
 				<a href="#about" class="text-navy/55 text-sm transition-colors hover:text-navy">About</a>
+				<a href="/free-islamic-will" class="text-navy/55 text-sm transition-colors hover:text-navy">Free Islamic Will</a>
 				<a href="/trust" class="text-emerald-accent text-sm font-medium transition-colors hover:text-emerald-light">GoodTree Trust</a>
 				{#if data.user}
 					<a href="/dashboard" class="text-navy/55 text-sm transition-colors hover:text-navy">Dashboard</a>
@@ -270,6 +271,7 @@
 				<a href="/plans" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Plans</a>
 				<a href="#learn" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Learn</a>
 				<a href="#about" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">About</a>
+				<a href="/free-islamic-will" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Free Islamic Will</a>
 				<a href="/trust" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm font-medium text-emerald-accent rounded-xl hover:bg-emerald-accent/8">GoodTree Trust</a>
 				<div class="h-px bg-navy/8 my-1 mx-2"></div>
 				{#if data.user}
