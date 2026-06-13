@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { siteName, allIntakeQuestions } from '$lib/config';
+	import { siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { defaultPrepFee } from '$lib/config';
+	import { getIntakeQuestionnaireProgress } from '$lib/question-response-helpers';
 
 	let { data } = $props();
 
@@ -111,11 +112,7 @@
 	);
 
 
-	function getProgress(responses: { id: string; response: unknown }[]): number {
-		if (allIntakeQuestions.length === 0) return 0;
-		const answered = responses.filter((r) => r.response != null && r.response !== '').length;
-		return Math.round((answered / allIntakeQuestions.length) * 100);
-	}
+
 
 	function formatDate(iso: string): string {
 		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -355,7 +352,7 @@
 						</thead>
 						<tbody>
 							{#each filteredTrusts as t}
-								{@const progress = getProgress(t.responses)}
+								{@const progress = getIntakeQuestionnaireProgress(t.responses, { hasPaid: t.selectedPlan !== null })}
 								{@const quotedPrice = t.customPrice ?? defaultPrepFee}
 								{@const displayPrice = t.paidAmount ?? quotedPrice}
 								{@const isCustom = t.paidAmount === null && t.customPrice !== null && t.customPrice !== defaultPrepFee}

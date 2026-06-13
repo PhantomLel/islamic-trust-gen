@@ -2,8 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { trust } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { allIntakeQuestions } from '$lib/config';
-import { isQuestionResponseAnswered } from '$lib/question-response-helpers';
+import { getIntakeQuestionnaireProgress } from '$lib/question-response-helpers';
 import { TrustStatus } from '$lib/server/db/schema';
 import type { UserFile } from '$lib/server/db/schema';
 import { UTApi } from 'uploadthing/server';
@@ -59,16 +58,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	const responses = (existing.responses ?? []) as { id: string; response: unknown }[];
-	const intakeIds = new Set(allIntakeQuestions.map((q) => q.id));
-	const answered = responses.filter(
-		(r) => intakeIds.has(r.id) && isQuestionResponseAnswered(r.response)
-	).length;
-	const questionnaireProgress =
-		allIntakeQuestions.length > 0
-			? Math.round((answered / allIntakeQuestions.length) * 100)
-			: 0;
-	const hasHouse = responses.find((r) => r.id === 'has-house')?.response === true;
 	const hasPaid = existing.selectedPlan !== null;
+	const questionnaireProgress = getIntakeQuestionnaireProgress(responses, { hasPaid });
+	const hasHouse = responses.find((r) => r.id === 'has-house')?.response === true;
 	const awaitingPayment = existing.status === TrustStatus.AwaitingPayment && !hasPaid;
 	const intakeUnderReview = existing.status === TrustStatus.RequiresReview;
 

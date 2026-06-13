@@ -1,8 +1,8 @@
 import type { EstateInput, BlockedHeir, FractionValue, HeirType, ShareType } from '$lib/inheritance/types';
 export type { EstateInput, BlockedHeir, FractionValue, HeirType, ShareType };
 
-export const siteName = 'Amana Trust';
-export const siteTagline = 'Texas Estate Planning';
+export const siteName = 'Muslim Legacy Planning';
+export const siteTagline = 'Islamic Estate Planning';
 export const consultationBookingUrl = 'https://mcdaniel.cliogrow.com/book/504611575cd41f17542e14c8c9c0dbde';
 export const notarizationBookingUrl = 'https://calendly.com/sumayya-mcdanielestateplanning/30min';
 /** Default trust preparation fee in whole USD (e.g. 1199 → $1,199.00). */

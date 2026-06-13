@@ -66,6 +66,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			screeningAnswers: t.screeningAnswers ?? null,
 			status: t.status,
 			approved: t.approved,
+			hasPaid: t.selectedPlan !== null,
 			awaitingPayment: t.status === TrustStatus.AwaitingPayment && t.selectedPlan === null,
 			notarizationBookedAt: t.notarizationBookedAt?.toISOString() ?? null,
 			notarizationStartTime: t.notarizationStartTime?.toISOString() ?? null,

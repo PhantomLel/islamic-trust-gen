@@ -121,6 +121,40 @@ export const adminNote = pgTable('admin_note', {
 	updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+/**
+ * Free Islamic Will submissions. A row may be created before the user has an
+ * account (userId null, claimEmail set) and is later claimed when the user
+ * signs in with that email. Responses are stored as a flat `{ id, response }[]`
+ * array so the data can be reused to seed the GoodTree Trust intake later.
+ */
+export const freeWill = pgTable('free_will', {
+	id: serial('id').primaryKey(),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	updatedAt: timestamp('updated_at').defaultNow().notNull(),
+	/** Set once the user authenticates; null while the submission is pending a claim. */
+	userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+	/** Lowercased email captured at completion; used to claim a pending row after sign-in. */
+	claimEmail: text('claim_email'),
+	/** Name captured at completion (used to create the account). */
+	name: text('name'),
+	/** USPS state code the testator lives in. */
+	state: text('state'),
+	/** 'attorney' (TX/CA) or 'self-help' (all other states). */
+	legalMode: text('legal_mode'),
+	/** Flat response array mirroring the trust `responses` shape (values may be objects, e.g. child counts). */
+	responses: jsonb('responses').$type<{ id: string; response: unknown }[]>(),
+	/** Computed CRM lead tags (dev brief §6). */
+	tags: text('tags').array(),
+	/** Recommended upsell plan key, e.g. 'goodtree-trust'. */
+	recommendedPlan: text('recommended_plan'),
+	/** "Send me reminders every 6 months" (pre-checked). */
+	reviewReminders: boolean('review_reminders').notNull().default(true),
+	/** "Notify me when attorney-reviewed plans become available in my state." */
+	attorneyAvailability: boolean('attorney_availability').notNull().default(false),
+	/** True once the questionnaire is finished and submitted. */
+	complete: boolean('complete').notNull().default(false),
+});
+
 export const invoice = pgTable('invoice', {
 	id: serial('id').primaryKey(),
 	userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
@@ -139,6 +173,14 @@ export const userRelations = relations(user, ({ many }) => ({
 	accounts: many(account),
 	trusts: many(trust),
 	invoices: many(invoice),
+	freeWills: many(freeWill),
+}));
+
+export const freeWillRelations = relations(freeWill, ({ one }) => ({
+	user: one(user, {
+		fields: [freeWill.userId],
+		references: [user.id],
+	}),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({

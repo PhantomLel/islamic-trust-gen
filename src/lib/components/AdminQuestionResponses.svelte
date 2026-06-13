@@ -20,6 +20,7 @@ import {
 	type MinorDistributionResponse
 } from '$lib/config';
 	import {
+		getIntakeQuestionnaireProgress,
 		isCharitiesResponseShape,
 		isCustomCharityResponse,
 		isNonCharitableBequestsShape,
@@ -32,6 +33,7 @@ import {
 		id: number;
 		complete: boolean;
 		responses: TrustResponse[];
+		hasPaid?: boolean;
 	};
 
 	let { trust }: { trust: TrustDetails } = $props();
@@ -40,7 +42,9 @@ import {
 	let editResponses = $state<Record<string, QuestionResponseValue>>({});
 	let saving = $state(false);
 
-	let trustProgress = $derived(getProgress(trust.responses));
+	let trustProgress = $derived(
+		getIntakeQuestionnaireProgress(trust.responses, { hasPaid: trust.hasPaid ?? false })
+	);
 
 	function enterEdit() {
 		editing = true;
@@ -324,12 +328,6 @@ import {
 		}
 		if (typeof raw === 'boolean') return raw ? 'Yes' : 'No';
 		return String(raw);
-	}
-
-	function getProgress(responses: TrustResponse[]): number {
-		if (allIntakeQuestions.length === 0) return 0;
-		const answered = responses.filter((r) => isQuestionResponseAnswered(r.response)).length;
-		return Math.round((answered / allIntakeQuestions.length) * 100);
 	}
 
 	function formatDob(dob: string): string {
