@@ -2,7 +2,21 @@ import { db } from '$lib/server/db';
 import { freeWill } from '$lib/server/db/schema';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { WillResponse, WillResponses } from '$lib/free-will/config';
-import { getHeirsResponse, heirsQuestionId } from '$lib/free-will/logic';
+import { getHeirsResponse, heirsQuestionId, isWillComplete, toWillResponses } from '$lib/free-will/logic';
+
+export class IncompleteWillError extends Error {
+	constructor() {
+		super('Will responses are incomplete');
+		this.name = 'IncompleteWillError';
+	}
+}
+
+/** Throws when any active step is missing or invalid. */
+export function assertWillComplete(responses: WillResponse[]): void {
+	if (!isWillComplete(toWillResponses(responses))) {
+		throw new IncompleteWillError();
+	}
+}
 
 /**
  * Claim any pending free-will submissions (userId null) that match this user's
@@ -48,6 +62,8 @@ export async function saveFreeWillForUser(
 	email: string,
 	input: SaveFreeWillInput,
 ): Promise<{ id: number }> {
+	assertWillComplete(input.responses);
+
 	const existing = await db.query.freeWill.findFirst({
 		where: eq(freeWill.userId, userId),
 		orderBy: [desc(freeWill.createdAt)],
@@ -86,6 +102,8 @@ export async function savePendingFreeWill(
 	email: string,
 	input: SaveFreeWillInput,
 ): Promise<void> {
+	assertWillComplete(input.responses);
+
 	const claimEmail = email.trim().toLowerCase();
 
 	await db

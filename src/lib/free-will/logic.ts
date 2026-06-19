@@ -27,12 +27,22 @@ import {
 	WILL_WASIYYAH_CAP,
 	type AddressValue,
 	type ChildrenCounts,
+	type WillResponseValue,
 	type WillResponses,
 	type WillStep,
 	resolveWillWasiyyahRecipientName,
 	type WillWasiyyahResponse,
 	type YesNoUnsure,
 } from './config';
+
+/** Flat `{ id, response }[]` storage rows → keyed `WillResponses` for logic functions. */
+export function toWillResponses(
+	rows: { id: string; response: unknown }[] | null | undefined,
+): WillResponses {
+	return Object.fromEntries(
+		(rows ?? []).map((r) => [r.id, r.response as WillResponseValue]),
+	);
+}
 
 // ─── Active steps (dependency-aware) ─────────────────────────────────────────
 

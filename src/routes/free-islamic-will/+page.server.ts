@@ -3,12 +3,15 @@ import { Resend } from 'resend';
 import { env } from '$env/dynamic/private';
 import type { PageServerLoad, Actions } from './$types';
 import {
+	assertWillComplete,
 	claimPendingFreeWills,
 	getLatestFreeWill,
+	IncompleteWillError,
 	savePendingFreeWill,
 	saveFreeWillForUser,
 	type SaveFreeWillInput,
 } from '$lib/server/freeWill';
+import { isWillComplete, toWillResponses } from '$lib/free-will/logic';
 import { renderFreeWill } from '$lib/server/documents/renderWill';
 import { saveGeneratedWillDocx } from '$lib/server/documents/storage';
 import {
@@ -91,6 +94,11 @@ async function generateWillDownload(
 	email: string,
 	input: SaveFreeWillInput,
 ): Promise<WillDownload | null> {
+	if (!isWillComplete(toWillResponses(input.responses))) {
+		console.error('Skipped free will generation: responses incomplete', { willId });
+		return null;
+	}
+
 	try {
 		const { buffer, filename } = await renderFreeWill({
 			id: willId,
@@ -170,6 +178,15 @@ function parseSaveInput(form: FormData): { name: string; email: string; input: S
 		throw error(400, 'Invalid payload');
 	}
 	if (!Array.isArray(responses)) throw error(400, 'Invalid responses');
+
+	try {
+		assertWillComplete(responses);
+	} catch (e) {
+		if (e instanceof IncompleteWillError) {
+			throw error(400, 'Please complete all required questions before saving');
+		}
+		throw e;
+	}
 
 	const state = typeof form.get('state') === 'string' ? (form.get('state') as string) : null;
 	const legalMode = typeof form.get('legalMode') === 'string' ? (form.get('legalMode') as string) : 'self-help';
