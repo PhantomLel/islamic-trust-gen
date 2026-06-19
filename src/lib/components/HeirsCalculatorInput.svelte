@@ -30,6 +30,27 @@
 		return '';
 	}
 
+	function getParentAutoName(heirType: 'father' | 'mother'): string {
+		const key = heirType === 'father' ? 'father-name' : 'mother-name';
+		const raw = allResponses[key];
+		return typeof raw === 'string' ? raw.trim() : '';
+	}
+
+	function getInitialSpouse(): boolean {
+		if (existing?.estateInput?.spouse !== undefined) return existing.estateInput.spouse;
+		if ('spouse-present' in allResponses) return allResponses['spouse-present'] === true;
+		return true;
+	}
+
+	function getInitialParentAlive(field: 'father-alive' | 'mother-alive'): boolean {
+		const stored =
+			field === 'father-alive'
+				? existing?.estateInput?.fatherAlive
+				: existing?.estateInput?.motherAlive;
+		if (stored !== undefined) return stored;
+		return allResponses[field] === true;
+	}
+
 	// ── Parse existing saved response ─────────────────────────────────────────
 
 	function parseExisting(): HeirsCalculatorResponse | null {
@@ -58,10 +79,10 @@
 		questionId === 'wife-heirs' ? 'female' : 'male'
 	);
 
-	// Spouse is always present in a joint trust — auto-check for fresh responses.
-	let spouse = $state(existing?.estateInput?.spouse ?? true);
-	let fatherAlive = $state(existing?.estateInput?.fatherAlive ?? false);
-	let motherAlive = $state(existing?.estateInput?.motherAlive ?? false);
+	// Spouse defaults to true for joint trust; will flow passes `spouse-present`.
+	let spouse = $state(getInitialSpouse());
+	let fatherAlive = $state(getInitialParentAlive('father-alive'));
+	let motherAlive = $state(getInitialParentAlive('mother-alive'));
 	let sons = $state(existing?.estateInput?.sons ?? 0);
 	let daughters = $state(existing?.estateInput?.daughters ?? 0);
 	let sonsOfSons = $state(existing?.estateInput?.sonsOfSons ?? 0);
@@ -136,11 +157,19 @@
 			n[heir.heirType] = Array.from(
 				{ length: heir.count },
 				(_, i) => {
-					// Prefer already-entered name, then auto-fill spouse name.
+					// Prefer already-entered name, then auto-fill spouse/parent names.
 					const saved = existing_names?.[i] ?? '';
 					if (saved !== '') return saved;
 					if (heir.heirType === spouseHeirType && i === 0 && spouseAutoName !== '') {
 						return spouseAutoName;
+					}
+					if (heir.heirType === 'father' && i === 0) {
+						const fatherName = getParentAutoName('father');
+						if (fatherName !== '') return fatherName;
+					}
+					if (heir.heirType === 'mother' && i === 0) {
+						const motherName = getParentAutoName('mother');
+						if (motherName !== '') return motherName;
 					}
 					return '';
 				},

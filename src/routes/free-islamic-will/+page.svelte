@@ -3,17 +3,17 @@
 	import { deserialize } from '$app/forms';
 	import { authClient } from '$lib/auth-client';
 	import { siteName, consultationBookingUrl } from '$lib/config';
+	import type { HeirsCalculatorResponse } from '$lib/config';
 	import {
 		usStates,
+		willAvailableStates,
+		isWillAvailableState,
 		stateName,
-		assetRanges,
 		stageMeta,
-		willStages,
+		type AddressValue,
 		type WillResponses,
 		type WillResponseValue,
-		type WillStep,
-		type WillStage,
-		type ChildrenCounts
+		type WillStep
 	} from '$lib/free-will/config';
 	import {
 		getActiveSteps,
@@ -22,15 +22,16 @@
 		isCommunityPropertySituation,
 		appliesCommunityPropertyClauses,
 		communityPropertyWarning,
-		communityPropertyClauses,
 		legalMode,
 		legalModeDisclaimers,
 		computeLeadTags,
 		recommendPlan,
-		buildEstateInput,
+		getNamedHeirs,
+		heirsQuestionId,
+		heirsCalculatorAllResponses,
 		type PlanKey
 	} from '$lib/free-will/logic';
-	import { IslamicInheritanceCalculator } from '$lib/inheritance';
+	import HeirsCalculatorInput from '$lib/components/HeirsCalculatorInput.svelte';
 
 	let { data } = $props();
 
@@ -69,13 +70,9 @@
 	let communityProperty = $derived(isCommunityPropertySituation(responses));
 	let includeClauses = $derived(appliesCommunityPropertyClauses(responses));
 
-	let calcResult = $derived.by(() => {
-		try {
-			return new IslamicInheritanceCalculator(buildEstateInput(responses)).calculate();
-		} catch {
-			return null;
-		}
-	});
+	let namedHeirs = $derived(getNamedHeirs(responses));
+	let heirsCalcQuestionId = $derived(heirsQuestionId(responses));
+	let heirsCalcAllResponses = $derived(heirsCalculatorAllResponses(responses));
 
 	type PlanCard = { title: string; tagline: string; price: string; href: string };
 	const planCards: Record<Exclude<PlanKey, null>, PlanCard> = {
@@ -186,14 +183,13 @@
 		responses[currentStep.id] = value;
 	}
 
-	function setCounts(part: keyof ChildrenCounts, value: number) {
-		const current = (responses['children_counts'] as ChildrenCounts) ?? { sons: 0, daughters: 0 };
-		responses['children_counts'] = { ...current, [part]: Math.max(0, value) };
-	}
-
-	let countsValue = $derived(
-		(responses['children_counts'] as ChildrenCounts) ?? { sons: 0, daughters: 0 }
+	const emptyAddress: AddressValue = { street: '', unit: '', city: '', zip: '' };
+	let addressValue = $derived(
+		(responses['address'] as AddressValue | undefined) ?? emptyAddress
 	);
+	function patchAddress(part: Partial<AddressValue>) {
+		responses['address'] = { ...addressValue, ...part };
+	}
 
 	// ── navigation ──
 	function start() {
@@ -295,18 +291,6 @@
 		await authClient.signIn.social({ provider: 'google', callbackURL: '/free-islamic-will' });
 	}
 
-	// option helpers for select-style answers
-	function yesNoUnsureLabel(v: WillResponseValue): string {
-		if (v === 'yes') return 'Yes';
-		if (v === 'no') return 'No';
-		if (v === 'unsure') return 'Not sure';
-		return '';
-	}
-
-	function sharePercent(numerator: number, denominator: number): string {
-		if (!denominator) return '';
-		return `${Math.round((numerator / denominator) * 1000) / 10}%`;
-	}
 </script>
 
 <svelte:head>
@@ -401,6 +385,13 @@
 						{/each}
 					</ul>
 
+					<div class="rounded-xl border border-emerald-accent/35 bg-emerald-accent/8 px-5 py-4 max-w-md mx-auto mb-8 text-left">
+						<p class="text-navy text-base md:text-lg font-medium leading-snug">
+							Available now in California and Texas
+						</p>
+						<p class="text-navy/55 text-sm mt-1">Other states coming soon.</p>
+					</div>
+
 					<button
 						onclick={start}
 						class="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-sm font-medium text-cream bg-emerald-accent
@@ -413,7 +404,7 @@
 					</button>
 
 					<p class="text-navy/45 text-xs leading-relaxed max-w-sm mx-auto mt-8">
-						This free will is a starting point. Some assets and family situations require attorney review. Your information is private and never shared.
+						This free will is a starting point; some situations require attorney review. Your information is private and never shared.
 					</p>
 				</div>
 			</div>
@@ -422,7 +413,7 @@
 			<!-- ═══ QUESTION ═══ -->
 			<div class="flex-1 flex flex-col">
 				<div class="flex-1 overflow-y-auto px-6 py-8 md:py-12">
-					<div class="w-full max-w-lg mx-auto">
+					<div class="w-full {currentStep.type === 'heirs-calculator' ? 'max-w-xl' : 'max-w-lg'} mx-auto">
 						<span class="text-[11px] text-emerald-accent tracking-[0.2em] uppercase font-medium">
 							{stageMeta[currentStep.stage].label}
 						</span>
@@ -437,22 +428,31 @@
 
 						<!-- INPUT BY TYPE -->
 						{#if currentStep.type === 'state'}
+							{@const selectedState = (responses[currentStep.id] as string) ?? ''}
 							<div class="relative">
 								<select
-									value={(responses[currentStep.id] as string) ?? ''}
+									value={isWillAvailableState(selectedState) ? selectedState : ''}
 									onchange={(e) => setResponse((e.currentTarget as HTMLSelectElement).value)}
 									class="w-full appearance-none px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px]
 										outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 cursor-pointer"
 								>
 									<option value="" disabled>Select your state…</option>
-									{#each usStates as s}
+									{#each usStates.filter((s) => willAvailableStates.has(s.code)) as s}
 										<option value={s.code}>{s.name}</option>
 									{/each}
+									<optgroup label="Coming soon">
+										{#each usStates.filter((s) => !willAvailableStates.has(s.code)) as s}
+											<option value={s.code} disabled>{s.name}</option>
+										{/each}
+									</optgroup>
 								</select>
 								<svg class="w-4 h-4 text-navy/40 absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
 								</svg>
 							</div>
+							<p class="text-navy/45 text-xs leading-relaxed mt-3 px-1">
+								Only California and Texas are available right now. Other states are listed below as coming soon.
+							</p>
 
 						{:else if currentStep.type === 'single-select'}
 							<div class="flex flex-col gap-3">
@@ -460,6 +460,16 @@
 									{@render optionButton(opt, responses[currentStep.id] === opt, () => setResponse(opt))}
 								{/each}
 							</div>
+
+						{:else if currentStep.type === 'text'}
+							<input
+								type="text"
+								autocomplete="name"
+								value={(responses[currentStep.id] as string) ?? ''}
+								oninput={(e) => setResponse((e.currentTarget as HTMLInputElement).value)}
+								placeholder="Full legal name"
+								class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+							/>
 
 						{:else if currentStep.type === 'yes-no'}
 							<div class="flex flex-col gap-3">
@@ -474,36 +484,62 @@
 								{@render optionButton('Not sure', responses[currentStep.id] === 'unsure', () => setResponse('unsure'))}
 							</div>
 
-						{:else if currentStep.type === 'counts'}
-							<div class="grid grid-cols-2 gap-4">
-								{#each [{ key: 'sons', label: 'Sons' }, { key: 'daughters', label: 'Daughters' }] as field}
-									<div class="rounded-xl border border-navy/12 bg-white/70 p-5">
-										<div class="text-navy/55 text-xs tracking-wide uppercase mb-3">{field.label}</div>
-										<div class="flex items-center justify-between gap-2">
-											<button
-												type="button"
-												onclick={() => setCounts(field.key as keyof ChildrenCounts, countsValue[field.key as keyof ChildrenCounts] - 1)}
-												class="w-9 h-9 rounded-lg border border-navy/12 text-navy/60 text-lg flex items-center justify-center hover:bg-navy/4 transition-colors cursor-pointer"
-												aria-label={`Decrease ${field.label}`}
-											>−</button>
-											<span class="text-2xl text-navy tabular-nums">{countsValue[field.key as keyof ChildrenCounts]}</span>
-											<button
-												type="button"
-												onclick={() => setCounts(field.key as keyof ChildrenCounts, countsValue[field.key as keyof ChildrenCounts] + 1)}
-												class="w-9 h-9 rounded-lg border border-navy/12 text-navy/60 text-lg flex items-center justify-center hover:bg-navy/4 transition-colors cursor-pointer"
-												aria-label={`Increase ${field.label}`}
-											>+</button>
-										</div>
-									</div>
-								{/each}
+						{:else if currentStep.type === 'address'}
+							<div class="flex flex-col gap-3">
+								<input
+									type="text"
+									autocomplete="address-line1"
+									value={addressValue.street}
+									oninput={(e) => patchAddress({ street: (e.currentTarget as HTMLInputElement).value })}
+									placeholder="Street address"
+									class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+								/>
+								<input
+									type="text"
+									autocomplete="address-line2"
+									value={addressValue.unit ?? ''}
+									oninput={(e) => patchAddress({ unit: (e.currentTarget as HTMLInputElement).value })}
+									placeholder="Apt, suite, unit (optional)"
+									class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+								/>
+								<div class="grid grid-cols-[1fr_120px] gap-3">
+									<input
+										type="text"
+										autocomplete="address-level2"
+										value={addressValue.city}
+										oninput={(e) => patchAddress({ city: (e.currentTarget as HTMLInputElement).value })}
+										placeholder="City"
+										class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+									/>
+									<input
+										type="text"
+										inputmode="numeric"
+										autocomplete="postal-code"
+										value={addressValue.zip}
+										oninput={(e) => patchAddress({ zip: (e.currentTarget as HTMLInputElement).value })}
+										placeholder="ZIP"
+										class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+									/>
+								</div>
+								{#if responses['state']}
+									<p class="text-navy/40 text-xs px-1">State: {stateName(responses['state'] as string)}</p>
+								{/if}
 							</div>
+
+						{:else if currentStep.type === 'heirs-calculator'}
+							<HeirsCalculatorInput
+								value={(responses[currentStep.id] ?? null) as HeirsCalculatorResponse | null}
+								onresponse={(v) => setResponse(v as WillResponseValue)}
+								questionId={heirsCalcQuestionId}
+								allResponses={heirsCalcAllResponses}
+							/>
 						{/if}
 					</div>
 				</div>
 
 				<!-- FOOTER -->
 				<div class="shrink-0 border-t border-navy/[0.06] bg-cream px-6 py-5">
-					<div class="max-w-lg mx-auto flex items-center justify-between">
+					<div class="{currentStep.type === 'heirs-calculator' ? 'max-w-xl' : 'max-w-lg'} mx-auto flex items-center justify-between">
 						<button
 							onclick={goBack}
 							class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 transition-all hover:text-navy hover:bg-navy/[0.04] cursor-pointer"
@@ -579,39 +615,34 @@
 					<div class="rounded-2xl border border-navy/10 bg-white/70 overflow-hidden mb-5">
 						<div class="px-6 py-4 border-b border-navy/8 flex items-center justify-between">
 							<h3 class="text-navy font-medium text-[15px]">Islamic Distribution Schedule</h3>
-							<span class="text-navy/40 text-xs">Estimated shares</span>
+							<span class="text-navy/40 text-xs">Your named heirs</span>
 						</div>
 						<div class="divide-y divide-navy/6">
-							{#if calcResult && calcResult.heirs.length}
-								{#each calcResult.heirs as heir}
-									<div class="px-6 py-3.5 flex items-center justify-between gap-4">
-										<div class="min-w-0">
-											<div class="text-navy text-sm">
-												{heir.label}{heir.count > 1 ? ` (×${heir.count})` : ''}
+							{#if namedHeirs.length}
+								{#each namedHeirs as heir}
+									<div class="px-6 py-3.5">
+										<div class="flex items-center justify-between gap-4 mb-1.5">
+											<div class="text-navy/55 text-[11px] uppercase tracking-wider">
+												{heir.label}{heir.count > 1 ? ` ×${heir.count}` : ''}
 											</div>
-											<div class="text-navy/40 text-xs capitalize">{heir.shareType.replace(/_/g, ' ')}</div>
+											<div class="text-emerald-accent text-xs tabular-nums">
+												{heir.perPersonShare.display}{heir.count > 1 ? ' each' : ''}
+											</div>
 										</div>
-										<div class="text-right shrink-0">
-											<div class="text-navy text-sm tabular-nums">{heir.totalShare.toString()}</div>
-											<div class="text-emerald-accent/80 text-xs tabular-nums">{sharePercent(heir.totalShare.n, heir.totalShare.d)}</div>
-										</div>
+										{#each heir.names as name}
+											<div class="flex items-center justify-between gap-4 py-0.5">
+												<span class="text-navy text-sm">{name || `[${heir.label}]`}</span>
+												<span class="text-navy/40 text-xs tabular-nums">{(heir.perPersonShare.decimal * 100).toFixed(1)}%</span>
+											</div>
+										{/each}
 									</div>
 								{/each}
 							{:else}
 								<div class="px-6 py-5 text-navy/50 text-sm">
-									We’ll finalize your distribution once your family details are complete.
+									We’ll finalize your distribution once your heirs are confirmed.
 								</div>
 							{/if}
 						</div>
-						{#if calcResult && calcResult.notes.length}
-							<div class="px-6 py-4 bg-navy/3 border-t border-navy/8">
-								<ul class="flex flex-col gap-1.5">
-									{#each calcResult.notes as note}
-										<li class="text-navy/45 text-xs leading-relaxed">• {note}</li>
-									{/each}
-								</ul>
-							</div>
-						{/if}
 					</div>
 
 					<!-- Document contents -->

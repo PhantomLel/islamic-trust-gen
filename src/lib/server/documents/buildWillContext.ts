@@ -1,4 +1,3 @@
-import { IslamicInheritanceCalculator } from '$lib/inheritance/calculator';
 import {
 	assetRangeLabel,
 	assetRanges,
@@ -7,10 +6,12 @@ import {
 } from '$lib/free-will/config';
 import {
 	appliesCommunityPropertyClauses,
-	buildEstateInput,
 	communityPropertyClauses,
 	communityPropertyWarning,
 	computeLeadTags,
+	formatAddress,
+	getHeirsResponse,
+	getNamedHeirs,
 	isCommunityPropertySituation,
 	legalMode,
 	legalModeDisclaimers,
@@ -18,6 +19,13 @@ import {
 	type LeadTag,
 	type PlanKey,
 } from '$lib/free-will/logic';
+import {
+	flattenNamedHeirs,
+	formatChildrenList,
+	formatParentsList,
+	formatToday,
+	type HeirTableRow,
+} from './documentFormatters';
 
 /**
  * Shape that the free Islamic will document template will consume once the PDF
@@ -30,15 +38,21 @@ import {
  */
 export type WillDocumentContext = {
 	testatorName: string;
+	testatorAddress: string;
 	stateName: string;
 	stateCode: string;
 	willDate: string;
 
 	maritalStatus: string;
+	spouseName: string;
 	gender: 'male' | 'female';
+	/** Comma-separated son and daughter names, e.g. "John Smith, Jane Smith, and Bob Smith". */
+	children: string;
+	/** Parents with living status, e.g. "John Smith (living) and Jane Smith (deceased)". */
+	parents: string;
 
-	/** Islamic distribution schedule rows derived from the family structure. */
-	distributionSchedule: { heir: string; count: number; share: string; shareType: string }[];
+	/** One row per named heir — same shape as `husbandHeirs` / `wifeHeirs` in the joint trust template. */
+	heirsTable: HeirTableRow[];
 	distributionNotes: string[];
 
 	/** Legal mode + the exact disclaimer paragraph to print (dev brief §9). */
@@ -73,14 +87,6 @@ function toRecord(rows: ResponseEntry[] | null | undefined): Record<string, Will
 	return Object.fromEntries((rows ?? []).map((r) => [r.id, r.response as WillResponseValue]));
 }
 
-function formatToday(): string {
-	return new Date().toLocaleDateString('en-US', {
-		year: 'numeric',
-		month: 'long',
-		day: 'numeric',
-	});
-}
-
 /**
  * Build the will document context from a stored free-will submission. Analogous
  * to `buildJointTrustContext` — read responses, run the inheritance calculator,
@@ -92,13 +98,9 @@ export function buildWillDocumentContext(
 ): WillDocumentContext {
 	const responses = toRecord(will.responses);
 
-	const result = new IslamicInheritanceCalculator(buildEstateInput(responses)).calculate();
-	const distributionSchedule = result.heirs.map((h) => ({
-		heir: h.label,
-		count: h.count,
-		share: h.totalShare.toString(),
-		shareType: h.shareType,
-	}));
+	const heirsResponse = getHeirsResponse(responses);
+	const namedHeirs = getNamedHeirs(responses);
+	const heirsTable = flattenNamedHeirs(namedHeirs);
 
 	const stateCode = typeof responses['state'] === 'string' ? responses['state'] : '';
 	const homeStateCode = typeof responses['home_state'] === 'string' ? responses['home_state'] : '';
@@ -108,15 +110,27 @@ export function buildWillDocumentContext(
 
 	return {
 		testatorName,
+		testatorAddress: formatAddress(responses),
 		stateName: stateName(stateCode),
 		stateCode,
 		willDate: formatToday(),
 
 		maritalStatus: typeof responses['marital_status'] === 'string' ? responses['marital_status'] : '',
+		spouseName:
+			typeof responses['spouse_name'] === 'string' ? responses['spouse_name'].trim() : '',
 		gender: responses['gender'] === 'Female' ? 'female' : 'male',
+		children: formatChildrenList(namedHeirs),
+		parents: formatParentsList({
+			fatherName: typeof responses['father_name'] === 'string' ? responses['father_name'] : '',
+			fatherAlive:
+				typeof responses['father_alive'] === 'boolean' ? responses['father_alive'] : undefined,
+			motherName: typeof responses['mother_name'] === 'string' ? responses['mother_name'] : '',
+			motherAlive:
+				typeof responses['mother_alive'] === 'boolean' ? responses['mother_alive'] : undefined,
+		}),
 
-		distributionSchedule,
-		distributionNotes: result.notes,
+		heirsTable,
+		distributionNotes: heirsResponse?.notes ?? [],
 
 		legalMode: mode,
 		legalDisclaimer: legalModeDisclaimers[mode],

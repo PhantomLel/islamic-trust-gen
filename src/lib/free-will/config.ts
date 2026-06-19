@@ -11,6 +11,8 @@
  * `src/lib/server/documents/buildContext.ts` apply.
  */
 
+import type { HeirsCalculatorResponse } from '$lib/config';
+
 export type UsState = { code: string; name: string };
 
 /** All 50 states + DC. `code` is the USPS abbreviation, stored on responses. */
@@ -73,8 +75,15 @@ export function stateName(code: string | undefined | null): string {
 	return usStates.find((s) => s.code === code)?.name ?? code;
 }
 
+/** States where the free will generator can currently produce a document. */
+export const willAvailableStates = new Set(['TX', 'CA']);
+
+export function isWillAvailableState(code: string | undefined | null): boolean {
+	return typeof code === 'string' && willAvailableStates.has(code);
+}
+
 /** States where Leonard is licensed and the will is an attorney legal service (Mode B). */
-export const attorneyServiceStates = new Set(['TX', 'CA']);
+export const attorneyServiceStates = willAvailableStates;
 
 /**
  * Married users in these states see the community-property warning and earn the
@@ -129,9 +138,19 @@ export const stageMeta: Record<WillStage, { label: string }> = {
 export type WillFieldType =
 	| 'state' // dropdown of US states; stored as state code
 	| 'single-select' // one of `options`
+	| 'text' // free-form string
 	| 'yes-no' // boolean
 	| 'yes-no-unsure' // 'yes' | 'no' | 'unsure'
-	| 'counts'; // { sons: number; daughters: number }
+	| 'address' // street / unit / city / zip (state comes from the `state` step)
+	| 'heirs-calculator'; // reuses the Islamic inheritance calculator + heir names
+
+/** Residential address; `state` is collected separately in the `state` step. */
+export type AddressValue = {
+	street: string;
+	unit?: string;
+	city: string;
+	zip: string;
+};
 
 /** A dependency: this step is only shown when `field` currently equals `eq`. */
 export type WillDependency = { field: string; eq: string | boolean };
@@ -146,7 +165,18 @@ export type WillStep = {
 	help?: string;
 	options?: string[];
 	depends?: WillDependency;
+	/** Predicate dependency for cases a simple `depends` can't express (e.g. derived from heirs). */
+	showIf?: (responses: WillResponses) => boolean;
 };
+
+/** Number of children (sons + daughters) captured by the heirs calculator response. */
+export function heirsResponseChildCount(responses: WillResponses): number {
+	const h = responses['heirs'] as HeirsCalculatorResponse | undefined;
+	if (!h || !Array.isArray(h.namedHeirs)) return 0;
+	return h.namedHeirs
+		.filter((n) => n.heirType === 'son' || n.heirType === 'daughter')
+		.reduce((sum, n) => sum + (n.count || 0), 0);
+}
 
 /**
  * Ordered question list (dev brief §4). Conditional steps use `depends`.
@@ -161,13 +191,20 @@ export const willSteps: WillStep[] = [
 		stage: 'location',
 		type: 'state',
 		question: 'Which state do you live in?',
-		help: 'Your state determines which laws apply and whether attorney-supervised service is available to you.',
+		help: 'Free wills are currently available in California and Texas. Other states are coming soon.',
+	},
+	{
+		id: 'address',
+		stage: 'location',
+		type: 'address',
+		question: 'What is your home address?',
+		help: 'Your address identifies you on your will. We keep it private and never share it.',
 	},
 	{
 		id: 'gender',
 		stage: 'location',
 		type: 'single-select',
-		question: 'And are you the husband or the wife?',
+		question: 'What is your gender?',
 		help: 'Islamic inheritance shares differ slightly by gender, so we ask in order to calculate the right distribution for you.',
 		options: ['Male', 'Female'],
 	},
@@ -178,30 +215,58 @@ export const willSteps: WillStep[] = [
 		question: 'What is your current marital status?',
 		options: ['Married', 'Single', 'Widowed', 'Divorced'],
 	},
+	{
+		id: 'spouse_name',
+		stage: 'location',
+		type: 'text',
+		question: 'What is your spouse\u2019s full name?',
+		help: 'We\u2019ll use this on your will and in your Islamic distribution schedule.',
+		depends: { field: 'marital_status', eq: 'Married' },
+	},
 
 	// ── Stage 2: family structure ──
 	{
-		id: 'has_children',
+		id: 'father_alive',
 		stage: 'family',
 		type: 'yes-no',
-		question: 'Do you have children?',
-		help: 'This helps us build the right distribution and guardian reminders for your family.',
+		question: 'Is your father alive?',
 	},
 	{
-		id: 'children_counts',
+		id: 'father_name',
 		stage: 'family',
-		type: 'counts',
-		question: 'How many children do you have?',
-		help: 'We use these counts to calculate each child\u2019s Qur\u2019anic share.',
-		depends: { field: 'has_children', eq: true },
+		type: 'text',
+		question: "What is your father's full name?",
+		help: 'We\u2019ll use this on your will — whether he is alive or deceased.',
+		showIf: (r) => r['father_alive'] === true || r['father_alive'] === false,
+	},
+	{
+		id: 'mother_alive',
+		stage: 'family',
+		type: 'yes-no',
+		question: 'Is your mother alive?',
+	},
+	{
+		id: 'mother_name',
+		stage: 'family',
+		type: 'text',
+		question: "What is your mother's full name?",
+		help: 'We\u2019ll use this on your will — whether she is alive or deceased.',
+		showIf: (r) => r['mother_alive'] === true || r['mother_alive'] === false,
+	},
+	{
+		id: 'heirs',
+		stage: 'family',
+		type: 'heirs-calculator',
+		question: 'Who are your heirs?',
+		help: 'Tell us who survives you and add each person\u2019s name. We calculate the exact Qur\u2019anic share for everyone you list.',
 	},
 	{
 		id: 'minor_children',
 		stage: 'family',
 		type: 'yes-no',
-		question: 'Do you have any minor children under 18?',
+		question: 'Are any of your children under 18?',
 		help: 'If so, we\u2019ll remind you about naming a guardian.',
-		depends: { field: 'has_children', eq: true },
+		showIf: (r) => heirsResponseChildCount(r) > 0,
 	},
 	{
 		id: 'special_needs',
@@ -209,7 +274,7 @@ export const willSteps: WillStep[] = [
 		type: 'yes-no',
 		question: 'Do any of your children have special needs requiring ongoing support?',
 		help: 'Special-needs planning often calls for tailored protections we can flag for you.',
-		depends: { field: 'has_children', eq: true },
+		showIf: (r) => heirsResponseChildCount(r) > 0,
 	},
 	{
 		id: 'blended_family',
@@ -222,16 +287,8 @@ export const willSteps: WillStep[] = [
 		id: 'non_muslim_heirs',
 		stage: 'family',
 		type: 'yes-no',
-		question: 'Are any of your heirs non-Muslim?',
-		help: 'This affects how certain shares are treated and lets us flag anything worth reviewing.',
-	},
-	{
-		id: 'parents_living',
-		stage: 'family',
-		type: 'single-select',
-		question: 'Are your parents living?',
-		help: 'Parents are Qur\u2019anic heirs, so their status changes the distribution.',
-		options: ['Both', 'Mother only', 'Father only', 'Neither'],
+		question: 'Are any of your close relatives non-Muslim?',
+		help: 'Non-Muslim relatives are not Qur\u2019anic heirs, but letting us know helps us flag anything worth reviewing.',
 	},
 
 	// ── Stage 3: assets ──
@@ -315,7 +372,13 @@ export type YesNoUnsure = 'yes' | 'no' | 'unsure';
 
 export type ChildrenCounts = { sons: number; daughters: number };
 
-export type WillResponseValue = string | boolean | YesNoUnsure | ChildrenCounts | null;
+export type WillResponseValue =
+	| string
+	| boolean
+	| YesNoUnsure
+	| AddressValue
+	| HeirsCalculatorResponse
+	| null;
 
 /** Mirror of the trust `Response` row shape so downstream code matches. */
 export type WillResponse = { id: string; response: WillResponseValue };

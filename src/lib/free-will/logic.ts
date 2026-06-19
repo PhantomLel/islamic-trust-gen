@@ -8,13 +8,17 @@
  */
 
 import type { EstateInput } from '$lib/inheritance/types';
+import type { HeirsCalculatorResponse, NamedHeir, PersonalDataResponse, QuestionResponseValue } from '$lib/config';
 import {
 	assetRangeFloor,
 	assetRanges,
 	attorneyServiceStates,
 	communityPropertyClauseStates,
 	communityPropertyWarningStates,
+	isWillAvailableState,
+	stateName,
 	willSteps,
+	type AddressValue,
 	type ChildrenCounts,
 	type WillResponses,
 	type WillStep,
@@ -24,8 +28,9 @@ import {
 // ─── Active steps (dependency-aware) ─────────────────────────────────────────
 
 export function isStepActive(step: WillStep, responses: WillResponses): boolean {
-	if (!step.depends) return true;
-	return responses[step.depends.field] === step.depends.eq;
+	if (step.depends && responses[step.depends.field] !== step.depends.eq) return false;
+	if (step.showIf && !step.showIf(responses)) return false;
+	return true;
 }
 
 export function getActiveSteps(responses: WillResponses): WillStep[] {
@@ -35,9 +40,15 @@ export function getActiveSteps(responses: WillResponses): WillStep[] {
 export function isStepAnswered(step: WillStep, responses: WillResponses): boolean {
 	const v = responses[step.id];
 	if (v === null || v === undefined) return false;
-	if (step.type === 'counts') {
-		const c = v as ChildrenCounts;
-		return !!c && typeof c === 'object' && (c.sons > 0 || c.daughters > 0);
+	if (step.type === 'heirs-calculator') {
+		return !!v && typeof v === 'object' && 'verified' in v && (v as HeirsCalculatorResponse).verified === true;
+	}
+	if (step.type === 'address') {
+		const a = v as AddressValue;
+		return !!a && typeof a === 'object' && !!a.street?.trim() && !!a.city?.trim() && !!a.zip?.trim();
+	}
+	if (step.type === 'state') {
+		return typeof v === 'string' && isWillAvailableState(v);
 	}
 	if (typeof v === 'string') return v.trim().length > 0;
 	return true; // boolean answers (yes-no) are always considered answered once set
@@ -61,10 +72,46 @@ export function isMarried(responses: WillResponses): boolean {
 	return responses['marital_status'] === 'Married';
 }
 
+export function getAddress(responses: WillResponses): AddressValue | undefined {
+	const v = responses['address'];
+	if (v && typeof v === 'object' && 'street' in v) return v as AddressValue;
+	return undefined;
+}
+
+/** Single-line address combining the address fields with the selected state. */
+export function formatAddress(responses: WillResponses): string {
+	const a = getAddress(responses);
+	if (!a) return '';
+	const stateCode = typeof responses['state'] === 'string' ? responses['state'] : '';
+	const line1 = [a.street, a.unit].filter((p) => p && p.trim()).join(', ');
+	const line2 = [a.city, stateName(stateCode), a.zip].filter((p) => p && p.trim()).join(', ');
+	return [line1, line2].filter((p) => p).join(', ');
+}
+
+/** The confirmed heirs-calculator response, if the user has completed it. */
+export function getHeirsResponse(responses: WillResponses): HeirsCalculatorResponse | undefined {
+	const v = responses['heirs'];
+	if (v && typeof v === 'object' && 'verified' in v) return v as HeirsCalculatorResponse;
+	return undefined;
+}
+
+/** The named heirs (with names + shares) from the heirs-calculator response. */
+export function getNamedHeirs(responses: WillResponses): NamedHeir[] {
+	return getHeirsResponse(responses)?.namedHeirs ?? [];
+}
+
 export function childrenCounts(responses: WillResponses): ChildrenCounts {
-	const c = responses['children_counts'] as ChildrenCounts | undefined;
-	if (responses['has_children'] !== true || !c) return { sons: 0, daughters: 0 };
-	return { sons: Math.max(0, c.sons || 0), daughters: Math.max(0, c.daughters || 0) };
+	const heirs = getNamedHeirs(responses);
+	const sons = heirs.filter((h) => h.heirType === 'son').reduce((s, h) => s + (h.count || 0), 0);
+	const daughters = heirs
+		.filter((h) => h.heirType === 'daughter')
+		.reduce((s, h) => s + (h.count || 0), 0);
+	return { sons, daughters };
+}
+
+export function hasChildren(responses: WillResponses): boolean {
+	const { sons, daughters } = childrenCounts(responses);
+	return sons + daughters > 0;
 }
 
 function yesNoUnsureTruthy(v: unknown): boolean {
@@ -212,22 +259,22 @@ export function recommendPlan(responses: WillResponses): PlanRecommendation {
 // ─── Inheritance calculator mapping ───────────────────────────────────────────
 
 /**
- * Build the calculator `EstateInput` from will responses so the preview can
- * show an accurate Islamic distribution schedule based on the family structure.
- * Only the heirs the free will asks about are populated; the rest default to 0.
+ * The `EstateInput` captured by the heirs-calculator step. This is the canonical
+ * record of the family structure; the calculator already validated and used it.
+ * Falls back to a minimal input (gender + spouse) before the step is completed.
  */
 export function buildEstateInput(responses: WillResponses): EstateInput {
-	const gender = responses['gender'] === 'Female' ? 'female' : 'male';
-	const counts = childrenCounts(responses);
-	const parents = responses['parents_living'];
+	const stored = getHeirsResponse(responses)?.estateInput;
+	if (stored) return stored;
 
+	const gender = responses['gender'] === 'Female' ? 'female' : 'male';
 	return {
 		decedentGender: gender,
 		spouse: isMarried(responses),
-		fatherAlive: parents === 'Both' || parents === 'Father only',
-		motherAlive: parents === 'Both' || parents === 'Mother only',
-		sons: counts.sons,
-		daughters: counts.daughters,
+		fatherAlive: responses['father_alive'] === true,
+		motherAlive: responses['mother_alive'] === true,
+		sons: 0,
+		daughters: 0,
 		sonsOfSons: 0,
 		daughtersOfSons: 0,
 		paternalGrandfatherAlive: false,
@@ -241,6 +288,43 @@ export function buildEstateInput(responses: WillResponses): EstateInput {
 		maternalHalfSisters: 0,
 		fullPaternalUncles: 0,
 	};
+}
+
+/** The gender→trust questionId the heirs-calculator component expects. */
+export function heirsQuestionId(responses: WillResponses): 'husband-heirs' | 'wife-heirs' {
+	return responses['gender'] === 'Female' ? 'wife-heirs' : 'husband-heirs';
+}
+
+/**
+ * Map will responses into the keys `HeirsCalculatorInput` reads for pre-filling
+ * parent alive checkboxes, spouse presence, and auto-filled names.
+ */
+export function heirsCalculatorAllResponses(
+	responses: WillResponses,
+): Record<string, QuestionResponseValue> {
+	const spouseName =
+		typeof responses['spouse_name'] === 'string' ? responses['spouse_name'].trim() : '';
+	const fatherName =
+		typeof responses['father_name'] === 'string' ? responses['father_name'].trim() : '';
+	const motherName =
+		typeof responses['mother_name'] === 'string' ? responses['mother_name'].trim() : '';
+
+	const mapped: Record<string, QuestionResponseValue> = {
+		'father-alive': responses['father_alive'] === true,
+		'mother-alive': responses['mother_alive'] === true,
+		'father-name': fatherName,
+		'mother-name': motherName,
+		'spouse-present': isMarried(responses),
+	};
+
+	// Reuse the trust spouse-data keys so getSpouseAutoName() works unchanged.
+	const spouseDataId = responses['gender'] === 'Female' ? 'husband-data' : 'wife-data';
+	if (spouseName) {
+		const spouseData: PersonalDataResponse = { name: spouseName, dob: '', county: '' };
+		mapped[spouseDataId] = spouseData;
+	}
+
+	return mapped;
 }
 
 export type { YesNoUnsure };

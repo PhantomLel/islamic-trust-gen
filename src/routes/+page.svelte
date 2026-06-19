@@ -218,7 +218,7 @@
 
 			<div class="flex items-center gap-7 justify-center">
 				<a href="/plans" class="text-navy/55 text-sm transition-colors hover:text-navy">Plans</a>
-				<a href="#learn" class="text-navy/55 text-sm transition-colors hover:text-navy">Learn</a>
+				<!-- <a href="#learn" class="text-navy/55 text-sm transition-colors hover:text-navy">Learn</a> -->
 				<a href="#about" class="text-navy/55 text-sm transition-colors hover:text-navy">About</a>
 				<a href="/free-islamic-will" class="text-navy/55 text-sm transition-colors hover:text-navy">Free Islamic Will</a>
 				<a href="/trust" class="text-emerald-accent text-sm font-medium transition-colors hover:text-emerald-light">GoodTree Trust</a>
@@ -269,7 +269,7 @@
 		<div class="md:hidden mx-3 mt-1 mb-2 rounded-2xl bg-white/90 backdrop-blur-lg border border-navy/8 shadow-lg overflow-hidden">
 			<div class="flex flex-col p-3 gap-1">
 				<a href="/plans" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Plans</a>
-				<a href="#learn" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Learn</a>
+				<!-- <a href="#learn" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Learn</a> -->
 				<a href="#about" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">About</a>
 				<a href="/free-islamic-will" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Free Islamic Will</a>
 				<a href="/trust" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm font-medium text-emerald-accent rounded-xl hover:bg-emerald-accent/8">GoodTree Trust</a>
@@ -663,6 +663,7 @@
 	</section>
 
 	<!-- ═══════════════════ VIDEO HUB ═══════════════════ -->
+	<!--
 	<section id="learn" class="py-24 md:py-32 px-6 scroll-mt-20">
 		<div use:revealOnScroll class="scroll-reveal max-w-7xl mx-auto">
 
@@ -710,8 +711,10 @@
 			</div>
 		</div>
 	</section>
+	-->
 
 	<!-- ═══════════════════ EMAIL CAPTURE ═══════════════════ -->
+	<!--
 	<section id="newsletter" class="py-20 md:py-24 px-6 bg-white/50 scroll-mt-20">
 		<div use:revealOnScroll class="scroll-reveal max-w-2xl mx-auto text-center">
 			<div class="flex items-center justify-center gap-3 mb-6">
@@ -763,6 +766,7 @@
 			<p class="text-navy/30 text-xs mt-4">Your information is never shared with anyone.</p>
 		</div>
 	</section>
+	-->
 
 	<!-- ═══════════════════ FAQ ═══════════════════ -->
 	<section id="faq" class="py-24 md:py-32 px-6 scroll-mt-20">

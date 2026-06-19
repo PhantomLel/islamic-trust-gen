@@ -2,7 +2,7 @@ import { db } from '$lib/server/db';
 import { freeWill } from '$lib/server/db/schema';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { WillResponse, WillResponses } from '$lib/free-will/config';
-import { childrenCounts, isMarried } from '$lib/free-will/logic';
+import { getHeirsResponse, heirsQuestionId } from '$lib/free-will/logic';
 
 /**
  * Claim any pending free-will submissions (userId null) that match this user's
@@ -116,22 +116,13 @@ export async function savePendingFreeWill(
  */
 export function freeWillToTrustSeed(responses: WillResponses): Record<string, unknown> {
 	const seed: Record<string, unknown> = {};
-	const counts = childrenCounts(responses);
-	const parents = responses['parents_living'];
-	const gender = responses['gender'] === 'Female' ? 'female' : 'male';
 
-	// Heirs calculator estate input for the testator's side of the joint trust.
-	const heirSide = gender === 'female' ? 'wife-heirs' : 'husband-heirs';
-	seed[heirSide] = {
-		estateInput: {
-			decedentGender: gender,
-			spouse: isMarried(responses),
-			fatherAlive: parents === 'Both' || parents === 'Father only',
-			motherAlive: parents === 'Both' || parents === 'Mother only',
-			sons: counts.sons,
-			daughters: counts.daughters,
-		},
-	};
+	// The heirs-calculator response is already exactly the shape the trust intake
+	// stores for `husband-heirs` / `wife-heirs`, so it can be reused verbatim.
+	const heirs = getHeirsResponse(responses);
+	if (heirs) {
+		seed[heirsQuestionId(responses)] = heirs;
+	}
 
 	return seed;
 }

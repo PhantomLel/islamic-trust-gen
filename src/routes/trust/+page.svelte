@@ -3,6 +3,9 @@
 	import { authClient } from '$lib/auth-client';
 	import { slide } from 'svelte/transition';
 
+	const CHARITY_DISCOUNT = 200;
+	const discountedPrepFee = defaultPrepFee - CHARITY_DISCOUNT;
+
 	let { data } = $props();
 	let mobileMenuOpen = $state(false);
 	let openConcern = $state<number | null>(null);
@@ -215,7 +218,7 @@
 			</h1>
 
 			<p class="text-navy/60 text-base md:text-lg font-light max-w-xl leading-relaxed text-balance">
-				An attorney-supervised revocable trust for Texas families — Qur'anic inheritance enforceded 
+				An attorney-supervised revocable trust for Texas families — Qur'anic inheritance enforced 
 			</p>
 			<div class="flex flex-col sm:flex-row items-center gap-3 mt-3">
 				<a
@@ -235,14 +238,42 @@
 				</a>
 			</div>
 
-			<div class="flex items-center gap-6 mt-6 px-6 py-4 bg-white/55 backdrop-blur border border-navy/8 rounded-2xl">
-				<div class="text-left">
-					<div class="text-[10px] tracking-[0.25em] uppercase text-navy/40 mb-1">Flat fee</div>
-					<div class="text-3xl tabular-nums tracking-tight text-navy">{formatUsd(defaultPrepFee)}</div>
+			<div class="mt-6 w-full max-w-lg rounded-2xl border border-navy/8 bg-white/60 backdrop-blur overflow-hidden shadow-[0_12px_32px_-16px_rgba(31,42,55,0.18)]">
+				<div class="flex items-center justify-between gap-6 px-6 pt-5 pb-4">
+					<div class="text-left">
+						<div class="text-[10px] tracking-[0.25em] uppercase text-navy/40 mb-1.5">Flat fee</div>
+						<div class="flex items-baseline gap-2.5">
+							<span class="text-3xl tabular-nums tracking-tight text-navy">{formatUsd(defaultPrepFee)}</span>
+							<span class="text-navy/35 text-xs">one-time</span>
+						</div>
+					</div>
+					<div class="hidden sm:flex items-center gap-2 text-navy/45 text-[11px] leading-snug text-right max-w-48">
+						<svg class="w-3.5 h-3.5 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+						<span>Attorney drafting, review &amp; deed recording included</span>
+					</div>
 				</div>
-				<div class="w-px h-12 bg-navy/10"></div>
-				<div class="text-left text-xs text-navy/55 leading-relaxed max-w-[18rem]">
-					Includes attorney drafting, document review, and deed preparation & recording. No hourly billing, no surprises.
+
+				<!-- Discount card -->
+				<div class="relative mx-3 mb-3 rounded-xl border border-emerald-accent/20 bg-linear-to-br from-emerald-accent/8 to-emerald-accent/2 overflow-hidden">
+					<div
+						class="absolute -right-6 -top-8 w-28 h-28 rounded-full pointer-events-none"
+						style="background: radial-gradient(circle, rgba(74,124,111,0.16) 0%, transparent 70%);"
+					></div>
+					<div class="relative flex items-center gap-4 px-5 py-4">
+						<div class="shrink-0 w-10 h-10 rounded-xl bg-emerald-accent/12 border border-emerald-accent/20 flex items-center justify-center">
+							<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
+						</div>
+						<div class="flex-1 min-w-0">
+							<div class="flex items-baseline gap-2 flex-wrap">
+								<span class="text-sm font-semibold text-navy">Pay {formatUsd(discountedPrepFee)}</span>
+								<span class="text-navy/35 text-xs line-through tabular-nums">{formatUsd(defaultPrepFee)}</span>
+								<span class="text-[10px] font-semibold tracking-wide uppercase text-emerald-accent">Save {formatUsd(CHARITY_DISCOUNT)}</span>
+							</div>
+							<p class="text-[11px] text-navy/50 leading-relaxed mt-0.5">
+								Pledge a charitable gift to a masjid or Islamic institution of your choice.
+							</p>
+						</div>
+					</div>
 				</div>
 			</div>
 

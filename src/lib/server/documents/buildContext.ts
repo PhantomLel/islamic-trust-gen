@@ -15,6 +15,12 @@ import {
 	type SeparatePropertyResponse,
 	type SuccessorTrusteeEntry,
 } from '$lib/config';
+import {
+	flattenNamedHeirs,
+	formatToday,
+	fractionLabel,
+	type HeirTableRow,
+} from './documentFormatters';
 
 /**
  * Shape that the joint trust .docx template consumes. Every key referenced in
@@ -33,8 +39,8 @@ export type JointTrustContext = {
 	isHeba: boolean;
 	isAssetAllocation: boolean;
 
-	husbandHeirs: { heirName: string; heirRelationship: string; heirShare: string }[];
-	wifeHeirs: { heirName: string; heirRelationship: string; heirShare: string }[];
+	husbandHeirs: HeirTableRow[];
+	wifeHeirs: HeirTableRow[];
 	trustees: string[];
 
 	husbandCharitable: boolean;
@@ -92,43 +98,11 @@ function getResponse<T = unknown>(trust: TrustLike, id: string): T | undefined {
 	return entry ? (entry.response as T) : undefined;
 }
 
-function formatToday(): string {
-	return new Date().toLocaleDateString('en-US', {
-		year: 'numeric',
-		month: 'long',
-		day: 'numeric',
-	});
-}
-
 function formatDate(iso: string | undefined): string {
 	if (!iso) return '';
 	const d = new Date(iso);
 	if (Number.isNaN(d.getTime())) return iso;
 	return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-function fractionLabel(f: { numerator: number; denominator: number } | unknown): string {
-	if (f && typeof f === 'object' && 'numerator' in f && 'denominator' in f) {
-		const { numerator, denominator } = f as { numerator: number; denominator: number };
-		if (denominator === 1) return `${numerator}`;
-		// Convert to percentage for readability, keep fraction alongside.
-		const pct = Math.round((numerator / denominator) * 100 * 100) / 100;
-		return `${numerator}/${denominator} (~${pct}%)`;
-	}
-	return String(f ?? '');
-}
-
-function flattenNamedHeirs(named: NamedHeir[] | undefined): { heirName: string; heirRelationship: string; heirShare: string }[] {
-	if (!named) return [];
-	const rows: { heirName: string; heirRelationship: string; heirShare: string }[] = [];
-	for (const h of named) {
-		const names = h.names && h.names.length > 0 ? h.names : Array.from({ length: h.count }, () => '');
-		const perPersonLabel = fractionLabel(h.perPersonShare);
-		for (const name of names) {
-			rows.push({ heirName: name, heirRelationship: h.label, heirShare: perPersonLabel });
-		}
-	}
-	return rows;
 }
 
 function countChildren(named: NamedHeir[] | undefined): number {
