@@ -39,7 +39,6 @@ export type SaveFreeWillInput = {
 	tags: string[];
 	recommendedPlan: string | null;
 	reviewReminders: boolean;
-	attorneyAvailability: boolean;
 };
 
 /** Persist a free will for an authenticated user (upsert their latest open row). */
@@ -48,7 +47,7 @@ export async function saveFreeWillForUser(
 	name: string,
 	email: string,
 	input: SaveFreeWillInput,
-): Promise<void> {
+): Promise<{ id: number }> {
 	const existing = await db.query.freeWill.findFirst({
 		where: eq(freeWill.userId, userId),
 		orderBy: [desc(freeWill.createdAt)],
@@ -64,16 +63,17 @@ export async function saveFreeWillForUser(
 		tags: input.tags,
 		recommendedPlan: input.recommendedPlan,
 		reviewReminders: input.reviewReminders,
-		attorneyAvailability: input.attorneyAvailability,
 		complete: true,
 		updatedAt: new Date(),
 	};
 
 	if (existing) {
 		await db.update(freeWill).set(values).where(eq(freeWill.id, existing.id));
-	} else {
-		await db.insert(freeWill).values(values);
+		return { id: existing.id };
 	}
+
+	const [inserted] = await db.insert(freeWill).values(values).returning({ id: freeWill.id });
+	return { id: inserted.id };
 }
 
 /**
@@ -102,7 +102,6 @@ export async function savePendingFreeWill(
 		tags: input.tags,
 		recommendedPlan: input.recommendedPlan,
 		reviewReminders: input.reviewReminders,
-		attorneyAvailability: input.attorneyAvailability,
 		complete: true,
 	});
 }

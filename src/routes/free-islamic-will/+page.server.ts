@@ -1,4 +1,6 @@
 import { error } from '@sveltejs/kit';
+import { Resend } from 'resend';
+import { env } from '$env/dynamic/private';
 import type { PageServerLoad, Actions } from './$types';
 import {
 	claimPendingFreeWills,
@@ -7,7 +9,107 @@ import {
 	saveFreeWillForUser,
 	type SaveFreeWillInput,
 } from '$lib/server/freeWill';
-import type { WillResponse } from '$lib/free-will/config';
+import { renderFreeWill } from '$lib/server/documents/renderWill';
+import { saveGeneratedWillDocx } from '$lib/server/documents/storage';
+import {
+	freeWillReadyEmail,
+	type FreeWillRecommendedPlan,
+} from '$lib/server/emails/freeWillReady';
+import { siteName, consultationBookingUrl } from '$lib/config';
+import { stateName, type WillResponse } from '$lib/free-will/config';
+
+const WILL_DOC_KIND = 'free-will';
+
+type WillDownload = { url: string; filename: string };
+
+/** Resolve the recommended-plan card for the will-ready email, with absolute URLs. */
+function recommendedPlanForEmail(planKey: string | null): FreeWillRecommendedPlan | null {
+	const origin = (env.ORIGIN ?? '').replace(/\/$/, '');
+	switch (planKey) {
+		case 'goodtree-trust':
+			return {
+				title: 'GoodTree Trust',
+				tagline:
+					'Avoid probate with an attorney-supervised Islamic revocable living trust.',
+				href: origin ? `${origin}/trust` : consultationBookingUrl,
+			};
+		case 'legacy-plan':
+			return {
+				title: 'Legacy Plan',
+				tagline: 'Full-service estate planning designed personally by your attorney.',
+				href: consultationBookingUrl,
+			};
+		case 'family-waqf':
+			return {
+				title: 'Family Waqf Plan',
+				tagline: 'Protect your estate and build a lasting family endowment.',
+				href: consultationBookingUrl,
+			};
+		default:
+			return null;
+	}
+}
+
+/** Email the finished will to the user with the document attached. Never throws. */
+async function emailWill(opts: {
+	to: string;
+	name: string;
+	input: SaveFreeWillInput;
+	buffer: Buffer;
+	filename: string;
+}): Promise<void> {
+	if (!env.RESEND_API_KEY || !env.FROM_EMAIL || !opts.to) return;
+	try {
+		const resend = new Resend(env.RESEND_API_KEY);
+		await resend.emails.send({
+			from: env.FROM_EMAIL,
+			to: opts.to,
+			subject: `Your free Islamic will is ready — ${siteName}`,
+			html: freeWillReadyEmail({
+				name: opts.name,
+				stateName: stateName(opts.input.state),
+				filename: opts.filename,
+				recommendedPlan: recommendedPlanForEmail(opts.input.recommendedPlan),
+			}),
+			attachments: [{ filename: opts.filename, content: opts.buffer }],
+		});
+	} catch (err) {
+		console.error('Failed to email free will document', err);
+	}
+}
+
+/**
+ * Generate the will document, upload it to UploadThing, record it on the
+ * submission, and email it to the user with the file attached. Returns the
+ * download info, or null when generation isn't possible yet (e.g. a state whose
+ * template hasn't shipped). Never throws so that a render failure can't block
+ * saving the user's answers.
+ */
+async function generateWillDownload(
+	willId: number,
+	name: string,
+	email: string,
+	input: SaveFreeWillInput,
+): Promise<WillDownload | null> {
+	try {
+		const { buffer, filename } = await renderFreeWill({
+			id: willId,
+			responses: input.responses,
+			user: { name },
+		});
+		const file = await saveGeneratedWillDocx({
+			freeWillId: willId,
+			kind: WILL_DOC_KIND,
+			buffer,
+			filename,
+		});
+		await emailWill({ to: email, name, input, buffer, filename });
+		return { url: file.url, filename: file.filename };
+	} catch (err) {
+		console.error('Failed to generate free will document', err);
+		return null;
+	}
+}
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -18,6 +120,29 @@ export const load: PageServerLoad = async ({ locals }) => {
 	await claimPendingFreeWills(locals.user.id, locals.user.email);
 	const latest = await getLatestFreeWill(locals.user.id);
 
+	const generated = latest?.generated_files?.find((f) => f.kind === WILL_DOC_KIND) ?? null;
+	let willDownload: WillDownload | null = generated
+		? { url: generated.url, filename: generated.filename }
+		: null;
+
+	// Pending submissions are saved before sign-in without generating a document.
+	// Generate from the stored DB row so returning users don't depend on localStorage.
+	if (!willDownload && latest?.complete && latest.responses) {
+		willDownload = await generateWillDownload(
+			latest.id,
+			locals.user.name ?? latest.name ?? '',
+			locals.user.email,
+			{
+				responses: latest.responses as WillResponse[],
+				state: latest.state,
+				legalMode: latest.legalMode ?? 'self-help',
+				tags: latest.tags ?? [],
+				recommendedPlan: latest.recommendedPlan,
+				reviewReminders: latest.reviewReminders,
+			},
+		);
+	}
+
 	return {
 		user: {
 			id: locals.user.id,
@@ -27,6 +152,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		savedWill: latest
 			? { id: latest.id, complete: latest.complete, recommendedPlan: latest.recommendedPlan }
 			: null,
+		willDownload,
 	};
 };
 
@@ -62,18 +188,23 @@ function parseSaveInput(form: FormData): { name: string; email: string; input: S
 			tags: Array.isArray(tags) ? tags : [],
 			recommendedPlan,
 			reviewReminders: form.get('reviewReminders') === 'true',
-			attorneyAvailability: form.get('attorneyAvailability') === 'true',
 		},
 	};
 }
 
 export const actions: Actions = {
-	/** Persist directly to the signed-in user's account. */
+	/** Persist directly to the signed-in user's account, then generate the will. */
 	saveAuthed: async ({ request, locals }) => {
 		if (!locals.user) throw error(401, 'Not authenticated');
 		const { input } = parseSaveInput(await request.formData());
-		await saveFreeWillForUser(locals.user.id, locals.user.name, locals.user.email, input);
-		return { saved: true };
+		const { id } = await saveFreeWillForUser(
+			locals.user.id,
+			locals.user.name,
+			locals.user.email,
+			input,
+		);
+		const download = await generateWillDownload(id, locals.user.name, locals.user.email, input);
+		return { saved: true, willDownload: download };
 	},
 
 	/** Persist a pending submission keyed by email; claimed after the user signs in. */

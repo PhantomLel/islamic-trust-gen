@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
-import { trust, type GeneratedFile } from '$lib/server/db/schema';
+import { trust, freeWill, type GeneratedFile } from '$lib/server/db/schema';
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
@@ -57,6 +57,57 @@ export async function saveGeneratedDocx(opts: {
 			await utapi().deleteFiles(replaced.storageKey);
 		} catch (err) {
 			console.error('Failed to delete superseded generated file', err);
+		}
+	}
+
+	return entry;
+}
+
+/**
+ * Upload a generated free-will document to UploadThing and append a record of it
+ * to `free_will.generated_files`. A previous file of the same `kind` for this
+ * submission is removed from storage and replaced.
+ */
+export async function saveGeneratedWillDocx(opts: {
+	freeWillId: number;
+	kind: string;
+	buffer: Buffer;
+	filename: string;
+}): Promise<GeneratedFile> {
+	const file = new File([new Uint8Array(opts.buffer)], opts.filename, { type: DOCX_MIME });
+
+	const result = await utapi().uploadFiles(file);
+	if (result.error || !result.data) {
+		throw new Error(`Upload failed: ${result.error?.message ?? 'unknown error'}`);
+	}
+
+	const entry: GeneratedFile = {
+		kind: opts.kind,
+		url: result.data.ufsUrl,
+		filename: opts.filename,
+		storageKey: result.data.key,
+		generatedAt: new Date().toISOString(),
+	};
+
+	const existing = await db.query.freeWill.findFirst({
+		where: eq(freeWill.id, opts.freeWillId),
+		columns: { generated_files: true },
+	});
+
+	const prior = existing?.generated_files ?? [];
+	const replaced = prior.find((f) => f.kind === opts.kind);
+	const next = [...prior.filter((f) => f.kind !== opts.kind), entry];
+
+	await db
+		.update(freeWill)
+		.set({ generated_files: next, updatedAt: new Date() })
+		.where(eq(freeWill.id, opts.freeWillId));
+
+	if (replaced?.storageKey) {
+		try {
+			await utapi().deleteFiles(replaced.storageKey);
+		} catch (err) {
+			console.error('Failed to delete superseded generated will file', err);
 		}
 	}
 

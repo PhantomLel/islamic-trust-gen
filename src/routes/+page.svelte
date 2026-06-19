@@ -855,7 +855,7 @@
 	<!-- ═══════════════════ FOOTER ═══════════════════ -->
 	<footer class="px-6 pt-14 pb-10 border-t border-navy/8">
 		<div class="max-w-7xl mx-auto">
-			<div class="grid md:grid-cols-[1.6fr_1fr_1fr_1fr] gap-10 md:gap-12 mb-12">
+			<div class="grid md:grid-cols-[1.6fr_1fr_1fr] gap-10 md:gap-12 mb-12">
 				<div>
 					<a href="/" aria-label="Muslim Legacy Planning — home" class="inline-flex items-center gap-3 mb-5 transition-opacity hover:opacity-75">
 						<img src="/mcdaniel.png" alt="" class="h-10 w-auto" />
@@ -877,6 +877,7 @@
 					<a href="/which-plan" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Which plan is right?</a>
 				</div>
 
+				<!-- Learn section — uncomment when pages are ready
 				<div class="flex flex-col gap-2.5">
 					<div class="text-navy/30 text-[10px] tracking-[0.25em] uppercase mb-1.5">Learn</div>
 					<a href="/learn" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Articles</a>
@@ -884,6 +885,7 @@
 					<a href="/community-property" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Community Property</a>
 					<a href="/endowment" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Endowment Movement</a>
 				</div>
+				-->
 
 				<div class="flex flex-col gap-2.5">
 					<div class="text-navy/30 text-[10px] tracking-[0.25em] uppercase mb-1.5">Contact</div>

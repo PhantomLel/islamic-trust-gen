@@ -5,8 +5,13 @@
 	import { invalidateAll } from '$app/navigation';
 	import { defaultPrepFee } from '$lib/config';
 	import { getIntakeQuestionnaireProgress } from '$lib/question-response-helpers';
+	import { stateName } from '$lib/free-will/config';
+	import AdminWillResponses from '$lib/components/AdminWillResponses.svelte';
 
 	let { data } = $props();
+
+	type View = 'trusts' | 'wills';
+	let view = $state<View>('trusts');
 
 	let editingTrustId = $state<number | null>(null);
 	let editPrice = $state('');
@@ -227,6 +232,82 @@
 		editingTrustId = null;
 		editPrice = '';
 	}
+
+	// ── Free Wills view ───────────────────────────────────────────
+	type WillStatusFilter = 'all' | 'complete' | 'draft';
+	type WillSortKey = 'created' | 'updated' | 'state';
+
+	let willStatusFilter = $state<WillStatusFilter>('all');
+	let willStateFilter = $state<string>('all');
+	let willSortKey = $state<WillSortKey>('created');
+	let willSortDir = $state<SortDir>('desc');
+	let expandedWillId = $state<number | null>(null);
+
+	const willStatusOptions: { value: WillStatusFilter; label: string }[] = [
+		{ value: 'all', label: 'All statuses' },
+		{ value: 'complete', label: 'Complete' },
+		{ value: 'draft', label: 'Draft' },
+	];
+
+	const willStateOptions = $derived.by(() => {
+		const codes = [...new Set(data.wills.map((w) => w.state).filter((s): s is string => !!s))].sort();
+		return [{ value: 'all', label: 'All states' }, ...codes.map((c) => ({ value: c, label: stateName(c) }))];
+	});
+
+	const willSortOptions: { value: WillSortKey; label: string }[] = [
+		{ value: 'created', label: 'Created' },
+		{ value: 'updated', label: 'Last updated' },
+		{ value: 'state', label: 'State' },
+	];
+
+	const filteredWills = $derived.by(() => {
+		const filtered = data.wills.filter((w) => {
+			if (willStatusFilter === 'complete' && !w.complete) return false;
+			if (willStatusFilter === 'draft' && w.complete) return false;
+			if (willStateFilter !== 'all' && w.state !== willStateFilter) return false;
+			return true;
+		});
+
+		const dirMult = willSortDir === 'asc' ? 1 : -1;
+		return [...filtered].sort((a, b) => {
+			switch (willSortKey) {
+				case 'created':
+					return (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * dirMult;
+				case 'updated':
+					return (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()) * dirMult;
+				case 'state':
+					return String(a.state ?? '').localeCompare(String(b.state ?? '')) * dirMult;
+			}
+		});
+	});
+
+	const hasActiveWillFilters = $derived(willStatusFilter !== 'all' || willStateFilter !== 'all');
+
+	function resetWillFilters() {
+		willStatusFilter = 'all';
+		willStateFilter = 'all';
+		willSortKey = 'created';
+		willSortDir = 'desc';
+	}
+
+	function toggleWill(id: number) {
+		expandedWillId = expandedWillId === id ? null : id;
+	}
+
+	const PLAN_LABELS: Record<string, string> = {
+		'goodtree-trust': 'GoodTree Trust',
+		'legacy-plan': 'Legacy Plan',
+		'family-waqf': 'Family Waqf',
+	};
+
+	function recommendedPlanLabel(plan: string | null): string {
+		if (!plan) return 'None';
+		return PLAN_LABELS[plan] ?? plan;
+	}
+
+	function humanizeTag(tag: string): string {
+		return tag.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+	}
 </script>
 
 <div class="min-h-screen w-screen bg-cream font-sans">
@@ -243,6 +324,33 @@
 	</nav>
 
 	<div class="max-w-7xl mx-auto px-6 md:px-8 py-10">
+		<!-- view toggle -->
+		<div class="mb-6 inline-flex items-center gap-1 p-1 rounded-xl bg-navy/[0.04] border border-navy/[0.06]">
+			<button
+				type="button"
+				onclick={() => (view = 'trusts')}
+				class="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer flex items-center gap-2
+					{view === 'trusts' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
+			>
+				Trusts
+				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
+					{data.trusts.length}
+				</span>
+			</button>
+			<button
+				type="button"
+				onclick={() => (view = 'wills')}
+				class="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer flex items-center gap-2
+					{view === 'wills' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
+			>
+				Free Wills
+				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
+					{data.wills.length}
+				</span>
+			</button>
+		</div>
+
+	{#if view === 'trusts'}
 		<div class="mb-6">
 			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">Trusts</h1>
 			<p class="text-navy/45 text-sm">
@@ -538,6 +646,272 @@
 				</div>
 			</div>
 		{/if}
+	{:else}
+		<!-- ─── FREE WILLS ─── -->
+		<div class="mb-6">
+			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">Free Wills</h1>
+			<p class="text-navy/45 text-sm">
+				{filteredWills.length} of {data.wills.length}{hasActiveWillFilters ? ' (filtered)' : ''}
+			</p>
+		</div>
+
+		{#if data.wills.length > 0}
+			<div class="mb-4 flex flex-wrap items-end gap-3">
+				<label class="flex flex-col gap-1">
+					<span class="text-[11px] uppercase tracking-wider text-navy/40 font-medium">Status</span>
+					<select
+						bind:value={willStatusFilter}
+						class="px-3 py-1.5 rounded-md border border-navy/15 bg-white text-sm text-navy focus:outline-none focus:border-emerald-accent cursor-pointer"
+					>
+						{#each willStatusOptions as opt}
+							<option value={opt.value}>{opt.label}</option>
+						{/each}
+					</select>
+				</label>
+
+				<label class="flex flex-col gap-1">
+					<span class="text-[11px] uppercase tracking-wider text-navy/40 font-medium">State</span>
+					<select
+						bind:value={willStateFilter}
+						class="px-3 py-1.5 rounded-md border border-navy/15 bg-white text-sm text-navy focus:outline-none focus:border-emerald-accent cursor-pointer"
+					>
+						{#each willStateOptions as opt}
+							<option value={opt.value}>{opt.label}</option>
+						{/each}
+					</select>
+				</label>
+
+				<div class="ml-auto flex items-end gap-2">
+					<label class="flex flex-col gap-1">
+						<span class="text-[11px] uppercase tracking-wider text-navy/40 font-medium">Sort by</span>
+						<select
+							bind:value={willSortKey}
+							class="px-3 py-1.5 rounded-md border border-navy/15 bg-white text-sm text-navy focus:outline-none focus:border-emerald-accent cursor-pointer"
+						>
+							{#each willSortOptions as opt}
+								<option value={opt.value}>{opt.label}</option>
+							{/each}
+						</select>
+					</label>
+
+					<button
+						type="button"
+						onclick={() => (willSortDir = willSortDir === 'asc' ? 'desc' : 'asc')}
+						title={willSortDir === 'asc' ? 'Ascending' : 'Descending'}
+						class="px-3 py-1.5 rounded-md border border-navy/15 bg-white text-sm text-navy hover:border-emerald-accent cursor-pointer tabular-nums"
+					>
+						{willSortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
+					</button>
+
+					{#if hasActiveWillFilters || willSortKey !== 'created' || willSortDir !== 'desc'}
+						<button
+							type="button"
+							onclick={resetWillFilters}
+							class="px-3 py-1.5 rounded-md text-sm text-navy/60 hover:text-navy cursor-pointer"
+						>
+							Reset
+						</button>
+					{/if}
+				</div>
+			</div>
+		{/if}
+
+		{#if data.wills.length === 0}
+			<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center">
+				<p class="text-navy/40 text-sm">No free wills yet.</p>
+			</div>
+		{:else if filteredWills.length === 0}
+			<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center">
+				<p class="text-navy/40 text-sm">No free wills match the selected filters.</p>
+			</div>
+		{:else}
+			<div class="rounded-xl border border-navy/[0.06] overflow-hidden bg-white/70">
+				<div class="overflow-x-auto">
+					<table class="w-full text-sm text-left">
+						<thead>
+							<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
+								<th class="px-4 py-3 font-medium">User</th>
+								<th class="px-4 py-3 font-medium">State</th>
+								<th class="px-4 py-3 font-medium">Mode</th>
+								<th class="px-4 py-3 font-medium">Status</th>
+								<th class="px-4 py-3 font-medium">Recommended</th>
+								<th class="px-4 py-3 font-medium">Tags</th>
+								<th class="px-4 py-3 font-medium">Files</th>
+								<th class="px-4 py-3 font-medium">Created</th>
+								<th class="px-4 py-3 font-medium"></th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each filteredWills as w}
+								{@const isOpen = expandedWillId === w.id}
+								<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
+									<!-- User -->
+									<td class="px-4 py-3">
+										<div class="flex items-center gap-1.5">
+											<span class="font-medium text-navy">{w.name ?? 'Unnamed'}</span>
+											{#if !w.user}
+												<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/70" title="No account yet — pending email claim">
+													Pending
+												</span>
+											{/if}
+										</div>
+										<div class="text-[11px] text-navy/40 break-all">{w.user?.email ?? w.claimEmail ?? '—'}</div>
+									</td>
+
+									<!-- State -->
+									<td class="px-4 py-3 text-navy/60 whitespace-nowrap">
+										{w.state ? stateName(w.state) : '—'}
+									</td>
+
+									<!-- Mode -->
+									<td class="px-4 py-3">
+										{#if w.legalMode === 'attorney'}
+											<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 text-purple-700">Attorney</span>
+										{:else if w.legalMode === 'self-help'}
+											<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-navy/10 text-navy/60">Self-help</span>
+										{:else}
+											<span class="text-navy/40">—</span>
+										{/if}
+									</td>
+
+									<!-- Status -->
+									<td class="px-4 py-3">
+										{#if w.complete}
+											<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700">Complete</span>
+										{:else}
+											<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700">Draft</span>
+										{/if}
+									</td>
+
+									<!-- Recommended plan -->
+									<td class="px-4 py-3 text-navy/60 whitespace-nowrap">
+										{recommendedPlanLabel(w.recommendedPlan)}
+									</td>
+
+									<!-- Tags -->
+									<td class="px-4 py-3">
+										{#if w.tags.length > 0}
+											<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums" title={w.tags.map(humanizeTag).join(', ')}>
+												{w.tags.length}
+											</span>
+										{:else}
+											<span class="text-navy/30 text-[12px]">—</span>
+										{/if}
+									</td>
+
+									<!-- Files -->
+									<td class="px-4 py-3">
+										{#if w.generatedFiles.length > 0}
+											<span class="text-[12px] text-navy/60 tabular-nums">{w.generatedFiles.length}</span>
+										{:else}
+											<span class="text-navy/30 text-[12px]">—</span>
+										{/if}
+									</td>
+
+									<!-- Created -->
+									<td class="px-4 py-3 text-navy/50 text-[12px] whitespace-nowrap">
+										{formatDate(w.createdAt)}
+									</td>
+
+									<!-- Actions -->
+									<td class="px-4 py-3 whitespace-nowrap">
+										<div class="flex items-center gap-3">
+											{#if w.trustUserId}
+												<a href="/admin/user/{w.trustUserId}" class="text-navy/50 hover:text-navy text-[12px] font-medium inline-flex items-center gap-1" title="This user also has a trust">
+													<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+													Trust
+												</a>
+											{/if}
+											<button
+												type="button"
+												onclick={() => toggleWill(w.id)}
+												class="text-emerald-accent hover:text-emerald-accent/80 text-[12px] font-medium inline-flex items-center gap-1 cursor-pointer"
+											>
+												{isOpen ? 'Hide' : 'View'}
+												<svg class="w-3.5 h-3.5 transition-transform {isOpen ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+											</button>
+										</div>
+									</td>
+								</tr>
+
+								{#if isOpen}
+									<tr class="border-b border-navy/[0.04] bg-navy/[0.015]">
+										<td colspan="9" class="px-4 py-5">
+											<div class="space-y-5">
+												<!-- summary chips -->
+												<div class="flex flex-wrap items-center gap-2">
+													<span class="text-[11px] text-navy/40">
+														Updated {formatDateTime(w.updatedAt)} · {timeAgo(w.updatedAt)}
+													</span>
+													{#if w.reviewReminders}
+														<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] bg-emerald-accent/8 text-navy/70 border border-emerald-accent/25">Review reminders</span>
+													{/if}
+												</div>
+
+												<!-- lead tags -->
+												{#if w.tags.length > 0}
+													<div>
+														<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-2">Lead tags</p>
+														<div class="flex flex-wrap gap-1.5">
+															{#each w.tags as tag}
+																<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200/70">
+																	{humanizeTag(tag)}
+																</span>
+															{/each}
+														</div>
+													</div>
+												{/if}
+
+												<!-- generated files -->
+												{#if w.generatedFiles.length > 0}
+													<div>
+														<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-2">Generated documents</p>
+														<ul class="space-y-2">
+															{#each w.generatedFiles as f}
+																<li class="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-navy/[0.07] bg-white/60">
+																	<div class="min-w-0">
+																		<p class="text-[13px] text-navy truncate">{f.filename}</p>
+																		<p class="text-[11px] text-navy/40 mt-0.5">{f.kind}</p>
+																	</div>
+																	<a
+																		href={f.url}
+																		download
+																		target="_blank"
+																		rel="noopener noreferrer"
+																		class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 transition-colors"
+																	>
+																		<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+																		Download
+																	</a>
+																</li>
+															{/each}
+														</ul>
+													</div>
+												{/if}
+
+												<!-- responses -->
+												<AdminWillResponses responses={w.responses} />
+
+												{#if w.trustUserId}
+													<a
+														href="/admin/user/{w.trustUserId}"
+														class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-medium border border-navy/10 text-navy/60 hover:text-navy hover:border-navy/20 transition-all"
+													>
+														<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+														Open this user's trust
+													</a>
+												{/if}
+											</div>
+										</td>
+									</tr>
+								{/if}
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		{/if}
+	{/if}
 	</div>
 
 	{#if notesPopover}

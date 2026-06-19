@@ -4,7 +4,7 @@
  * Identity model:
  * - When admin approves documents we create a one-off (`max_event_count: 1`) scheduling link
  *   bound to our notarization event type. The link is opaque and invalidates after one booking.
- * - We append `utm_source=amana_trust&utm_content=<token>` to the booking URL. The token is a
+ * - We append `utm_source=goodtree&utm_content=<token>` to the booking URL. The token is a
  *   random per-trust string we store on the trust row. When Calendly POSTs the `invitee.created`
  *   webhook, `payload.tracking.utm_content` carries the token back, letting us match the
  *   booking to a specific trust without depending on the user's email.
@@ -61,7 +61,7 @@ export async function createSingleUseSchedulingLink(): Promise<CalendlySchedulin
 
 	const token = randomBytes(16).toString('hex');
 	const url = new URL(bookingUrl);
-	url.searchParams.set('utm_source', 'amana_trust');
+	url.searchParams.set('utm_source', 'goodtree');
 	url.searchParams.set('utm_content', token);
 
 	return { bookingUrl: url.toString(), token };

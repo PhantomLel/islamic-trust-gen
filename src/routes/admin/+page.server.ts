@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { invoice, trust, adminNote } from '$lib/server/db/schema';
+import { invoice, trust, adminNote, freeWill } from '$lib/server/db/schema';
+import type { GeneratedFile } from '$lib/server/db/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -52,7 +53,43 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	}
 
+	// ── Free Islamic Will submissions ─────────────────────────────────
+	// Loaded alongside trusts so admins can review generated wills, their
+	// responses, and the submitter's data. A will may have no account yet
+	// (userId null, pending email claim); those are still surfaced here.
+	const wills = await db.query.freeWill.findMany({
+		with: { user: true },
+		orderBy: [desc(freeWill.createdAt)],
+	});
+
+	/** Users who already have at least one (non-admin) trust → enables the trust link. */
+	const trustUserIds = new Set(
+		trusts.filter((t) => t.user.role !== 'admin').map((t) => t.userId),
+	);
+
 	return {
+		wills: wills
+			.filter((w) => w.user?.role !== 'admin')
+			.map((w) => ({
+				id: w.id,
+				createdAt: w.createdAt.toISOString(),
+				updatedAt: w.updatedAt.toISOString(),
+				complete: w.complete,
+				state: w.state,
+				legalMode: w.legalMode,
+				tags: w.tags ?? [],
+				recommendedPlan: w.recommendedPlan,
+				reviewReminders: w.reviewReminders,
+				responses: (w.responses ?? []) as { id: string; response: unknown }[],
+				generatedFiles: (w.generated_files ?? []) as GeneratedFile[],
+				claimEmail: w.claimEmail,
+				// Display name: prefer the linked account, fall back to the captured name.
+				name: w.user?.name ?? w.name ?? null,
+				user: w.user ? { id: w.user.id, name: w.user.name, email: w.user.email } : null,
+				// Link to the admin user page (which surfaces the trust) when the
+				// submitter has an account *and* a trust already exists for them.
+				trustUserId: w.userId && trustUserIds.has(w.userId) ? w.userId : null,
+			})),
 		trusts: trusts
 			.filter((t) => t.user.role !== 'admin')
 			.map((t) => ({

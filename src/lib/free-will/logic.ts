@@ -8,7 +8,13 @@
  */
 
 import type { EstateInput } from '$lib/inheritance/types';
-import type { HeirsCalculatorResponse, NamedHeir, PersonalDataResponse, QuestionResponseValue } from '$lib/config';
+import {
+	charities as presetCharities,
+	type HeirsCalculatorResponse,
+	type NamedHeir,
+	type PersonalDataResponse,
+	type QuestionResponseValue,
+} from '$lib/config';
 import {
 	assetRangeFloor,
 	assetRanges,
@@ -18,10 +24,13 @@ import {
 	isWillAvailableState,
 	stateName,
 	willSteps,
+	WILL_WASIYYAH_CAP,
 	type AddressValue,
 	type ChildrenCounts,
 	type WillResponses,
 	type WillStep,
+	resolveWillWasiyyahRecipientName,
+	type WillWasiyyahResponse,
 	type YesNoUnsure,
 } from './config';
 
@@ -43,6 +52,14 @@ export function isStepAnswered(step: WillStep, responses: WillResponses): boolea
 	if (step.type === 'heirs-calculator') {
 		return !!v && typeof v === 'object' && 'verified' in v && (v as HeirsCalculatorResponse).verified === true;
 	}
+	if (step.type === 'executors') {
+		if (!Array.isArray(v) || v.length !== 3) return false;
+		return v.every((e: any) => e && typeof e.fullName === 'string' && e.fullName.trim().length > 0 && typeof e.relationship === 'string' && e.relationship.trim().length > 0);
+	}
+	if (step.type === 'guardians') {
+		if (!Array.isArray(v) || v.length !== 2) return false;
+		return v.every((g: any) => g && typeof g.fullName === 'string' && g.fullName.trim().length > 0 && typeof g.relationship === 'string' && g.relationship.trim().length > 0);
+	}
 	if (step.type === 'address') {
 		const a = v as AddressValue;
 		return !!a && typeof a === 'object' && !!a.street?.trim() && !!a.city?.trim() && !!a.zip?.trim();
@@ -50,8 +67,25 @@ export function isStepAnswered(step: WillStep, responses: WillResponses): boolea
 	if (step.type === 'state') {
 		return typeof v === 'string' && isWillAvailableState(v);
 	}
+	if (step.type === 'county') {
+		return typeof v === 'string' && v.trim().length > 0;
+	}
+	if (step.type === 'wasiyyah') {
+		const w = v as WillWasiyyahResponse;
+		if (!w || typeof w !== 'object' || !('interested' in w)) return false;
+		// Not interested = valid, answered
+		if (!w.interested) return true;
+		// Interested: must have at least one bequest, all with valid percentages, total ≤ cap
+		if (!Array.isArray(w.bequests) || w.bequests.length === 0) return false;
+		const total = w.bequests.reduce((s, b) => s + (b.percentage || 0), 0);
+		if (total > WILL_WASIYYAH_CAP + 1e-6) return false;
+		const presetNames = new Map(presetCharities.map((c) => [c.id, c.name]));
+		return w.bequests.every(
+			(b) => b.percentage > 0 && resolveWillWasiyyahRecipientName(b, presetNames).length > 0,
+		);
+	}
 	if (typeof v === 'string') return v.trim().length > 0;
-	return true; // boolean answers (yes-no) are always considered answered once set
+	return true;
 }
 
 /** True when every currently-active step has a usable answer. */
@@ -135,6 +169,51 @@ export function appliesCommunityPropertyClauses(responses: WillResponses): boole
 export const communityPropertyWarning =
 	'Because you are married and live in a community property state, some property may already belong to your spouse under state law and may not be controlled by your will. This free will applies Islamic inheritance to the property your will can control and includes language designed to reduce conflicts with your spouse\u2019s community property rights. For stricter planning \u2014 especially if you own a home, retirement accounts, or significant assets \u2014 attorney review is recommended.';
 
+// ─── Will limitation warning ─────────────────────────────────────────────────
+
+/** Situations where a will alone may not fully implement Islamic inheritance. */
+export type WillLimitationReason =
+	| 'married'
+	| 'homeowner'
+	| 'retirement_accounts'
+	| 'life_insurance'
+	| 'strict_faraid';
+
+export const willLimitationWarningIntro =
+	'A will alone may not fully implement Islamic inheritance in your situation.';
+
+export const willLimitationReasonLabels: Record<WillLimitationReason, string> = {
+	married:
+		'Married couples may have property rights between spouses that pass outside a will.',
+	homeowner:
+		'Homes can pass outside your will depending on how title is held and state law.',
+	retirement_accounts:
+		'Retirement accounts such as 401(k)s and IRAs typically pass by beneficiary designation, not your will.',
+	life_insurance:
+		'Life insurance proceeds typically pass by beneficiary designation, not your will.',
+	strict_faraid:
+		'You indicated that strict faraid compliance is important to you.',
+};
+
+export const willLimitationWarningOutro =
+	'Additional planning \u2014 such as a trust or a beneficiary designation review \u2014 may be needed to align your estate with faraid.';
+
+/** Returns the active limitation reasons for this user\u2019s responses. */
+export function getWillLimitationReasons(responses: WillResponses): WillLimitationReason[] {
+	const reasons: WillLimitationReason[] = [];
+	if (isMarried(responses)) reasons.push('married');
+	if (responses['own_home'] === true) reasons.push('homeowner');
+	if (responses['retirement_accounts'] === true) reasons.push('retirement_accounts');
+	if (responses['life_insurance'] === true) reasons.push('life_insurance');
+	if (responses['strict_faraid'] === true) reasons.push('strict_faraid');
+	return reasons;
+}
+
+/** True when the app should flag that a will alone may not fully implement Islamic inheritance. */
+export function needsWillLimitationWarning(responses: WillResponses): boolean {
+	return getWillLimitationReasons(responses).length > 0;
+}
+
 /** The five clauses inserted automatically for married users in clause states (dev brief §5). */
 export const communityPropertyClauses: { title: string; body: string }[] = [
 	{
@@ -190,7 +269,9 @@ export type LeadTag =
 	| 'high_priority_review'
 	| 'charitable_intent'
 	| 'waqf_interest'
-	| 'attorney_interest';
+	| 'attorney_interest'
+	| 'strict_faraid_intent'
+	| 'will_limitation_flag';
 
 export function computeLeadTags(responses: WillResponses): LeadTag[] {
 	const tags = new Set<LeadTag>();
@@ -217,6 +298,8 @@ export function computeLeadTags(responses: WillResponses): LeadTag[] {
 	// Charitable + institutional interest is treated as waqf interest for routing.
 	if (responses['charity_interest'] === 'yes') tags.add('waqf_interest');
 	if (responses['attorney_review'] === true) tags.add('attorney_interest');
+	if (responses['strict_faraid'] === true) tags.add('strict_faraid_intent');
+	if (needsWillLimitationWarning(responses)) tags.add('will_limitation_flag');
 
 	return [...tags];
 }

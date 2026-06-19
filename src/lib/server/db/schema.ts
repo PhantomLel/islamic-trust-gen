@@ -149,10 +149,10 @@ export const freeWill = pgTable('free_will', {
 	recommendedPlan: text('recommended_plan'),
 	/** "Send me reminders every 6 months" (pre-checked). */
 	reviewReminders: boolean('review_reminders').notNull().default(true),
-	/** "Notify me when attorney-reviewed plans become available in my state." */
-	attorneyAvailability: boolean('attorney_availability').notNull().default(false),
 	/** True once the questionnaire is finished and submitted. */
 	complete: boolean('complete').notNull().default(false),
+	/** Generated will documents (uploadthing), keyed by `kind` e.g. 'free-will'. */
+	generated_files: jsonb('generated_files').$type<GeneratedFile[]>(),
 });
 
 export const invoice = pgTable('invoice', {

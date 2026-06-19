@@ -10,7 +10,10 @@
 		isWillAvailableState,
 		stateName,
 		stageMeta,
+		getCountiesByState,
 		type AddressValue,
+		type ExecutorEntry,
+		type GuardianEntry,
 		type WillResponses,
 		type WillResponseValue,
 		type WillStep
@@ -29,13 +32,23 @@
 		getNamedHeirs,
 		heirsQuestionId,
 		heirsCalculatorAllResponses,
+		getWillLimitationReasons,
+		needsWillLimitationWarning,
+		willLimitationWarningIntro,
+		willLimitationWarningOutro,
+		willLimitationReasonLabels,
 		type PlanKey
 	} from '$lib/free-will/logic';
 	import HeirsCalculatorInput from '$lib/components/HeirsCalculatorInput.svelte';
+	import ExecutorsInput from '$lib/components/ExecutorsInput.svelte';
+	import GuardiansInput from '$lib/components/GuardiansInput.svelte';
+	import WillCountySelector from '$lib/components/WillCountySelector.svelte';
+	import WillWasiyyahInput from '$lib/components/WillWasiyyahInput.svelte';
+	import type { WillWasiyyahResponse } from '$lib/free-will/config';
 
 	let { data } = $props();
 
-	type Phase = 'welcome' | 'questions' | 'community' | 'preview' | 'account' | 'complete';
+	type Phase = 'welcome' | 'questions' | 'community' | 'limitations' | 'preview' | 'account' | 'complete';
 
 	const STORAGE_KEY = 'free-will:v1';
 
@@ -44,14 +57,18 @@
 	let currentIndex = $state(0);
 	let hydrated = $state(false);
 	let savedToAccount = $state(false);
+	let willDownload = $state<{ url: string; filename: string } | null>(null);
+
+	// ── dev-only question navigator (localhost only) ──
+	let isDev = $state(false);
+	let devNavOpen = $state(true);
 
 	// Account step state
 	let accountName = $state('');
 	let accountEmail = $state('');
-	let reviewReminders = $state(true);
-	let attorneyAvailability = $state(false);
 	let accountError = $state('');
 	let accountLoading = $state(false);
+	let savingWill = $state(false);
 	let magicLinkSent = $state(false);
 
 	// ── derived ──
@@ -69,6 +86,8 @@
 	let recommendation = $derived(recommendPlan(responses));
 	let communityProperty = $derived(isCommunityPropertySituation(responses));
 	let includeClauses = $derived(appliesCommunityPropertyClauses(responses));
+	let willLimitationReasons = $derived(getWillLimitationReasons(responses));
+	let showWillLimitationWarning = $derived(needsWillLimitationWarning(responses));
 
 	let namedHeirs = $derived(getNamedHeirs(responses));
 	let heirsCalcQuestionId = $derived(heirsQuestionId(responses));
@@ -108,9 +127,7 @@
 			currentIndex,
 			savedToAccount,
 			accountName,
-			accountEmail,
-			reviewReminders,
-			attorneyAvailability
+			accountEmail
 		};
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -127,8 +144,6 @@
 		void JSON.stringify(responses);
 		void accountName;
 		void accountEmail;
-		void reviewReminders;
-		void attorneyAvailability;
 		persist();
 	});
 
@@ -140,6 +155,11 @@
 	});
 
 	onMount(() => {
+		if (typeof window !== 'undefined') {
+			const host = window.location.hostname;
+			isDev = host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+		}
+
 		if (typeof localStorage !== 'undefined') {
 			const raw = localStorage.getItem(STORAGE_KEY);
 			if (raw) {
@@ -151,9 +171,6 @@
 					if (typeof p.savedToAccount === 'boolean') savedToAccount = p.savedToAccount;
 					if (typeof p.accountName === 'string') accountName = p.accountName;
 					if (typeof p.accountEmail === 'string') accountEmail = p.accountEmail;
-					if (typeof p.reviewReminders === 'boolean') reviewReminders = p.reviewReminders;
-					if (typeof p.attorneyAvailability === 'boolean')
-						attorneyAvailability = p.attorneyAvailability;
 				} catch {
 					// ignore corrupt state
 				}
@@ -166,13 +183,19 @@
 			if (!accountEmail) accountEmail = data.user.email ?? '';
 		}
 
+		// Surface a previously generated will (returning, already-saved users).
+		if (data.willDownload) willDownload = data.willDownload;
+
 		hydrated = true;
 
 		// If the user returned authenticated with a finished will that hasn't been
 		// attached to the account yet, save it now and show the completion screen.
-		if (data.user && !savedToAccount && isWillComplete(responses)) {
+		if (data.user && !savedToAccount && isWillComplete(responses) && !data.savedWill?.complete) {
 			void persistToAccount();
-		} else if (data.user && data.savedWill?.complete && !isWillComplete(responses)) {
+		} else if (data.user && data.savedWill?.complete) {
+			// Claimed pending submission, prior save, or magic-link return while
+			// localStorage still holds the completed questionnaire.
+			savedToAccount = true;
 			phase = 'complete';
 		}
 	});
@@ -197,6 +220,24 @@
 		currentIndex = 0;
 	}
 
+	// ── dev navigator: jump straight to any step or phase ──
+	function devGoToQuestionnaire(index = 0) {
+		phase = 'questions';
+		currentIndex = Math.min(Math.max(0, index), Math.max(0, activeSteps.length - 1));
+	}
+
+	function devGoToStep(index: number) {
+		devGoToQuestionnaire(index);
+	}
+
+	function devGoToPhase(target: Phase) {
+		if (target === 'questions') {
+			devGoToQuestionnaire(currentIndex);
+			return;
+		}
+		phase = target;
+	}
+
 	function goNext() {
 		if (!canNext) return;
 		if (!isLastQuestion) {
@@ -204,7 +245,13 @@
 			return;
 		}
 		// finished questions
-		phase = communityProperty ? 'community' : 'preview';
+		if (communityProperty) {
+			phase = 'community';
+		} else if (showWillLimitationWarning) {
+			phase = 'limitations';
+		} else {
+			phase = 'preview';
+		}
 	}
 
 	function goBack() {
@@ -213,8 +260,10 @@
 			else phase = 'welcome';
 		} else if (phase === 'community') {
 			phase = 'questions';
-		} else if (phase === 'preview') {
+		} else if (phase === 'limitations') {
 			phase = communityProperty ? 'community' : 'questions';
+		} else if (phase === 'preview') {
+			phase = showWillLimitationWarning ? 'limitations' : communityProperty ? 'community' : 'questions';
 		} else if (phase === 'account') {
 			phase = 'preview';
 		}
@@ -231,8 +280,6 @@
 		form.set('state', typeof responses['state'] === 'string' ? responses['state'] : '');
 		form.set('legalMode', mode);
 		form.set('recommendedPlan', recommendation.plan ?? '');
-		form.set('reviewReminders', String(reviewReminders));
-		form.set('attorneyAvailability', String(attorneyAvailability));
 		if (action === 'savePending') {
 			form.set('name', accountName.trim());
 			form.set('email', accountEmail.trim());
@@ -240,11 +287,29 @@
 		return form;
 	}
 
+	// From the preview screen: signed-in users skip the account step entirely and
+	// go straight to their finished, downloadable will.
+	async function handleSaveMyWill() {
+		if (!data.user) {
+			phase = 'account';
+			return;
+		}
+		savingWill = true;
+		try {
+			await persistToAccount();
+		} finally {
+			savingWill = false;
+		}
+	}
+
 	async function persistToAccount() {
 		const res = await fetch('?/saveAuthed', { method: 'POST', body: saveFormData('saveAuthed') });
 		const result = deserialize(await res.text());
 		if (result.type === 'success') {
 			savedToAccount = true;
+			const download = (result.data as { willDownload?: { url: string; filename: string } | null })
+				?.willDownload;
+			if (download) willDownload = download;
 			phase = 'complete';
 		}
 	}
@@ -340,7 +405,7 @@
 				{siteName}
 			</span>
 		</a>
-		{#if phase === 'questions' || phase === 'community' || phase === 'preview'}
+		{#if phase === 'questions' || phase === 'community' || phase === 'limitations' || phase === 'preview'}
 			<span class="text-[11px] text-navy/40 tracking-[0.18em] uppercase">Free Islamic Will</span>
 		{:else}
 			<a href="/plans" class="text-sm text-navy/50 hover:text-navy transition-colors">All plans</a>
@@ -348,7 +413,7 @@
 	</nav>
 
 	<!-- PROGRESS BAR (no numbers, per brief) -->
-	{#if phase === 'questions' || phase === 'community' || phase === 'preview'}
+	{#if phase === 'questions' || phase === 'community' || phase === 'limitations' || phase === 'preview'}
 		<div class="relative z-10 shrink-0 h-1 w-full bg-navy/[0.06]">
 			<div
 				class="h-full bg-emerald-accent transition-all duration-500 ease-out"
@@ -413,7 +478,7 @@
 			<!-- ═══ QUESTION ═══ -->
 			<div class="flex-1 flex flex-col">
 				<div class="flex-1 overflow-y-auto px-6 py-8 md:py-12">
-					<div class="w-full {currentStep.type === 'heirs-calculator' ? 'max-w-xl' : 'max-w-lg'} mx-auto">
+					<div class="w-full {currentStep.type === 'heirs-calculator' || currentStep.type === 'executors' || currentStep.type === 'guardians' || currentStep.type === 'wasiyyah' ? 'max-w-xl' : 'max-w-lg'} mx-auto">
 						<span class="text-[11px] text-emerald-accent tracking-[0.2em] uppercase font-medium">
 							{stageMeta[currentStep.stage].label}
 						</span>
@@ -453,6 +518,16 @@
 							<p class="text-navy/45 text-xs leading-relaxed mt-3 px-1">
 								Only California and Texas are available right now. Other states are listed below as coming soon.
 							</p>
+
+						{:else if currentStep.type === 'county'}
+							{@const selectedState = responses['state'] as string}
+							{@const counties = getCountiesByState(selectedState)}
+							<WillCountySelector
+								value={(responses[currentStep.id] as string) ?? ''}
+								{counties}
+								stateName={stateName(selectedState)}
+								onchange={(v) => setResponse(v)}
+							/>
 
 						{:else if currentStep.type === 'single-select'}
 							<div class="flex flex-col gap-3">
@@ -533,13 +608,31 @@
 								questionId={heirsCalcQuestionId}
 								allResponses={heirsCalcAllResponses}
 							/>
-						{/if}
+
+						{:else if currentStep.type === 'executors'}
+							<ExecutorsInput
+								value={(responses[currentStep.id] ?? null) as ExecutorEntry[] | null}
+								onresponse={(v) => setResponse(v as WillResponseValue)}
+							/>
+
+					{:else if currentStep.type === 'guardians'}
+						<GuardiansInput
+							value={(responses[currentStep.id] ?? null) as GuardianEntry[] | null}
+							onresponse={(v) => setResponse(v as WillResponseValue)}
+						/>
+
+					{:else if currentStep.type === 'wasiyyah'}
+						<WillWasiyyahInput
+							value={(responses[currentStep.id] ?? null) as WillWasiyyahResponse | null}
+							onresponse={(v) => setResponse(v as WillResponseValue)}
+						/>
+					{/if}
 					</div>
 				</div>
 
 				<!-- FOOTER -->
 				<div class="shrink-0 border-t border-navy/[0.06] bg-cream px-6 py-5">
-					<div class="{currentStep.type === 'heirs-calculator' ? 'max-w-xl' : 'max-w-lg'} mx-auto flex items-center justify-between">
+					<div class="{currentStep.type === 'heirs-calculator' || currentStep.type === 'executors' || currentStep.type === 'guardians' || currentStep.type === 'wasiyyah' ? 'max-w-xl' : 'max-w-lg'} mx-auto flex items-center justify-between">
 						<button
 							onclick={goBack}
 							class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 transition-all hover:text-navy hover:bg-navy/[0.04] cursor-pointer"
@@ -586,10 +679,50 @@
 							Back
 						</button>
 						<button
+							onclick={() => (phase = showWillLimitationWarning ? 'limitations' : 'preview')}
+							class="flex items-center gap-2 px-7 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10 cursor-pointer"
+						>
+							I understand, continue
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+						</button>
+					</div>
+				</div>
+			</div>
+
+		{:else if phase === 'limitations'}
+			<!-- ═══ WILL LIMITATION WARNING ═══ -->
+			<div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
+				<div class="max-w-xl w-full">
+					<div class="rounded-2xl border border-amber-300/70 bg-amber-50 p-7 md:p-8">
+						<div class="flex items-center gap-3 mb-4">
+							<span class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+								<svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+								</svg>
+							</span>
+							<h2 class="text-xl md:text-2xl text-navy tracking-tight">Important to know</h2>
+						</div>
+						<p class="text-navy/65 text-[15px] leading-relaxed mb-4">{willLimitationWarningIntro}</p>
+						<ul class="flex flex-col gap-2.5 mb-4">
+							{#each willLimitationReasons as reason}
+								<li class="flex items-start gap-2.5 text-navy/65 text-[14px] leading-relaxed">
+									<span class="text-amber-600 mt-1 shrink-0">•</span>
+									<span>{willLimitationReasonLabels[reason]}</span>
+								</li>
+							{/each}
+						</ul>
+						<p class="text-navy/65 text-[15px] leading-relaxed">{willLimitationWarningOutro}</p>
+					</div>
+					<div class="flex items-center justify-between mt-8">
+						<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+							Back
+						</button>
+						<button
 							onclick={() => (phase = 'preview')}
 							class="flex items-center gap-2 px-7 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10 cursor-pointer"
 						>
-							I understand — continue
+							I understand, continue
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 						</button>
 					</div>
@@ -676,10 +809,11 @@
 							Back
 						</button>
 						<button
-							onclick={() => (phase = 'account')}
-							class="flex items-center gap-2 px-7 py-3 rounded-lg text-sm font-medium text-cream bg-emerald-accent transition-all duration-200 hover:bg-emerald-light hover:-translate-y-px hover:shadow-lg hover:shadow-emerald-accent/20 cursor-pointer"
+							onclick={handleSaveMyWill}
+							disabled={savingWill}
+							class="flex items-center gap-2 px-7 py-3 rounded-lg text-sm font-medium text-cream bg-emerald-accent transition-all duration-200 hover:bg-emerald-light hover:-translate-y-px hover:shadow-lg hover:shadow-emerald-accent/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
 						>
-							Save my will
+							{savingWill ? 'Preparing your will…' : data.user ? 'Get my will' : 'Save my will'}
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 						</button>
 					</div>
@@ -727,17 +861,6 @@
 									class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white border border-navy/10 text-navy text-sm placeholder:text-navy/30 outline-none transition-all focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10"
 								/>
 							</label>
-
-							<div class="flex flex-col gap-2.5 mt-2 mb-1">
-								<label class="flex items-start gap-3 cursor-pointer">
-									<input type="checkbox" bind:checked={reviewReminders} class="mt-0.5 w-4 h-4 accent-emerald-accent cursor-pointer" />
-									<span class="text-navy/60 text-[13px] leading-snug">Send me reminders every 6 months to review my plan</span>
-								</label>
-								<label class="flex items-start gap-3 cursor-pointer">
-									<input type="checkbox" bind:checked={attorneyAvailability} class="mt-0.5 w-4 h-4 accent-emerald-accent cursor-pointer" />
-									<span class="text-navy/60 text-[13px] leading-snug">Notify me when attorney-reviewed plans become available in my state</span>
-								</label>
-							</div>
 
 							{#if accountError}
 								<p class="text-red-600 text-xs">{accountError}</p>
@@ -790,15 +913,42 @@
 							Your free Islamic will is complete
 						</h2>
 						<p class="text-navy/55 text-base leading-relaxed max-w-md mx-auto">
-							Masha’Allah — you’ve taken a real first step for your family. We’ve saved your answers to your account and will email your document shortly.
+							Masha’Allah — you’ve taken a real first step for your family. We’ve saved your answers to your account{willDownload ? ' and your document is ready to download below' : ' and will email your document shortly'}.
 						</p>
 					</div>
+
+					{#if willDownload}
+						<div class="rounded-2xl border border-emerald-accent/30 bg-emerald-accent/8 p-6 mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+							<div class="flex items-center gap-3.5">
+								<span class="w-11 h-11 rounded-xl bg-emerald-accent/15 flex items-center justify-center shrink-0">
+									<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+								</span>
+								<div>
+									<p class="text-navy font-medium text-[15px] leading-snug">Your Islamic will (.docx)</p>
+									<p class="text-navy/50 text-xs mt-0.5">Ready to print, sign, and witness</p>
+								</div>
+							</div>
+							<a
+								href={willDownload.url}
+								download={willDownload.filename}
+								class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-medium text-cream bg-emerald-accent transition-all duration-200 hover:bg-emerald-light hover:-translate-y-px hover:shadow-lg hover:shadow-emerald-accent/20 cursor-pointer shrink-0"
+							>
+								Download
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 19h16" /></svg>
+							</a>
+						</div>
+
+						<div class="flex items-center justify-center gap-2 text-navy/50 text-[13px] mb-8 -mt-1">
+							<svg class="w-4 h-4 shrink-0 text-emerald-accent/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+							<span>We’ve also emailed a copy{accountEmail ? ` to ${accountEmail}` : ''}, with the document attached.</span>
+						</div>
+					{/if}
 
 					<!-- Signing instructions -->
 					<div class="rounded-2xl border border-navy/10 bg-white/70 p-6 mb-5">
 						<h3 class="text-navy font-medium text-[15px] mb-4">Next: sign your will</h3>
 						<ol class="flex flex-col gap-3.5">
-							{#each ['Print your will once it arrives in your email.', 'Sign and date it in front of two adult witnesses who are not heirs.', 'Have your witnesses sign in your presence and each other\u2019s.', 'Store the signed original somewhere safe and tell your representative where it is.'] as step, i}
+							{#each ['Print your will.', 'Sign and date it in front of two adult witnesses who are not heirs.', 'Have your witnesses sign in your presence and each other\u2019s.', 'Store the signed original somewhere safe and tell your representative where it is.'] as step, i}
 								<li class="flex gap-3.5 items-start">
 									<span class="text-emerald-accent/60 text-[11px] tabular-nums tracking-widest mt-0.5 shrink-0">0{i + 1}</span>
 									<span class="text-navy/65 text-sm leading-relaxed">{step}</span>
@@ -810,22 +960,35 @@
 						</p>
 					</div>
 
-					<!-- Community property upsell block -->
-					{#if tags.includes('community_property_state')}
+					<!-- Will limitation upsell block -->
+					{#if showWillLimitationWarning}
 						<div class="rounded-2xl border border-amber-300/60 bg-amber-50/70 p-6 mb-5">
 							<h3 class="text-navy font-medium text-[15px] mb-2">Recommended next steps</h3>
-							<p class="text-navy/60 text-sm leading-relaxed mb-5">
-								Because you’re married and live in a community property state, your will may not fully resolve how your spouse’s community property share interacts with Islamic inheritance.
-							</p>
+							<p class="text-navy/60 text-sm leading-relaxed mb-3">{willLimitationWarningIntro}</p>
+							<ul class="flex flex-col gap-2 mb-5">
+								{#each willLimitationReasons as reason}
+									<li class="flex items-start gap-2 text-navy/60 text-sm leading-relaxed">
+										<span class="text-amber-600 shrink-0">•</span>
+										<span>{willLimitationReasonLabels[reason]}</span>
+									</li>
+								{/each}
+							</ul>
+							<p class="text-navy/60 text-sm leading-relaxed mb-5">{willLimitationWarningOutro}</p>
 							<div class="flex flex-col gap-2.5">
-								<a href="/free-islamic-will" class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
-									Invite my spouse to complete a will
-									<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-								</a>
-								<a href="/plans" class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
-									Review my beneficiary designations
-									<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-								</a>
+								{#if tags.includes('community_property_state')}
+								 {/if}
+								{#if tags.includes('beneficiary_designation_review')}
+									<a href="/plans" class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
+										Review my beneficiary designations
+										<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+									</a>
+								{/if}
+								{#if recommendedCard}
+									<a href={recommendedCard.href} class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
+										Explore {recommendedCard.title}
+										<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+									</a>
+								{/if}
 								<a href={consultationBookingUrl} class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
 									Book an attorney review
 									<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -862,4 +1025,92 @@
 			</div>
 		{/if}
 	</main>
+
+	<!-- ═══ DEV-ONLY QUESTION NAVIGATOR (localhost only) ═══ -->
+	{#if isDev}
+		{#if devNavOpen}
+			<aside
+				class="fixed top-20 right-3 z-50 w-64 max-h-[80vh] flex flex-col rounded-lg border border-fuchsia-400/50 bg-white shadow-xl shadow-navy/10 text-xs"
+			>
+				<div class="flex items-center justify-between px-3 py-2 border-b border-navy/10 bg-fuchsia-50 rounded-t-lg">
+					<span class="font-semibold tracking-wide uppercase text-[10px] text-fuchsia-700">Dev nav</span>
+					<button
+						type="button"
+						onclick={() => (devNavOpen = false)}
+						class="text-navy/40 hover:text-navy cursor-pointer leading-none text-base"
+						aria-label="Collapse dev navigator">×</button
+					>
+				</div>
+				<div class="overflow-y-auto p-2 flex flex-col gap-2">
+					{#if phase !== 'questions'}
+						<button
+							type="button"
+							onclick={() => devGoToQuestionnaire(0)}
+							class="w-full px-2.5 py-2 rounded border border-fuchsia-400/60 bg-fuchsia-50 text-[11px] font-medium text-fuchsia-800 cursor-pointer hover:bg-fuchsia-100 transition-colors text-left"
+						>
+							← Edit questionnaire
+						</button>
+					{/if}
+					<div class="flex flex-wrap gap-1">
+						{#each ['welcome', 'questions', 'community', 'limitations', 'preview', 'account', 'complete'] as p}
+							<button
+								type="button"
+								onclick={() => devGoToPhase(p as Phase)}
+								class="px-2 py-1 rounded border text-[10px] cursor-pointer transition-colors
+									{phase === p
+									? 'border-fuchsia-500 bg-fuchsia-500 text-white'
+									: 'border-navy/15 text-navy/60 hover:border-fuchsia-400'}"
+							>
+								{p}
+							</button>
+						{/each}
+					</div>
+					<div class="h-px bg-navy/10 my-1"></div>
+					<ol class="flex flex-col gap-0.5">
+						{#each activeSteps as step, i}
+							<li>
+								<button
+									type="button"
+									onclick={() => devGoToStep(i)}
+									class="w-full text-left px-2 py-1.5 rounded flex items-start gap-2 cursor-pointer transition-colors
+										{phase === 'questions' && currentIndex === i
+										? 'bg-fuchsia-500 text-white'
+										: 'text-navy/70 hover:bg-fuchsia-50'}"
+								>
+									<span class="tabular-nums opacity-60 shrink-0">{i + 1}.</span>
+									<span class="flex-1 leading-tight">
+										{step.question}
+										{#if !isStepAnswered(step, responses)}
+											<span class="opacity-50">·</span>
+										{:else}
+											<span class="text-emerald-accent">✓</span>
+										{/if}
+									</span>
+								</button>
+							</li>
+						{/each}
+					</ol>
+				</div>
+			</aside>
+		{:else}
+			<div class="fixed top-20 right-3 z-50 flex flex-col items-end gap-2">
+				{#if phase !== 'welcome' && phase !== 'questions'}
+					<button
+						type="button"
+						onclick={() => devGoToQuestionnaire(0)}
+						class="px-3 py-1.5 rounded-lg border border-fuchsia-400/50 bg-white shadow-md text-[10px] font-semibold uppercase tracking-wide text-fuchsia-700 cursor-pointer hover:bg-fuchsia-50"
+					>
+						Edit answers
+					</button>
+				{/if}
+				<button
+					type="button"
+					onclick={() => (devNavOpen = true)}
+					class="px-3 py-1.5 rounded-lg border border-fuchsia-400/50 bg-white shadow-md text-[10px] font-semibold uppercase tracking-wide text-fuchsia-700 cursor-pointer hover:bg-fuchsia-50"
+				>
+					Dev nav
+				</button>
+			</div>
+		{/if}
+	{/if}
 </div>

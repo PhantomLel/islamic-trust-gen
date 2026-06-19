@@ -8,7 +8,7 @@ export function escapeHtmlText(s: string): string {
 	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/** Shared Amana Trust wrapper: pass only inner `<tr>...</tr>` rows (between header and footer). */
+/** Shared GoodTree wrapper: pass only inner `<tr>...</tr>` rows (between header and footer). */
 export function amanaEmailDocument(title: string, mainRowsHtml: string): string {
 	const safeTitle = escapeHtmlText(title);
 	return `<!DOCTYPE html>

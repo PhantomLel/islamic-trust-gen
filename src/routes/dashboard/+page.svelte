@@ -43,7 +43,7 @@
 		t.status === 'notarization-pending' ? 'Notarization pending' :
 		t.intakeUnderReview ? 'Under review' :
 		t.status === 'awaiting-answers' && !t.complete ? 'Trust details in progress' :
-		t.status === 'awaiting-payment' && paid ? 'Payment received — continue your questionnaire' :
+		t.status === 'awaiting-payment' && paid ? 'Payment received, continue your questionnaire' :
 		t.awaitingPayment ? 'Awaiting payment' :
 		t.status === 'started' && t.joint !== null ? 'Intake in progress' :
 		t.isEligible !== null ? 'Select trust type' :

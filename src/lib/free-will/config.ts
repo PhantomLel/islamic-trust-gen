@@ -12,6 +12,7 @@
  */
 
 import type { HeirsCalculatorResponse } from '$lib/config';
+import { texasCounties, californiaCounties } from '$lib/counties';
 
 export type UsState = { code: string; name: string };
 
@@ -73,6 +74,14 @@ export const usStates: UsState[] = [
 export function stateName(code: string | undefined | null): string {
 	if (!code) return '';
 	return usStates.find((s) => s.code === code)?.name ?? code;
+}
+
+/** Get counties for a given state code. Returns empty array for unsupported states. */
+export function getCountiesByState(stateCode: string | undefined | null): string[] {
+	if (!stateCode) return [];
+	if (stateCode === 'TX') return texasCounties;
+	if (stateCode === 'CA') return californiaCounties;
+	return [];
 }
 
 /** States where the free will generator can currently produce a document. */
@@ -137,12 +146,47 @@ export const stageMeta: Record<WillStage, { label: string }> = {
 
 export type WillFieldType =
 	| 'state' // dropdown of US states; stored as state code
+	| 'county' // searchable dropdown of counties for the selected state
 	| 'single-select' // one of `options`
 	| 'text' // free-form string
 	| 'yes-no' // boolean
 	| 'yes-no-unsure' // 'yes' | 'no' | 'unsure'
 	| 'address' // street / unit / city / zip (state comes from the `state` step)
-	| 'heirs-calculator'; // reuses the Islamic inheritance calculator + heir names
+	| 'heirs-calculator' // reuses the Islamic inheritance calculator + heir names
+	| 'executors' // executor selection (3 required)
+	| 'guardians' // guardian selection (2 required)
+	| 'wasiyyah'; // wasiyyah bequests — preset charities + custom, capped at 1/3
+
+/** Islamic wasiyyah cap: one-third of the estate. */
+export const WILL_WASIYYAH_CAP = 100 / 3;
+
+/** A single wasiyyah bequest entry (charity or other recipient). */
+export type WillWasiyyahEntry = {
+	charityId: string;
+	percentage: number;
+	/** When present this is a user-added charity (charityId is an opaque UUID). */
+	customName?: string;
+	customEin?: string;
+};
+
+export type WillWasiyyahResponse = {
+	interested: boolean;
+	bequests: WillWasiyyahEntry[];
+};
+
+/** User-added recipient row (charityId is an opaque UUID). */
+export function isCustomWillWasiyyahEntry(e: WillWasiyyahEntry): boolean {
+	return typeof e.customName === 'string';
+}
+
+/** Display name for a bequest; empty when a custom entry has no name. */
+export function resolveWillWasiyyahRecipientName(
+	e: WillWasiyyahEntry,
+	presetCharityNames: ReadonlyMap<string, string>,
+): string {
+	if (isCustomWillWasiyyahEntry(e)) return e.customName?.trim() ?? '';
+	return presetCharityNames.get(e.charityId) ?? '';
+}
 
 /** Residential address; `state` is collected separately in the `state` step. */
 export type AddressValue = {
@@ -150,6 +194,20 @@ export type AddressValue = {
 	unit?: string;
 	city: string;
 	zip: string;
+};
+
+/** Personal representative (executor) entry for wills. */
+export type ExecutorEntry = {
+	fullName: string;
+	relationship: string;
+	contact?: string;
+};
+
+/** Guardian entry for wills. */
+export type GuardianEntry = {
+	fullName: string;
+	relationship: string;
+	contact?: string;
 };
 
 /** A dependency: this step is only shown when `field` currently equals `eq`. */
@@ -192,6 +250,21 @@ export const willSteps: WillStep[] = [
 		type: 'state',
 		question: 'Which state do you live in?',
 		help: 'Free wills are currently available in California and Texas. Other states are coming soon.',
+	},
+	{
+		id: 'county',
+		stage: 'location',
+		type: 'county',
+		question: 'Which county do you live in?',
+		help: 'Your county identifies where your will should be filed if needed.',
+		showIf: (r) => isWillAvailableState(r['state'] as string),
+	},
+	{
+		id: 'full_legal_name',
+		stage: 'location',
+		type: 'text',
+		question: 'What is your full legal name?',
+		help: 'As it appears on your government ID \u2014 we\u2019ll use this on your will.',
 	},
 	{
 		id: 'address',
@@ -269,6 +342,13 @@ export const willSteps: WillStep[] = [
 		showIf: (r) => heirsResponseChildCount(r) > 0,
 	},
 	{
+		id: 'guardians',
+		stage: 'family',
+		type: 'guardians',
+		question: 'Who will serve as guardians for your minor children?',
+		depends: { field: 'minor_children', eq: true },
+	},
+	{
 		id: 'special_needs',
 		stage: 'family',
 		type: 'yes-no',
@@ -342,12 +422,25 @@ export const willSteps: WillStep[] = [
 
 	// ── Stage 4: goals ──
 	{
+		id: 'executors',
+		stage: 'goals',
+		type: 'executors',
+		question: 'Who will serve as your personal representatives?',
+	},
+	{
 		id: 'charity_interest',
 		stage: 'goals',
 		type: 'yes-no-unsure',
 		question:
 			'Would you like to leave a portion of your estate to charity, a masjid, or an Islamic institution?',
 		help: 'Up to one-third of your estate may be given as wasiyyah.',
+	},
+	{
+		id: 'wasiyyah',
+		stage: 'goals',
+		type: 'wasiyyah',
+		question: 'Set up your wasiyyah',
+		depends: { field: 'charity_interest', eq: 'yes' },
 	},
 	{
 		id: 'avoid_probate',
@@ -361,6 +454,14 @@ export const willSteps: WillStep[] = [
 		stage: 'goals',
 		type: 'yes-no',
 		question: 'Would you like to learn whether your situation may need attorney review?',
+	},
+	{
+		id: 'strict_faraid',
+		stage: 'goals',
+		type: 'yes-no',
+		question:
+			'Is it important to you that your estate be distributed in strict accordance with Islamic inheritance (faraid)?',
+		help: 'Some assets pass outside a will under U.S. law. If strict faraid compliance matters to you, additional planning may be needed.',
 	},
 ];
 
@@ -378,6 +479,9 @@ export type WillResponseValue =
 	| YesNoUnsure
 	| AddressValue
 	| HeirsCalculatorResponse
+	| ExecutorEntry[]
+	| GuardianEntry[]
+	| WillWasiyyahResponse
 	| null;
 
 /** Mirror of the trust `Response` row shape so downstream code matches. */
@@ -389,6 +493,4 @@ export type WillResponses = Record<string, WillResponseValue>;
 export type WillOptIns = {
 	/** "Send me reminders every 6 months to review my plan." (pre-checked) */
 	reviewReminders: boolean;
-	/** "Notify me when attorney-reviewed plans become available in my state." */
-	attorneyAvailability: boolean;
 };
