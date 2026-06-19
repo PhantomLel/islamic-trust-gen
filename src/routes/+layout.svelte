@@ -2,7 +2,6 @@
 	import { browser } from '$app/environment';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import favicon from '$lib/assets/favicon.svg';
 	import { siteName } from '$lib/config';
 	import { env } from '$env/dynamic/public';
 	import '../app.css';
@@ -26,7 +25,7 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" type="image/png" href="/mcdaniel.png" />
 	{#if !page.url.pathname.startsWith('/mcdaniel')}
 		<title>{ (isLocalOrigin ? 'LOCAL - ' : '') + siteName + ' — Islamic Estate Planning' }</title>
 		<meta name="description" content="Attorney-led Islamic estate planning for Muslim families. Wills, trusts, prenuptials, and business succession grounded in Qur'anic principles and U.S. law." />
