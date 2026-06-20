@@ -122,7 +122,7 @@
 		legacy: {
 			eyebrow: 'Full-service · In-person · TX & CA',
 			name: 'Legacy Plan',
-			price: 'from $3,200',
+			price: 'from $3,500',
 			priceNote: 'Texas & California',
 			body: 'Personally designed by your attorney. Includes a dedicated Heba Strategy Session, trust drafting, deed recording, wills, powers of attorney, healthcare directives, and a physical binder shipped to your door.',
 			cta: { label: 'Schedule a Consultation', href: consultationBookingUrl },

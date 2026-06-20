@@ -104,7 +104,7 @@
 		'legacy-plan': {
 			title: 'Legacy Plan',
 			tagline: 'Full-service estate planning designed personally by your attorney.',
-			price: 'From $3,200',
+			price: 'From $3,500',
 			href: consultationBookingUrl
 		},
 		'family-waqf': {
