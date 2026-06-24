@@ -30,7 +30,49 @@
 		return '';
 	}
 
-	function getParentAutoName(heirType: 'father' | 'mother'): string {
+	const sharedChildHeirTypes = new Set([
+		'son',
+		'daughter',
+		'sons_of_sons',
+		'daughters_of_sons',
+	]);
+
+	/** In a joint trust, children are shared — pre-fill from the other spouse's heirs step. */
+	function getSiblingHeirsResponse(): HeirsCalculatorResponse | null {
+		if (questionId !== 'husband-heirs' && questionId !== 'wife-heirs') return null;
+		const siblingId = questionId === 'husband-heirs' ? 'wife-heirs' : 'husband-heirs';
+		const raw = allResponses[siblingId];
+		if (
+			raw &&
+			typeof raw === 'object' &&
+			!Array.isArray(raw) &&
+			'verified' in raw &&
+			'namedHeirs' in raw
+		) {
+			return raw as HeirsCalculatorResponse;
+		}
+		return null;
+	}
+
+	function getSharedChildAutoName(heirType: string, index: number): string {
+		if (!sharedChildHeirTypes.has(heirType)) return '';
+		const sibling = getSiblingHeirsResponse();
+		if (!sibling?.namedHeirs) return '';
+		const match = sibling.namedHeirs.find((h) => h.heirType === heirType);
+		return match?.names[index]?.trim() ?? '';
+	}
+
+	/** Joint trust collects both spouses before heirs; free will only has one. */
+	function isJointTrustHeirsFlow(): boolean {
+		return (
+			isPersonalDataShape(allResponses['husband-data']) &&
+			isPersonalDataShape(allResponses['wife-data'])
+		);
+	}
+
+	/** Free will maps earlier parent-name answers into father-name / mother-name keys. */
+	function getOwnParentAutoName(heirType: 'father' | 'mother'): string {
+		if (isJointTrustHeirsFlow()) return '';
 		const key = heirType === 'father' ? 'father-name' : 'mother-name';
 		const raw = allResponses[key];
 		return typeof raw === 'string' ? raw.trim() : '';
@@ -157,18 +199,20 @@
 			n[heir.heirType] = Array.from(
 				{ length: heir.count },
 				(_, i) => {
-					// Prefer already-entered name, then auto-fill spouse/parent names.
+					// Prefer already-entered name, then shared children, then the surviving spouse.
 					const saved = existing_names?.[i] ?? '';
 					if (saved !== '') return saved;
+					const childName = getSharedChildAutoName(heir.heirType, i);
+					if (childName !== '') return childName;
 					if (heir.heirType === spouseHeirType && i === 0 && spouseAutoName !== '') {
 						return spouseAutoName;
 					}
 					if (heir.heirType === 'father' && i === 0) {
-						const fatherName = getParentAutoName('father');
+						const fatherName = getOwnParentAutoName('father');
 						if (fatherName !== '') return fatherName;
 					}
 					if (heir.heirType === 'mother' && i === 0) {
-						const motherName = getParentAutoName('mother');
+						const motherName = getOwnParentAutoName('mother');
 						if (motherName !== '') return motherName;
 					}
 					return '';

@@ -390,7 +390,7 @@ export function heirsQuestionId(responses: WillResponses): 'husband-heirs' | 'wi
 
 /**
  * Map will responses into the keys `HeirsCalculatorInput` reads for pre-filling
- * parent alive checkboxes, spouse presence, and auto-filled names.
+ * parent alive checkboxes, spouse presence, spouse name, and parent names.
  */
 export function heirsCalculatorAllResponses(
 	responses: WillResponses,

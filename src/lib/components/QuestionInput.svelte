@@ -344,7 +344,9 @@
 	</div>
 
 {:else if question.type === 'heirs-calculator'}
-	<HeirsCalculatorInput {value} {onresponse} questionId={question.id} {allResponses} />
+	{#key question.id}
+		<HeirsCalculatorInput {value} {onresponse} questionId={question.id} {allResponses} />
+	{/key}
 
 {:else if question.type === 'ownership-allocation'}
 	<OwnershipAllocationInput {value} {onresponse} {onnext} />
