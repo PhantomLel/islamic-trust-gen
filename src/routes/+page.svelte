@@ -411,7 +411,7 @@
 					</div>
 
 					<ul class="flex flex-col gap-2">
-						{#each ['Attorney-drafted trust templates', 'Shariah-compliant distribution logic', 'Two pour-over wills', 'Deed preparation & recording', 'WhatsApp & email attorney access'] as feat}
+						{#each ['Attorney-drafted trust templates', 'Shariah-compliant distribution logic', 'Deed preparation & recording', 'WhatsApp & email attorney access'] as feat}
 							<li class="flex items-start gap-2 text-sm text-navy/65">
 								<svg class="w-3 h-3 shrink-0 mt-1 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 								{feat}
