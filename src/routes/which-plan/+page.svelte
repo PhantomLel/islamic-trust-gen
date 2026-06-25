@@ -115,7 +115,7 @@
 			name: 'GoodTree Trust',
 			price: formatUsd(defaultPrepFee),
 			priceNote: 'flat fee · attorney-supervised · notarization included',
-			body: 'Build an attorney-supervised Islamic revocable trust at your own pace. Includes deed preparation, two pour-over wills, and WhatsApp attorney access throughout.',
+			body: 'Build an attorney-supervised Islamic revocable trust at your own pace. Includes deed preparation, and WhatsApp attorney access throughout.',
 			cta: { label: 'Start Your GoodTree Trust', href: '/trust' },
 			color: 'navy'
 		},

@@ -186,7 +186,7 @@
 					<ul class="flex flex-col gap-3.5">
 						{#each [
 							'Attorney-drafted trust templates with shariah-compliant distribution logic',
-							'Two pour-over wills (one per spouse)',
+							// 'Two pour-over wills (one per spouse)',
 							'Digital document delivery',
 							'Deed preparation and recording',
 							'Homestead exemption guidance',
@@ -260,7 +260,7 @@
 							{ label: 'Business Interest Review', sub: 'Attorney review of any LLC or business ownership for shariah compliance gaps.' },
 							{ label: 'Trust drafting and deed preparation', sub: null },
 							{ label: 'Deed recording with the county', sub: null },
-							{ label: 'Two pour-over wills', sub: null },
+							// { label: 'Two pour-over wills', sub: null },
 							{ label: 'Healthcare directives and financial power of attorney', sub: null },
 							{ label: 'Certification of trust and notarization of all documents', sub: null },
 							{ label: 'Homestead exemption guidance and county-specific filing instructions', sub: null },
