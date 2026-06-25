@@ -460,7 +460,7 @@
 					</ul>
 
 					<div class="flex items-baseline gap-1.5 pt-4 border-t border-navy/8 mt-auto">
-						<span class="text-2xl tracking-tight text-navy">from $3,200</span>
+						<span class="text-2xl tracking-tight text-navy">from $3,500</span>
 					</div>
 
 					<a

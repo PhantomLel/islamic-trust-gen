@@ -216,7 +216,7 @@
 							<h2 class="text-2xl md:text-3xl tracking-tight text-cream mt-1">Legacy Plan</h2>
 						</div>
 						<div class="text-right shrink-0">
-							<div class="text-3xl tracking-tight text-cream">$3,200</div>
+							<div class="text-3xl tracking-tight text-cream">$3,500</div>
 							<div class="text-cream/40 text-xs mt-0.5">starting price</div>
 						</div>
 					</div>
