@@ -278,6 +278,27 @@
 					</div>
 				</div>
 
+				{#if t.status === 'completed'}
+					<div class="rounded-2xl border border-emerald-accent/20 bg-white/70 backdrop-blur-sm p-6 md:p-7 shadow-sm">
+						<div class="flex flex-col sm:flex-row sm:items-start gap-4">
+							<div class="shrink-0 w-11 h-11 rounded-xl bg-emerald-accent/10 flex items-center justify-center">
+								<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+							</div>
+							<div class="min-w-0 space-y-3">
+								<p class="text-[11px] text-emerald-accent/90 tracking-wider uppercase font-medium">Congratulations</p>
+								<p class="text-[15px] md:text-base text-navy leading-relaxed font-medium">
+									Your trust is complete. Your documents have been notarized, and your home has been deeded into your trust and recorded with the county.
+								</p>
+								<p class="text-[13px] text-navy/55 leading-relaxed">
+									We've emailed you a closing letter with your remaining action items — funding your trust, signing your pour-over wills, protecting your homestead exemption, and safely storing your documents. Please read it closely and keep it handy until every step is complete.
+								</p>
+							</div>
+						</div>
+					</div>
+				{/if}
+
 				{#if notarization}
 					<div class="rounded-2xl border border-emerald-accent/20 bg-white/70 backdrop-blur-sm p-6 md:p-7 shadow-sm">
 						<div class="flex flex-col sm:flex-row sm:items-stretch gap-5">
@@ -484,7 +505,7 @@
 				</div>
 
 				<!-- notarization -->
-				{#if t.approved}
+				{#if t.approved && t.status !== 'completed'}
 					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6">
 						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-3">Notarization</p>
 						{#if notarization}

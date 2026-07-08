@@ -10,7 +10,8 @@ import {
 	screeningQuestions,
 	isEligibleForOnlineTrustFromScreening
 } from '$lib/config';
-import type { TrustScreeningAnswers } from '$lib/server/db/schema';
+import type { TrustScreeningAnswers, LoeAgreementData } from '$lib/server/db/schema';
+import { LOE_AGREEMENT_VERSION } from '$lib/server/db/schema';
 import {
 	isIntakePhaseComplete,
 	meetsDiscountedCharityPledge,
@@ -145,12 +146,30 @@ export const actions: Actions = {
 
 		if (!county) throw error(400, 'County is required');
 
+		// Parse LOE agreement data (only present when user is eligible and accepted)
+		let loeAcceptedAt: Date | null = null;
+		let loeAgreementData: LoeAgreementData | null = null;
+		const loeRaw = data.get('loe');
+		if (eligible && typeof loeRaw === 'string' && loeRaw.trim()) {
+			try {
+				const parsed = JSON.parse(loeRaw) as LoeAgreementData;
+				if (parsed && parsed.version === LOE_AGREEMENT_VERSION && parsed.clientTimestamp) {
+					loeAgreementData = parsed;
+					loeAcceptedAt = new Date(); // server-side timestamp for legal purposes
+				}
+			} catch {
+				// Non-fatal: we still allow the screening to proceed
+				console.error('[screen] Failed to parse LOE agreement data');
+			}
+		}
+
 		await db
 			.update(trust)
 			.set({
 				isEligible: eligible,
 				screeningAnswers,
 				...(eligible ? { joint: true } : {}),
+				...(loeAcceptedAt ? { loeAcceptedAt, loeAgreementData } : {}),
 				updatedAt: new Date(),
 			})
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));

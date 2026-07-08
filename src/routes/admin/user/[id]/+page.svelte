@@ -26,6 +26,11 @@
 	let approveError = $state<string | null>(null);
 	let approving = $state(false);
 
+	let showFinalizeModal = $state(false);
+	let finalizeError = $state<string | null>(null);
+	let finalizing = $state(false);
+	let showFinalizeSuccess = $state(false);
+
 	let copiedEmail = $state(false);
 
 	type TabId = 'questionnaire' | 'files' | 'notes';
@@ -397,6 +402,38 @@
 			approving = false;
 		}
 	}
+
+	function openFinalizeModal() {
+		finalizeError = null;
+		showFinalizeModal = true;
+	}
+
+	function closeFinalizeModal() {
+		if (finalizing) return;
+		showFinalizeModal = false;
+	}
+
+	async function confirmFinalizeCase() {
+		if (!trust) return;
+		finalizeError = null;
+		finalizing = true;
+		try {
+			const formData = new FormData();
+			formData.set('trustId', String(trust.id));
+			const res = await fetch('?/finalizeCase', { method: 'POST', body: formData });
+			if (!res.ok) {
+				finalizeError = 'Could not finalize the case. Please try again.';
+				return;
+			}
+			showFinalizeModal = false;
+			await invalidateAll();
+			showFinalizeSuccess = true;
+		} catch {
+			finalizeError = 'Something went wrong. Please try again.';
+		} finally {
+			finalizing = false;
+		}
+	}
 </script>
 
 <div class="min-h-screen w-screen bg-cream font-sans relative">
@@ -500,6 +537,27 @@
 							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 							Approve Documents
 						</button>
+					{/if}
+
+					{#if trust && trust.approved && trust.status !== 'completed'}
+						<button
+							type="button"
+							onclick={openFinalizeModal}
+							class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition-all cursor-pointer
+								border-navy bg-navy text-cream hover:bg-navy-light"
+						>
+							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+							Finalize case
+						</button>
+					{/if}
+
+					{#if trust && trust.status === 'completed'}
+						<span
+							class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border border-emerald-accent/30 bg-emerald-accent/10 text-emerald-accent"
+						>
+							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+							Case finalized
+						</span>
 					{/if}
 
 					{#if canDeleteUser}
@@ -618,29 +676,176 @@
 								<span class="font-medium text-navy/85">{data.targetUser.county}</span>
 							</p>
 						{/if}
-						{#if trust.screeningAnswers}
-							<ul class="space-y-3">
-								{#each screeningQuestions as q}
-									{@const ans = trust.screeningAnswers?.[q.id]}
-									<li class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4 text-[13px] border-b border-navy/[0.06] last:border-0 pb-3 last:pb-0">
-										<span class="text-navy/70 leading-relaxed">{q.text}</span>
-										<span
-											class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium tabular-nums
-												{ans === true ? 'bg-amber-50 text-amber-800 border border-amber-200/80' : ans === false ? 'bg-emerald-accent/8 text-navy/75 border border-emerald-accent/25' : 'bg-navy/[0.06] text-navy/45 border border-navy/10'}"
-										>
-											{ans === true ? 'Yes' : ans === false ? 'No' : '—'}
-										</span>
-									</li>
-								{/each}
-							</ul>
+				{#if trust.screeningAnswers}
+						<ul class="space-y-3">
+							{#each screeningQuestions as q}
+								{@const ans = trust.screeningAnswers?.[q.id]}
+								<li class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4 text-[13px] border-b border-navy/[0.06] last:border-0 pb-3 last:pb-0">
+									<span class="text-navy/70 leading-relaxed">{q.text}</span>
+									<span
+										class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium tabular-nums
+											{ans === true ? 'bg-amber-50 text-amber-800 border border-amber-200/80' : ans === false ? 'bg-emerald-accent/8 text-navy/75 border border-emerald-accent/25' : 'bg-navy/[0.06] text-navy/45 border border-navy/10'}"
+									>
+										{ans === true ? 'Yes' : ans === false ? 'No' : '—'}
+									</span>
+								</li>
+							{/each}
+						</ul>
+					{:else}
+						<p class="text-[13px] text-navy/50 leading-relaxed">
+							Screening answers were not stored for this trust (submitted before this feature was added).
+						</p>
+					{/if}
+				</div>
+			{/if}
+
+			<!-- LOE Agreement record -->
+			{#if trust}
+				<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6 md:p-7 mb-6">
+					<div class="flex items-center justify-between mb-4">
+						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium">LOE Agreement</p>
+						{#if trust.loeAcceptedAt}
+							<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-accent/10 text-emerald-accent border border-emerald-accent/25">
+								<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+								Accepted
+							</span>
 						{:else}
-							<p class="text-[13px] text-navy/50 leading-relaxed">
-								Screening answers were not stored for this trust (submitted before this feature was added).
-							</p>
+							<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-navy/[0.05] text-navy/50 border border-navy/10">
+								Not yet accepted
+							</span>
 						{/if}
 					</div>
-				{/if}
-				<AdminQuestionResponses {trust} />
+
+					{#if trust.loeAcceptedAt}
+						{@const loe = trust.loeAgreementData}
+						<div class="space-y-2 text-[13px]">
+							<div class="flex justify-between gap-4 py-1.5 border-b border-navy/[0.05]">
+								<span class="text-navy/45">Accepted at (server time)</span>
+								<span class="font-medium text-navy/80 tabular-nums">{new Date(trust.loeAcceptedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}</span>
+							</div>
+							{#if loe}
+								<div class="flex justify-between gap-4 py-1.5 border-b border-navy/[0.05]">
+									<span class="text-navy/45">Agreement version</span>
+									<span class="font-medium text-navy/80">{loe.version}</span>
+								</div>
+								<div class="flex justify-between gap-4 py-1.5 border-b border-navy/[0.05]">
+									<span class="text-navy/45">Client timestamp</span>
+									<span class="font-medium text-navy/80 tabular-nums">{new Date(loe.clientTimestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}</span>
+								</div>
+								<div class="flex justify-between gap-4 py-1.5 border-b border-navy/[0.05]">
+									<span class="text-navy/45">Date entered by user</span>
+									<span class="font-medium text-navy/80">{loe.userEnteredDate}</span>
+								</div>
+								{#if loe.checkboxes}
+									<div class="pt-2">
+										<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-2">Checkbox confirmations</p>
+										<ul class="space-y-1.5">
+								{#each [
+											{ cbKey: 'limitedScope', cbLabel: 'Limited-scope engagement acknowledged' },
+											{ cbKey: 'situationFits', cbLabel: 'Situation fits the online plan' },
+											{ cbKey: 'islamicPrinciples', cbLabel: 'Islamic inheritance principles acknowledged' },
+											{ cbKey: 'noTaxPlanning', cbLabel: 'No tax planning / out-of-scope services acknowledged' },
+											{ cbKey: 'noHeirRepresentation', cbLabel: 'No heir representation acknowledged' },
+											{ cbKey: 'keepOriginalsSafe', cbLabel: 'Will keep signed originals safe' },
+											{ cbKey: 'homesteadGuidanceOnly', cbLabel: 'Homestead guidance only (no filing)' },
+										] as { cbKey, cbLabel }}
+											{@const checked = loe.checkboxes[cbKey as keyof typeof loe.checkboxes]}
+											<li class="flex items-center gap-2 text-[12px]">
+												{#if checked}
+													<svg class="w-3.5 h-3.5 text-emerald-accent shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+													<span class="text-navy/70">{cbLabel}</span>
+												{:else}
+													<svg class="w-3.5 h-3.5 text-red-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+													<span class="text-red-600/80">{cbLabel}</span>
+												{/if}
+											</li>
+										{/each}
+										</ul>
+									</div>
+								{/if}
+							{/if}
+						</div>
+					{:else}
+						<p class="text-[13px] text-navy/45 leading-relaxed">
+							The user has not yet accepted the Limited-Scope App Engagement agreement.
+						</p>
+					{/if}
+				</div>
+			{/if}
+
+			<!-- Planning Warning agreement record -->
+			{#if trust}
+				<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6 md:p-7 mb-6">
+					<div class="flex items-center justify-between mb-4">
+						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium">Planning Warning Agreement</p>
+						{#if trust.warningAcceptedAt}
+							<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-accent/10 text-emerald-accent border border-emerald-accent/25">
+								<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+								Accepted
+							</span>
+						{:else}
+							<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-navy/[0.05] text-navy/50 border border-navy/10">
+								Not yet accepted
+							</span>
+						{/if}
+					</div>
+
+					{#if trust.warningAcceptedAt}
+						{@const wa = trust.warningAgreementData}
+						<div class="space-y-2 text-[13px]">
+							<div class="flex justify-between gap-4 py-1.5 border-b border-navy/[0.05]">
+								<span class="text-navy/45">Accepted at (server time)</span>
+								<span class="font-medium text-navy/80 tabular-nums">{new Date(trust.warningAcceptedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}</span>
+							</div>
+							{#if wa}
+								<div class="flex justify-between gap-4 py-1.5 border-b border-navy/[0.05]">
+									<span class="text-navy/45">Agreement version</span>
+									<span class="font-medium text-navy/80">{wa.version}</span>
+								</div>
+								<div class="flex justify-between gap-4 py-1.5 border-b border-navy/[0.05]">
+									<span class="text-navy/45">Client timestamp</span>
+									<span class="font-medium text-navy/80 tabular-nums">{new Date(wa.clientTimestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'long' })}</span>
+								</div>
+								<div class="flex justify-between gap-4 py-1.5 border-b border-navy/[0.05]">
+									<span class="text-navy/45">Date entered by user</span>
+									<span class="font-medium text-navy/80">{wa.userEnteredDate}</span>
+								</div>
+								{#if wa.checkboxes}
+									<div class="pt-2">
+										<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-2">Checkbox confirmations</p>
+										<ul class="space-y-1.5">
+											{#each [
+												{ cbKey: 'basicPlanningOnly', cbLabel: 'Basic planning only acknowledged' },
+												{ cbKey: 'largeComplexEstateRisk', cbLabel: 'Large/complex estate risk acknowledged' },
+												{ cbKey: 'noAdvancedOptimization', cbLabel: 'No advanced optimization acknowledged' },
+												{ cbKey: 'heirDisagreementRisk', cbLabel: 'Heir disagreement risk acknowledged' },
+												{ cbKey: 'choseAppOverConsultation', cbLabel: 'Chose app over consultation' },
+											] as { cbKey, cbLabel }}
+												{@const checked = wa.checkboxes[cbKey as keyof typeof wa.checkboxes]}
+												<li class="flex items-center gap-2 text-[12px]">
+													{#if checked}
+														<svg class="w-3.5 h-3.5 text-emerald-accent shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+														<span class="text-navy/70">{cbLabel}</span>
+													{:else}
+														<svg class="w-3.5 h-3.5 text-red-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+														<span class="text-red-600/80">{cbLabel}</span>
+													{/if}
+												</li>
+											{/each}
+										</ul>
+									</div>
+								{/if}
+							{/if}
+						</div>
+					{:else}
+						<p class="text-[13px] text-navy/45 leading-relaxed">
+							The user has not yet accepted the Planning Warning agreement (shown before payment).
+						</p>
+					{/if}
+				</div>
+			{/if}
+
+			<AdminQuestionResponses {trust} />
 		{:else if activeTab === 'files'}
 			{#if trust}
 				{@const canGenerate = trust.complete}
@@ -932,6 +1137,110 @@
 						{/if}
 					</button>
 				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if showFinalizeModal}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-navy/25 backdrop-blur-sm"
+			onclick={closeFinalizeModal}
+			role="presentation"
+		>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="relative max-w-md w-full bg-white rounded-2xl shadow-2xl shadow-navy/15 p-7 outline-none border border-navy/[0.06]"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="finalize-case-title"
+				tabindex="-1"
+			>
+				<h3 id="finalize-case-title" class="text-lg font-semibold text-navy mb-2">
+					Finalize this case?
+				</h3>
+				<p class="text-[13px] text-navy/65 leading-relaxed">
+					This marks <span class="font-medium text-navy">{data.targetUser.name}</span>'s
+					trust as <span class="font-medium text-navy">completed</span> and emails them the
+					closing letter with their remaining action items (funding, pour-over wills, homestead
+					exemption, and storage). This is the final step in the workflow.
+				</p>
+				{#if finalizeError}
+					<p class="mt-3 text-[13px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
+						{finalizeError}
+					</p>
+				{/if}
+				<div class="mt-6 flex flex-col-reverse sm:flex-row gap-3">
+					<button
+						type="button"
+						onclick={closeFinalizeModal}
+						disabled={finalizing}
+						class="flex-1 py-2.5 rounded-xl text-sm font-medium text-navy bg-navy/6 hover:bg-navy/10 transition-colors cursor-pointer disabled:opacity-60"
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						onclick={confirmFinalizeCase}
+						disabled={finalizing}
+						class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-cream bg-navy hover:bg-navy-light transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center justify-center gap-2"
+					>
+						{#if finalizing}
+							<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+							</svg>
+							Finalizing…
+						{:else}
+							Finalize &amp; send closing email
+						{/if}
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if showFinalizeSuccess}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-navy/25 backdrop-blur-sm"
+			onclick={() => (showFinalizeSuccess = false)}
+			role="presentation"
+		>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="relative max-w-md w-full bg-white rounded-2xl shadow-2xl shadow-navy/15 p-7 outline-none border border-navy/[0.06] text-center"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="finalize-success-title"
+				tabindex="-1"
+			>
+				<div class="mx-auto mb-4 w-12 h-12 rounded-full bg-emerald-accent/12 flex items-center justify-center">
+					<svg class="w-6 h-6 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+					</svg>
+				</div>
+				<h3 id="finalize-success-title" class="text-lg font-semibold text-navy mb-2">
+					Case finalized
+				</h3>
+				<p class="text-[13px] text-navy/65 leading-relaxed">
+					<span class="font-medium text-navy">{data.targetUser.name}</span>'s trust is now marked
+					completed, and the closing letter has been emailed to
+					<span class="font-medium text-navy">{data.targetUser.email}</span>.
+				</p>
+				<button
+					type="button"
+					onclick={() => (showFinalizeSuccess = false)}
+					class="mt-6 w-full py-2.5 rounded-xl text-sm font-semibold text-cream bg-navy hover:bg-navy-light transition-colors cursor-pointer"
+				>
+					Done
+				</button>
 			</div>
 		</div>
 	{/if}

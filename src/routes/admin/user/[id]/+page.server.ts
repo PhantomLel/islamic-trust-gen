@@ -3,8 +3,10 @@ import { Resend } from 'resend';
 import { siteName } from '$lib/config';
 import { db } from '$lib/server/db';
 import { trust, user, adminNote, TrustStatus } from '$lib/server/db/schema';
+import type { LoeAgreementData, WarningAgreementData } from '$lib/server/db/schema';
 import type { UserFile } from '$lib/server/db/schema';
 import { documentsApprovedEmail } from '$lib/server/emails/documentsApproved';
+import { closingLetterEmail } from '$lib/server/emails/closingLetter';
 import { createSingleUseSchedulingLink, isCalendlyConfigured } from '$lib/server/calendly';
 import { eq, and, desc } from 'drizzle-orm';
 import { UTApi } from 'uploadthing/server';
@@ -76,6 +78,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			fileUrls: t.file_urls ?? [],
 			generatedFiles: t.generated_files ?? [],
 			userFiles: (t.user_files ?? []) as UserFile[],
+			loeAcceptedAt: t.loeAcceptedAt?.toISOString() ?? null,
+			loeAgreementData: (t.loeAgreementData ?? null) as LoeAgreementData | null,
+			warningAcceptedAt: t.warningAcceptedAt?.toISOString() ?? null,
+			warningAgreementData: (t.warningAgreementData ?? null) as WarningAgreementData | null,
 		})),
 	};
 };
@@ -173,6 +179,55 @@ export const actions: Actions = {
 		}
 
 		return { approved: true };
+	},
+
+	finalizeCase: async ({ request, locals, params }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		if (Number.isNaN(trustId)) return fail(400, { message: 'Missing trust ID' });
+
+		const row = await db.query.trust.findFirst({
+			where: eq(trust.id, trustId),
+			columns: { id: true, userId: true, status: true },
+			with: { user: { columns: { name: true, email: true } } },
+		});
+		if (!row) return fail(404, { message: 'Trust not found' });
+		if (row.userId !== params.id) return fail(400, { message: 'Trust does not belong to this user' });
+		if (row.status === TrustStatus.Completed) return fail(400, { message: 'Case is already finalized' });
+
+		await db
+			.update(trust)
+			.set({
+				status: TrustStatus.Completed,
+				complete: true,
+				updatedAt: new Date(),
+			})
+			.where(eq(trust.id, trustId));
+
+		const to = row.user.email?.trim();
+		if (to && env.RESEND_API_KEY && env.FROM_EMAIL) {
+			try {
+				const resend = new Resend(env.RESEND_API_KEY);
+				const origin = (env.ORIGIN ?? '').replace(/\/$/, '');
+				const dashboardUrl = origin ? `${origin}/dashboard` : null;
+				await resend.emails.send({
+					from: env.FROM_EMAIL,
+					to,
+					subject: `Your trust is complete — important next steps (${siteName})`,
+					html: closingLetterEmail({
+						trustId,
+						recipientName: row.user.name,
+						dashboardUrl,
+					}),
+				});
+			} catch (err) {
+				console.error('[finalizeCase] Closing email failed:', err);
+			}
+		}
+
+		return { finalized: true };
 	},
 
 	toggleConsultation: async ({ request, locals }) => {

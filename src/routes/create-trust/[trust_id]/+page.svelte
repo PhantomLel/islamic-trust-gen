@@ -53,10 +53,12 @@
 	async function handleScreeningSubmit(payload: {
 		county: string;
 		answers: Record<string, boolean>;
+		loe?: import('$lib/loe').LoeAgreementData;
 	}) {
 		const form = new FormData();
 		form.set('county', payload.county);
 		form.set('answers', JSON.stringify(payload.answers));
+		if (payload.loe) form.set('loe', JSON.stringify(payload.loe));
 		await fetch('?/screen', { method: 'POST', body: form });
 		await invalidateAll();
 		if (!isEligibleForOnlineTrustFromScreening(payload.answers)) goto(`/consultation/${data.trust.id}`);

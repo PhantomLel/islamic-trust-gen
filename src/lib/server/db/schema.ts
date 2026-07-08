@@ -35,6 +35,10 @@ export type UserFile = {
 /** Keys match `screeningQuestions` ids in config; values are Yes (true) / No (false). */
 export type TrustScreeningAnswers = Record<string, boolean>;
 
+export type { LoeAgreementData, LoeCheckboxes, WarningAgreementData, WarningCheckboxes } from '../../loe';
+export { LOE_AGREEMENT_VERSION, WARNING_AGREEMENT_VERSION } from '../../loe';
+import type { LoeAgreementData, WarningAgreementData } from '../../loe';
+
 enum Charities {
 	IslamicSocietyOfNorthAmerica = 'islamic-society-of-north-america',
 	AmericanRedCross = 'american-red-cross',
@@ -102,6 +106,15 @@ export const trust = pgTable('trust', {
 	notarizationStartTime: timestamp('notarization_start_time'),
 	/** Scheduled end time of the notarization meeting. */
 	notarizationEndTime: timestamp('notarization_end_time'),
+	// ── LOE Clickwrap ────────────────────────────────────────────────
+	/** Server-side timestamp recorded when the user accepted the LOE clickwrap. */
+	loeAcceptedAt: timestamp('loe_accepted_at'),
+	/** Full LOE agreement record (version, checkbox states, client timestamp, user-entered date). */
+	loeAgreementData: jsonb('loe_agreement_data').$type<LoeAgreementData | null>(),
+	/** Server-side timestamp recorded when the user accepted the Planning Warning clickwrap (pre-payment). */
+	warningAcceptedAt: timestamp('warning_accepted_at'),
+	/** Full Planning Warning agreement record (version, checkbox states, client timestamp, user-entered date). */
+	warningAgreementData: jsonb('warning_agreement_data').$type<WarningAgreementData | null>(),
 });
 
 /**

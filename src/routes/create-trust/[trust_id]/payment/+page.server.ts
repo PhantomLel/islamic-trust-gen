@@ -2,6 +2,8 @@ import { error, redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { trust, invoice, TrustStatus } from '$lib/server/db/schema';
+import type { WarningAgreementData } from '$lib/server/db/schema';
+import { WARNING_AGREEMENT_VERSION } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { stripe } from '$lib/server/stripe';
 import type { PageServerLoad, Actions } from './$types';
@@ -53,6 +55,28 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const selectedPlan = formData.get('selectedPlan') === 'discounted' ? 'discounted' : 'full';
 		const addDeedRetrieval = formData.get('addDeedRetrieval') === 'true';
+
+		// Parse and persist the Planning Warning agreement
+		let warningAcceptedAt: Date | null = null;
+		let warningAgreementData: WarningAgreementData | null = null;
+		const warningRaw = formData.get('warningAgreement');
+		if (typeof warningRaw === 'string' && warningRaw.trim()) {
+			try {
+				const parsed = JSON.parse(warningRaw) as WarningAgreementData;
+				if (parsed && parsed.version === WARNING_AGREEMENT_VERSION && parsed.clientTimestamp) {
+					warningAgreementData = parsed;
+					warningAcceptedAt = new Date();
+				}
+			} catch {
+				console.error('[checkout] Failed to parse warning agreement data');
+			}
+		}
+		if (warningAcceptedAt) {
+			await db
+				.update(trust)
+				.set({ warningAcceptedAt, warningAgreementData, updatedAt: new Date() })
+				.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
+		}
 
 		const baseAmount = existing.customPrice ?? defaultPrepFee;
 		const trustFeeAmount = selectedPlan === 'discounted'
