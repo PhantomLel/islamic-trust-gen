@@ -24,8 +24,8 @@ import {
 
 /**
  * Shape that the joint trust .docx template consumes. Every key referenced in
- * `joint_template.docx` must be present here (including text fallbacks for
- * `{:table xxx}` tags, which the renderer rewrites to `{xxxText}`).
+ * `joint_template.docx` must be present here (including text fallbacks for any
+ * remaining `{:table xxx}` tags, which the renderer rewrites to `{xxxText}`).
  */
 export type JointTrustContext = {
 	trustName: string;
@@ -43,8 +43,18 @@ export type JointTrustContext = {
 	wifeHeirs: HeirTableRow[];
 	trustees: string[];
 
-	husbandCharitable: boolean;
-	wifeCharitable: boolean;
+	/** True when that spouse has at least one charitable bequest row. */
+	hasHusbandCharitable: boolean;
+	hasWifeCharitable: boolean;
+	/** True when that spouse has at least one non-charitable bequest row. */
+	hasHusbandNonCharitable: boolean;
+	hasWifeNonCharitable: boolean;
+
+	/** Loop rows for Article Ten bequest tables. */
+	husbandCharitable: { charityName: string; percentage: string }[];
+	wifeCharitable: { charityName: string; percentage: string }[];
+	husbandNonCharitable: { recipientName: string; relationship: string; percentage: string }[];
+	wifeNonCharitable: { recipientName: string; relationship: string; percentage: string }[];
 
 	distribution: {
 		mode: 'staggered' | 'single-age' | 'age-of-majority' | '';
@@ -75,10 +85,6 @@ export type JointTrustContext = {
 	highValueItems: { itemDescription: string; owner: string }[];
 
 	/** Text fallbacks — used by the {xxxText} scalars that the :table preprocessor emits. */
-	husbandCharitableText: string;
-	husbandNonCharitableText: string;
-	wifeCharitableText: string;
-	wifeNonCharitableText: string;
 	heirsTableText: string;
 	hebaAssetsText: string;
 	husbandSeparatePropertyText: string;
@@ -123,16 +129,23 @@ function bulletList(lines: string[]): string {
 	return filtered.map((l) => `\u2022 ${l}`).join('\n');
 }
 
-function formatCharities(list: CharityResponse[] | undefined): string {
-	if (!list || list.length === 0) return 'No charitable bequests';
-	return bulletList(list.map((c) => `${charityName(c)} \u2014 ${c.percentage}%`));
+function mapCharitableRows(
+	list: CharityResponse[] | undefined,
+): { charityName: string; percentage: string }[] {
+	return (list ?? []).map((c) => ({
+		charityName: charityName(c),
+		percentage: String(c.percentage ?? ''),
+	}));
 }
 
-function formatBequests(list: NonCharitableBequestEntry[] | undefined): string {
-	if (!list || list.length === 0) return 'No non-charitable bequests';
-	return bulletList(
-		list.map((b) => `${b.recipientName} (${b.relationship}) \u2014 ${b.percentage}%`),
-	);
+function mapNonCharitableRows(
+	list: NonCharitableBequestEntry[] | undefined,
+): { recipientName: string; relationship: string; percentage: string }[] {
+	return (list ?? []).map((b) => ({
+		recipientName: b.recipientName ?? '',
+		relationship: b.relationship ?? '',
+		percentage: String(b.percentage ?? ''),
+	}));
 }
 
 function formatHebaAssets(list: HebaAssetEntry[] | undefined): string {
@@ -193,10 +206,18 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 	const minor = getResponse<MinorDistributionResponse>(trust, 'minor-distribution');
 	const trustName = getResponse<string>(trust, 'trust-name') ?? '';
 
-	const husbandHasCharities = !!(charitiesResp?.husbandInterested && charitiesResp.husbandCharities?.length);
-	const husbandHasBequests = !!(bequestsResp?.husbandInterested && bequestsResp.husbandBequests?.length);
-	const wifeHasCharities = !!(charitiesResp?.wifeInterested && charitiesResp.wifeCharities?.length);
-	const wifeHasBequests = !!(bequestsResp?.wifeInterested && bequestsResp.wifeBequests?.length);
+	const husbandCharitable = mapCharitableRows(
+		charitiesResp?.husbandInterested ? charitiesResp.husbandCharities : undefined,
+	);
+	const wifeCharitable = mapCharitableRows(
+		charitiesResp?.wifeInterested ? charitiesResp.wifeCharities : undefined,
+	);
+	const husbandNonCharitable = mapNonCharitableRows(
+		bequestsResp?.husbandInterested ? bequestsResp.husbandBequests : undefined,
+	);
+	const wifeNonCharitable = mapNonCharitableRows(
+		bequestsResp?.wifeInterested ? bequestsResp.wifeBequests : undefined,
+	);
 
 	const distribution: JointTrustContext['distribution'] = {
 		mode: minor?.mode ?? '',
@@ -224,8 +245,15 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 		wifeHeirs: flattenNamedHeirs(wifeHeirs?.namedHeirs),
 		trustees: successors.map((s) => s.fullName).filter(Boolean),
 
-		husbandCharitable: husbandHasCharities || husbandHasBequests,
-		wifeCharitable: wifeHasCharities || wifeHasBequests,
+		hasHusbandCharitable: husbandCharitable.length > 0,
+		hasWifeCharitable: wifeCharitable.length > 0,
+		hasHusbandNonCharitable: husbandNonCharitable.length > 0,
+		hasWifeNonCharitable: wifeNonCharitable.length > 0,
+
+		husbandCharitable,
+		wifeCharitable,
+		husbandNonCharitable,
+		wifeNonCharitable,
 
 		distribution,
 
@@ -257,10 +285,6 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 			owner: p.spouse ?? '',
 		})),
 
-		husbandCharitableText: formatCharities(charitiesResp?.husbandCharities),
-		husbandNonCharitableText: formatBequests(bequestsResp?.husbandBequests),
-		wifeCharitableText: formatCharities(charitiesResp?.wifeCharities),
-		wifeNonCharitableText: formatBequests(bequestsResp?.wifeBequests),
 		heirsTableText: formatHeirsTable(husbandHeirs?.namedHeirs ?? wifeHeirs?.namedHeirs),
 		hebaAssetsText: formatHebaAssets(hebaAssetEntries),
 		husbandSeparatePropertyText: formatSeparateProperty(sepProp?.husband),

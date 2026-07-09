@@ -44,6 +44,9 @@
 	};
 	let fileRows = $derived<FileRow[]>(buildFileRows(trust));
 	let deletingKey = $state<string | null>(null);
+	let showDeleteFileModal = $state(false);
+	let fileToDelete = $state<FileRow | null>(null);
+	let deleteFileError = $state<string | null>(null);
 
 	let showDocxPreview = $state(false);
 	let docxPreviewEl = $state<HTMLDivElement | null>(null);
@@ -241,15 +244,40 @@
 		}
 	}
 
-	async function deleteFile(row: FileRow) {
+	function openDeleteFileModal(row: FileRow) {
 		if (!row.deleteAction) return;
+		deleteFileError = null;
+		fileToDelete = row;
+		showDeleteFileModal = true;
+	}
+
+	function closeDeleteFileModal() {
+		showDeleteFileModal = false;
+		fileToDelete = null;
+		deleteFileError = null;
+	}
+
+	async function confirmDeleteFile() {
+		const row = fileToDelete;
+		if (!row?.deleteAction) return;
 		const key = row.deleteAction.fields.kind ?? row.deleteAction.fields.fileId;
 		deletingKey = key;
-		const formData = new FormData();
-		for (const [k, v] of Object.entries(row.deleteAction.fields)) formData.set(k, v);
-		await fetch(row.deleteAction.action, { method: 'POST', body: formData });
-		deletingKey = null;
-		await invalidateAll();
+		deleteFileError = null;
+		try {
+			const formData = new FormData();
+			for (const [k, v] of Object.entries(row.deleteAction.fields)) formData.set(k, v);
+			const res = await fetch(row.deleteAction.action, { method: 'POST', body: formData });
+			if (!res.ok) {
+				deleteFileError = 'Could not delete file. Please try again.';
+				return;
+			}
+			closeDeleteFileModal();
+			await invalidateAll();
+		} catch {
+			deleteFileError = 'Could not delete file. Please try again.';
+		} finally {
+			deletingKey = null;
+		}
 	}
 
 	// ── File upload (admin) ───────────────────────────────────────
@@ -984,7 +1012,7 @@
 										{#if f.deleteAction}
 											<button
 												type="button"
-												onclick={() => deleteFile(f)}
+												onclick={() => openDeleteFileModal(f)}
 												disabled={deletingKey === deleteKey}
 												class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-rose-200/60 bg-rose-50 text-rose-400 hover:bg-rose-100 hover:text-rose-600 transition-all cursor-pointer disabled:opacity-40"
 												title="Delete file"
@@ -1238,6 +1266,64 @@
 				>
 					Done
 				</button>
+			</div>
+		</div>
+	{/if}
+
+	{#if showDeleteFileModal && fileToDelete}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-navy/25 backdrop-blur-sm"
+			onclick={closeDeleteFileModal}
+			role="presentation"
+		>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="relative max-w-md w-full bg-white rounded-2xl shadow-2xl shadow-navy/15 p-7 outline-none border border-navy/[0.06]"
+				onclick={(e) => e.stopPropagation()}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="delete-file-title"
+				tabindex="-1"
+			>
+				<h3 id="delete-file-title" class="text-lg font-semibold text-navy mb-2">
+					Delete this file?
+				</h3>
+				<p class="text-[13px] text-navy/65 leading-relaxed">
+					This will permanently remove
+					<span class="font-medium text-navy">{fileToDelete.label}</span>
+					from storage. This cannot be undone.
+				</p>
+				{#if deleteFileError}
+					<p class="mt-3 text-[13px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2" role="alert">
+						{deleteFileError}
+					</p>
+				{/if}
+				<div class="mt-6 flex flex-col-reverse sm:flex-row gap-3">
+					<button
+						type="button"
+						onclick={closeDeleteFileModal}
+						disabled={deletingKey !== null}
+						class="flex-1 py-2.5 rounded-xl text-sm font-medium text-navy bg-navy/6 hover:bg-navy/10 transition-colors cursor-pointer disabled:opacity-60"
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						onclick={confirmDeleteFile}
+						disabled={deletingKey !== null}
+						class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center justify-center gap-2"
+					>
+						{#if deletingKey !== null}
+							<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+							Deleting…
+						{:else}
+							Delete permanently
+						{/if}
+					</button>
+				</div>
 			</div>
 		</div>
 	{/if}
