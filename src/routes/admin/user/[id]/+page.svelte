@@ -854,14 +854,14 @@
 						<div class="min-w-0">
 							<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-1">Generate</p>
 							<p class="text-[12px] text-navy/45">
-								Create the joint trust .docx, store it for this client, and show it in the list below. Use Preview to read Word files in the browser, or Download to save a copy.
+								Create the joint trust and both pour-over wills (.docx), store them for this client, and show them in the list below. Use Preview to read Word files in the browser, or Download to save a copy.
 							</p>
 						</div>
 						<button
 							type="button"
 							disabled={!canGenerate || generateLoading}
 							onclick={() => generateJointTrustDoc()}
-							title={canGenerate ? 'Generate and save the joint trust document' : 'Available once the user completes the questionnaire.'}
+							title={canGenerate ? 'Generate and save the joint trust and pour-over wills' : 'Available once the user completes the questionnaire.'}
 							class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition-all shrink-0
 								{canGenerate && !generateLoading
 									? 'bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 cursor-pointer'
@@ -874,10 +874,7 @@
 								</svg>
 								Generating…
 							{:else}
-								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-								</svg>
-								Generate joint trust (.docx)
+								Generate documents
 							{/if}
 						</button>
 					</div>

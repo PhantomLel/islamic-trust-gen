@@ -38,11 +38,16 @@ export function flattenNamedHeirs(named: NamedHeir[] | undefined): HeirTableRow[
 	return rows;
 }
 
-/** Comma-separated list of son and daughter names, e.g. "John Smith, Jane Smith, and Bob Smith". */
-export function formatChildrenList(named: NamedHeir[] | undefined): string {
-	const names = (named ?? [])
+/** Son and daughter names from the heirs calculator, in display order. */
+export function listChildNames(named: NamedHeir[] | undefined): string[] {
+	return (named ?? [])
 		.filter((h) => h.heirType === 'son' || h.heirType === 'daughter')
 		.flatMap((h) => h.names.map((n) => n.trim()).filter((n) => n.length > 0));
+}
+
+/** Comma-separated list of son and daughter names, e.g. "John Smith, Jane Smith, and Bob Smith". */
+export function formatChildrenList(named: NamedHeir[] | undefined): string {
+	const names = listChildNames(named);
 
 	if (names.length === 0) return '';
 	if (names.length === 1) return names[0];
