@@ -37,10 +37,15 @@
 	let userEmail = $derived(data.userEmail ?? '');
 	let selectedPlan = $derived(data.trust.selectedPlan);
 	let hasPaidInvoice = $derived(selectedPlan !== null);
+	/** After Stripe checkout, jump to property questions once (see payment-return $effects). */
+	let paymentReturnHandled = $state(false);
+	let returningFromPayment = $derived($page.url.searchParams.get('payment') === 'success');
 	// After payment, include pre-payment questions in the active flow so the user
 	// can navigate back to them freely from the sidebar.
 	let intakeQuestions = $derived(
-		selectedPlan !== null ? allIntakeQuestions : prePaymentQuestions
+		selectedPlan !== null || returningFromPayment || paymentReturnHandled
+			? allIntakeQuestions
+			: prePaymentQuestions
 	);
 	let step = $derived<'screening' | 'type' | 'questionnaire'>(
 		data.trust.isEligible === null
@@ -85,8 +90,6 @@
 	let saving = $state(false);
 	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 	let completeBlockedMessage = $state<string | null>(null);
-	/** After Stripe checkout, jump to property questions once (see payment-return $effects). */
-	let paymentReturnHandled = $state(false);
 
 	// ── active questions (dependency-aware) ──
 	let activeResult = $derived(getActiveQuestions(responses, intakeQuestions));
@@ -260,18 +263,31 @@
 		};
 	});
 
-	// Land on the first property (post-payment) step instead of question 1 after checkout.
+	// Land on the first post-payment question after checkout — don't wait for the webhook
+	// to unlock the question list (hash navigation fails while only pre-payment questions are active).
 	$effect(() => {
 		if (paymentReturnHandled) return;
 		if (step !== 'questionnaire') return;
-		if ($page.url.searchParams.get('payment') !== 'success') return;
-		if (!hasPaidInvoice) return;
+		if (!returningFromPayment && !hasPaidInvoice) return;
 
 		const idx = activeQuestions.findIndex((q) => q.id === postPaymentEntryQuestionId);
 		if (idx < 0) return;
 
 		paymentReturnHandled = true;
 		currentIndex = idx;
+		const base = `/create-trust/${data.trust.id}`;
+		const hash = `#${postPaymentEntryQuestionId}`;
+		history.replaceState(
+			null,
+			'',
+			hasPaidInvoice ? `${base}${hash}` : `${base}?payment=success${hash}`
+		);
+	});
+
+	// Drop the payment=success query param once the webhook has confirmed payment.
+	$effect(() => {
+		if (!hasPaidInvoice) return;
+		if ($page.url.searchParams.get('payment') !== 'success') return;
 		history.replaceState(
 			null,
 			'',
@@ -280,6 +296,7 @@
 	});
 
 	$effect(() => {
+		if (paymentReturnHandled) return;
 		const hash = window.location.hash.slice(1);
 		if (hash) {
 			const idx = activeQuestions.findIndex((q) => q.id === hash);
