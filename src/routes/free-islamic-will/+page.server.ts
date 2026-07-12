@@ -20,6 +20,7 @@ import {
 } from '$lib/server/emails/freeWillReady';
 import { siteName, consultationBookingUrl } from '$lib/config';
 import { stateName, type WillResponse } from '$lib/free-will/config';
+import { enrollLead } from '$lib/server/drip/enroll';
 
 const WILL_DOC_KIND = 'free-will';
 
@@ -112,6 +113,16 @@ async function generateWillDownload(
 			filename,
 		});
 		await emailWill({ to: email, name, input, buffer, filename });
+
+		// Enroll in Free Will drip (start at Email 2 — Email 1 is the transactional will).
+		enrollLead({
+			email,
+			firstName: name.split(' ')[0] ?? name,
+			sequence: 'free_will_lead',
+			leadType: 'free_will',
+			source: 'free_will',
+		}).catch((err) => console.error('[drip] Free will enroll failed:', err));
+
 		return { url: file.url, filename: file.filename };
 	} catch (err) {
 		console.error('Failed to generate free will document', err);

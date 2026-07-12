@@ -64,6 +64,45 @@
 		answers = questions.map(() => null);
 	}
 
+	/* ─── Email capture ─────────────────────────────────────────────────── */
+	let captureFirstName = $state('');
+	let captureEmail = $state('');
+	let captureSubmitting = $state(false);
+	let captureSubmitted = $state(false);
+	let captureError = $state<string | null>(null);
+
+	async function submitCapture() {
+		captureError = null;
+		const name = captureFirstName.trim();
+		const email = captureEmail.trim();
+		if (!name) { captureError = 'Please enter your first name.'; return; }
+		if (!email || !email.includes('@')) { captureError = 'Please enter a valid email address.'; return; }
+		captureSubmitting = true;
+		try {
+			const flags: string[] = [];
+			const [home, married, blended, business, assets, heba] = answers;
+			if (blended) flags.push('blended_family');
+			if (business) flags.push('business');
+			if (assets) flags.push('significant_assets');
+			if (heba) flags.push('heba_complexity');
+			const res = await fetch('/api/quiz-lead', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email, firstName: name, tier: rec.tier, waqf: rec.waqf, complexityFlags: flags, source: 'quiz' }),
+			});
+			const data = (await res.json().catch(() => null)) as { error?: string; success?: boolean } | null;
+			if (!res.ok || !data?.success) {
+				captureError = data?.error ?? 'Something went wrong. Please try again.';
+				return;
+			}
+			captureSubmitted = true;
+		} catch {
+			captureError = 'Something went wrong. Please try again.';
+		} finally {
+			captureSubmitting = false;
+		}
+	}
+
 	/* ─── Routing logic ─────────────────────────────────────────────────── */
 	type Tier = 'free-will' | 'goodtree' | 'legacy';
 	type Rec = { tier: Tier; waqf: boolean; reason: string };
@@ -289,12 +328,55 @@
 					</p>
 				</div>
 
-				<!-- Primary recommendation card -->
-				<div class="rounded-2xl overflow-hidden border mb-5
-					{rec.tier === 'goodtree' || rec.tier === 'legacy'
-						? 'bg-navy border-navy'
-						: 'bg-emerald-accent border-emerald-accent'}"
-				>
+			<!-- Email capture gate -->
+			{#if !captureSubmitted}
+				<div class="rounded-2xl border border-navy/10 bg-white/70 p-7 mb-6" in:fly={{ y: 16, opacity: 0, duration: 300, delay: 120 }}>
+					<p class="text-[11px] text-emerald-accent tracking-[0.2em] uppercase font-medium mb-2">Get your personalised guidance</p>
+					<p class="text-navy text-base font-medium tracking-tight mb-1">Where should we send your recommendation?</p>
+					<p class="text-navy/50 text-sm leading-relaxed mb-5">We will email you your result and send you a short series of attorney-led guidance on next steps. Unsubscribe any time.</p>
+					<div class="flex flex-col sm:flex-row gap-3 mb-3">
+						<input
+							type="text"
+							placeholder="First name"
+							bind:value={captureFirstName}
+							class="flex-1 px-4 py-3 rounded-lg border border-navy/15 bg-white text-navy text-sm placeholder:text-navy/35 focus:outline-none focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
+						/>
+						<input
+							type="email"
+							placeholder="Email address"
+							bind:value={captureEmail}
+							class="flex-[2] px-4 py-3 rounded-lg border border-navy/15 bg-white text-navy text-sm placeholder:text-navy/35 focus:outline-none focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
+						/>
+					</div>
+					{#if captureError}
+						<p class="text-red-600 text-xs mb-3">{captureError}</p>
+					{/if}
+					<button
+						onclick={submitCapture}
+						disabled={captureSubmitting}
+						class="w-full sm:w-auto px-7 py-3 rounded-lg bg-navy text-cream text-sm font-medium transition-all duration-200 hover:bg-navy-light hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+					>
+						{captureSubmitting ? 'Sending…' : 'Send my recommendation →'}
+					</button>
+					<p class="text-navy/30 text-xs mt-3">No spam. Unsubscribe any time. We will not share your information.</p>
+				</div>
+			{:else}
+				<div class="rounded-2xl border border-emerald-accent/25 bg-emerald-accent/6 px-6 py-4 mb-6 flex items-center gap-3" in:fly={{ y: 8, opacity: 0, duration: 250 }}>
+					<div class="w-7 h-7 rounded-full bg-emerald-accent/15 flex items-center justify-center shrink-0">
+						<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+						</svg>
+					</div>
+					<p class="text-sm text-navy/70">Check your inbox — we sent your recommendation to <strong class="text-navy font-medium">{captureEmail}</strong>.</p>
+				</div>
+			{/if}
+
+			<!-- Primary recommendation card -->
+			<div class="rounded-2xl overflow-hidden border mb-5
+				{rec.tier === 'goodtree' || rec.tier === 'legacy'
+					? 'bg-navy border-navy'
+					: 'bg-emerald-accent border-emerald-accent'}"
+			>
 					<div class="p-8 md:p-10">
 						<div class="text-[10px] tracking-[0.28em] uppercase mb-4 opacity-60
 							{rec.tier !== 'free-will' ? 'text-cream' : 'text-cream'}">

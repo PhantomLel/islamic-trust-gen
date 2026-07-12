@@ -318,6 +318,7 @@
 			{siteName}
 		</a>
 		<div class="flex items-center gap-5">
+			<a href="/admin/email-preview" class="text-sm text-navy/50 transition-colors hover:text-navy">Email preview</a>
 			<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">Admin</span>
 			<button onclick={handleLogout} class="text-sm text-navy/50 transition-colors hover:text-navy cursor-pointer">Log out</button>
 		</div>
@@ -470,21 +471,27 @@
 									<td class="px-4 py-3">
 										<div class="flex items-center gap-1.5">
 											<span class="font-medium text-navy">{t.user.name}</span>
-											{#if t.user.noteCount > 0}
-												<span
-													role="button"
-													tabindex="0"
-													aria-label="{t.user.noteCount} admin note{t.user.noteCount === 1 ? '' : 's'} — hover to preview"
-													class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/70 cursor-default focus:outline-none focus:ring-1 focus:ring-amber-300"
-													onmouseenter={(e) => showNotesPopover(e, t.user)}
-													onmouseleave={hideNotesPopover}
-													onfocus={(e) => showNotesPopover(e, t.user)}
-													onblur={hideNotesPopover}
-												>
-													<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h4m1-12H7a2 2 0 00-2 2v14l4-3h8a2 2 0 002-2V6a2 2 0 00-2-2h-2" /></svg>
-													{t.user.noteCount}
-												</span>
-											{/if}
+									{#if t.user.noteCount > 0}
+											<span
+												role="button"
+												tabindex="0"
+												aria-label="{t.user.noteCount} admin note{t.user.noteCount === 1 ? '' : 's'} — hover to preview"
+												class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/70 cursor-default focus:outline-none focus:ring-1 focus:ring-amber-300"
+												onmouseenter={(e) => showNotesPopover(e, t.user)}
+												onmouseleave={hideNotesPopover}
+												onfocus={(e) => showNotesPopover(e, t.user)}
+												onblur={hideNotesPopover}
+											>
+												<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h4m1-12H7a2 2 0 00-2 2v14l4-3h8a2 2 0 002-2V6a2 2 0 00-2-2h-2" /></svg>
+												{t.user.noteCount}
+											</span>
+										{/if}
+										{#if t.user.dripFollowUp}
+											<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-50 text-orange-700 border border-orange-200/70" title="Drip: manual follow-up flagged">
+												<svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+												Follow up
+											</span>
+										{/if}
 										</div>
 										<div class="text-[11px] text-navy/40 break-all">{t.user.email}</div>
 									</td>

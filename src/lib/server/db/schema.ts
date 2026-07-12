@@ -1,7 +1,99 @@
-import { pgTable, serial, integer, text, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, text, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import { user, session, account } from './auth.schema';
 import { relations } from 'drizzle-orm';
 import { defaultPrepFee } from '../../config';
+
+// ── Marketing / drip ──────────────────────────────────────────────────────────
+
+export type LeadType = 'free_will' | 'quiz' | 'app_started';
+export type SequenceStatus =
+	| 'active'
+	| 'paused'
+	| 'stopped_paid'
+	| 'stopped_consult'
+	| 'unsubscribed'
+	| 'completed'
+	| 'stopped_manual';
+export type QuizResult =
+	| 'free_will_only'
+	| 'goodtree_fit'
+	| 'legacy_consult'
+	| 'advanced_consult';
+export type AppStatus =
+	| 'account_created'
+	| 'intake_started'
+	| 'intake_completed'
+	| 'checkout_started'
+	| 'payment_failed'
+	| 'paid';
+
+/**
+ * One row per unique email address. Tracks drip sequence enrollment,
+ * send schedule, stop/switch rules, compliance, and ops flags.
+ * Priority: unsubscribed > paid > consult > app_started > quiz > free_will.
+ */
+export const marketingLead = pgTable('marketing_lead', {
+	id: serial('id').primaryKey(),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	updatedAt: timestamp('updated_at').defaultNow().notNull(),
+
+	// Identity
+	email: text('email').notNull().unique(),
+	firstName: text('first_name'),
+	/** Links to a user account once created; null for pre-account quiz/free-will leads. */
+	userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
+	/** Deep-link target for app_started continue CTAs. */
+	trustId: integer('trust_id'),
+
+	// Attribution
+	firstTouchSource: text('first_touch_source'),
+	lastTouchSource: text('last_touch_source'),
+
+	// Classification
+	leadType: text('lead_type').$type<LeadType>(),
+	quizResult: text('quiz_result').$type<QuizResult>(),
+	quizWaqf: boolean('quiz_waqf').default(false),
+	complexityFlags: text('complexity_flags').array(),
+	appStatus: text('app_status').$type<AppStatus>(),
+
+	// Sequence state
+	currentSequence: text('current_sequence'),
+	sequenceStatus: text('sequence_status').$type<SequenceStatus>().default('active'),
+	/** 1-based index of the NEXT email to send within the current sequence. */
+	nextEmailIndex: integer('next_email_index').default(1),
+	nextEmailAt: timestamp('next_email_at'),
+	lastEmailAt: timestamp('last_email_at'),
+	lastEmailKey: text('last_email_key'),
+	enrolledAt: timestamp('enrolled_at'),
+	stoppedAt: timestamp('stopped_at'),
+	stoppedReason: text('stopped_reason'),
+
+	// Compliance
+	unsubscribed: boolean('unsubscribed').notNull().default(false),
+	unsubscribeToken: text('unsubscribe_token').unique(),
+
+	// Ops
+	manualFollowUp: boolean('manual_follow_up').notNull().default(false),
+	manualFollowUpReasons: text('manual_follow_up_reasons').array(),
+}, (t) => [
+	index('marketing_lead_next_email_idx').on(t.nextEmailAt),
+	index('marketing_lead_user_idx').on(t.userId),
+]);
+
+/** Lightweight log of every marketing email sent (for admin send history). */
+export const marketingEmailLog = pgTable('marketing_email_log', {
+	id: serial('id').primaryKey(),
+	sentAt: timestamp('sent_at').defaultNow().notNull(),
+	leadId: integer('lead_id').references(() => marketingLead.id, { onDelete: 'cascade' }).notNull(),
+	email: text('email').notNull(),
+	sequence: text('sequence').notNull(),
+	emailKey: text('email_key').notNull(),
+	subject: text('subject').notNull(),
+	/** Resend message ID, if returned. */
+	resendId: text('resend_id'),
+}, (t) => [
+	index('marketing_email_log_lead_idx').on(t.leadId),
+]);
 
 type Response = {
 	id: string;
@@ -221,6 +313,21 @@ export const invoiceRelations = relations(invoice, ({ one }) => ({
 	user: one(user, {
 		fields: [invoice.userId],
 		references: [user.id],
+	}),
+}));
+
+export const marketingLeadRelations = relations(marketingLead, ({ one, many }) => ({
+	user: one(user, {
+		fields: [marketingLead.userId],
+		references: [user.id],
+	}),
+	emailLogs: many(marketingEmailLog),
+}));
+
+export const marketingEmailLogRelations = relations(marketingEmailLog, ({ one }) => ({
+	lead: one(marketingLead, {
+		fields: [marketingEmailLog.leadId],
+		references: [marketingLead.id],
 	}),
 }));
 

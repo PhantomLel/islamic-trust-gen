@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 import { trust, user } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
+import { stopLead } from '$lib/server/drip/stop';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) throw redirect(302, '/login');
@@ -27,6 +28,12 @@ export const actions: Actions = {
 		if (!locals.user) throw redirect(302, '/login');
 
 		await db.update(user).set({ requestedConsultationAt: new Date()}).where(eq(user.id, locals.user.id));
+
+		// Stop marketing drip — user has requested attorney consultation.
+		stopLead(locals.user.email, 'stopped_consult', 'consultation_requested').catch((err) =>
+			console.error('[drip] Stop on consult request failed:', err),
+		);
+
 		return { success: true };
 	},
 };

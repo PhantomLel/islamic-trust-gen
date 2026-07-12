@@ -2,7 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { Resend } from 'resend';
 import { siteName } from '$lib/config';
 import { db } from '$lib/server/db';
-import { trust, user, adminNote, TrustStatus } from '$lib/server/db/schema';
+import { trust, user, adminNote, TrustStatus, marketingLead, marketingEmailLog } from '$lib/server/db/schema';
 import type { LoeAgreementData, WarningAgreementData } from '$lib/server/db/schema';
 import type { UserFile } from '$lib/server/db/schema';
 import { documentsApprovedEmail } from '$lib/server/emails/documentsApproved';
@@ -37,6 +37,18 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		orderBy: [desc(adminNote.pinned), desc(adminNote.createdAt)],
 	});
 
+	// Load drip lead by the user's email.
+	const dripLead = await db.query.marketingLead.findFirst({
+		where: eq(marketingLead.email, targetUser.email.trim().toLowerCase()),
+	});
+	const dripEmailLogs = dripLead
+		? await db.query.marketingEmailLog.findMany({
+				where: eq(marketingEmailLog.leadId, dripLead.id),
+				orderBy: [desc(marketingEmailLog.sentAt)],
+				limit: 20,
+			})
+		: [];
+
 	return {
 		currentAdminId: locals.user.id,
 		notes: notes.map((n) => ({
@@ -58,6 +70,37 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			paid: hasPaid,
 			county: targetUser.county?.trim() || null,
 		},
+		dripLead: dripLead
+			? {
+					id: dripLead.id,
+					email: dripLead.email,
+					firstName: dripLead.firstName,
+					leadType: dripLead.leadType,
+					quizResult: dripLead.quizResult,
+					complexityFlags: dripLead.complexityFlags ?? [],
+					appStatus: dripLead.appStatus,
+					currentSequence: dripLead.currentSequence,
+					sequenceStatus: dripLead.sequenceStatus,
+					nextEmailIndex: dripLead.nextEmailIndex,
+					nextEmailAt: dripLead.nextEmailAt?.toISOString() ?? null,
+					lastEmailAt: dripLead.lastEmailAt?.toISOString() ?? null,
+					lastEmailKey: dripLead.lastEmailKey,
+					enrolledAt: dripLead.enrolledAt?.toISOString() ?? null,
+					stoppedAt: dripLead.stoppedAt?.toISOString() ?? null,
+					stoppedReason: dripLead.stoppedReason,
+					manualFollowUp: dripLead.manualFollowUp,
+					manualFollowUpReasons: dripLead.manualFollowUpReasons ?? [],
+					unsubscribed: dripLead.unsubscribed,
+			  }
+			: null,
+		dripEmailLogs: dripEmailLogs.map((l) => ({
+			id: l.id,
+			sentAt: l.sentAt.toISOString(),
+			sequence: l.sequence,
+			emailKey: l.emailKey,
+			subject: l.subject,
+			resendId: l.resendId,
+		})),
 		trusts: trusts.map((t) => ({
 			id: t.id,
 			createdAt: t.createdAt.toISOString(),
@@ -464,5 +507,34 @@ export const actions: Actions = {
 
 		await db.delete(user).where(eq(user.id, userId));
 		redirect(303, '/admin');
+	},
+
+	dripStop: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+		const formData = await request.formData();
+		const email = formData.get('email');
+		if (typeof email !== 'string' || !email) return fail(400, { message: 'Missing email' });
+		const now = new Date();
+		await db.update(marketingLead).set({
+			sequenceStatus: 'stopped_manual',
+			nextEmailAt: null,
+			stoppedAt: now,
+			stoppedReason: 'admin_manual_stop',
+			updatedAt: now,
+		}).where(eq(marketingLead.email, email.trim().toLowerCase()));
+		return { dripStopped: true };
+	},
+
+	dripClearFollowUp: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+		const formData = await request.formData();
+		const email = formData.get('email');
+		if (typeof email !== 'string' || !email) return fail(400, { message: 'Missing email' });
+		await db.update(marketingLead).set({
+			manualFollowUp: false,
+			manualFollowUpReasons: [],
+			updatedAt: new Date(),
+		}).where(eq(marketingLead.email, email.trim().toLowerCase()));
+		return { followUpCleared: true };
 	},
 };

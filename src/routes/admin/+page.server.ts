@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { invoice, trust, adminNote, freeWill } from '$lib/server/db/schema';
+import { invoice, trust, adminNote, freeWill, marketingLead } from '$lib/server/db/schema';
 import type { GeneratedFile } from '$lib/server/db/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
@@ -67,6 +67,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 		trusts.filter((t) => t.user.role !== 'admin').map((t) => t.userId),
 	);
 
+	// Fetch manual follow-up flags keyed by email.
+	const followUpLeads = await db.query.marketingLead.findMany({
+		where: eq(marketingLead.manualFollowUp, true),
+		columns: { email: true, manualFollowUpReasons: true, currentSequence: true },
+	});
+	const followUpByEmail = new Map(followUpLeads.map((l) => [l.email, l]));
+
 	return {
 		wills: wills
 			.filter((w) => w.user?.role !== 'admin')
@@ -113,14 +120,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 				paidAmount:
 					t.selectedPlan !== null ? (paidTotalByUserId.get(t.userId) ?? null) : null,
 				responses: (t.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
-				user: {
-					id: t.user.id,
-					name: t.user.name,
-					email: t.user.email,
-					noteCount: noteCountByUserId.get(t.user.id) ?? 0,
-					recentNotes: recentNotesByUserId.get(t.user.id) ?? [],
-				},
-			})),
+			user: {
+				id: t.user.id,
+				name: t.user.name,
+				email: t.user.email,
+				noteCount: noteCountByUserId.get(t.user.id) ?? 0,
+				recentNotes: recentNotesByUserId.get(t.user.id) ?? [],
+				dripFollowUp: followUpByEmail.has(t.user.email?.toLowerCase() ?? '') ? true : false,
+			},
+		})),
 	};
 };
 

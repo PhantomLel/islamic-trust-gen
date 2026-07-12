@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { trust } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
+import { stopLead } from '$lib/server/drip/stop';
 import { getIntakeQuestionnaireProgress } from '$lib/question-response-helpers';
 import { TrustStatus } from '$lib/server/db/schema';
 import type { UserFile } from '$lib/server/db/schema';
@@ -95,6 +96,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	requestConsultation: async ({ locals }) => {
+		if (!locals.user) throw redirect(302, '/login');
+		const { user } = await import('$lib/server/db/schema');
+		await db.update(user).set({ requestedConsultationAt: new Date() }).where(eq(user.id, locals.user.id));
+		stopLead(locals.user.email, 'stopped_consult', 'consultation_requested').catch((err) =>
+			console.error('[drip] Stop on dashboard consult failed:', err),
+		);
+		return { success: true };
+	},
 	saveHouseDeed: async ({ request, locals }) => {
 		if (!locals.user) throw redirect(302, '/login');
 

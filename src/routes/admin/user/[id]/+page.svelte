@@ -602,8 +602,123 @@
 			</div>
 		</div>
 
-		{#if trust}
-			{#if notarizationCard}
+	<!-- ── Marketing Drip Panel ───────────────────────────────────────── -->
+	{#if data.dripLead}
+		{@const dl = data.dripLead}
+		<div class="rounded-2xl border border-navy/[0.08] bg-white/60 p-6 mb-6">
+			<div class="flex items-center justify-between mb-4">
+				<div class="flex items-center gap-2">
+					<span class="text-[10px] tracking-[0.22em] uppercase font-semibold text-emerald-accent">Marketing Drip</span>
+					{#if dl.manualFollowUp}
+						<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 border border-amber-200 text-amber-700">
+							<svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+							Manual follow-up
+						</span>
+					{/if}
+				</div>
+				<div class="flex items-center gap-2">
+					{#if dl.sequenceStatus === 'active'}
+						<form method="POST" action="?/dripStop" use:enhance>
+							<input type="hidden" name="email" value={dl.email} />
+							<button type="submit" class="text-[11px] px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors cursor-pointer">Stop sequence</button>
+						</form>
+					{/if}
+					{#if dl.manualFollowUp}
+						<form method="POST" action="?/dripClearFollowUp" use:enhance>
+							<input type="hidden" name="email" value={dl.email} />
+							<button type="submit" class="text-[11px] px-3 py-1.5 rounded-lg border border-navy/10 bg-navy/[0.03] text-navy/55 hover:bg-navy/[0.06] transition-colors cursor-pointer">Clear follow-up</button>
+						</form>
+					{/if}
+				</div>
+			</div>
+
+			<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Sequence</p>
+					<p class="text-[13px] text-navy/80 font-medium">{dl.currentSequence?.replace(/_/g, ' ') ?? '—'}</p>
+				</div>
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Status</p>
+					<p class="text-[13px] font-medium
+						{dl.sequenceStatus === 'active' ? 'text-emerald-accent' :
+						dl.sequenceStatus === 'stopped_paid' ? 'text-navy/55' :
+						dl.sequenceStatus === 'unsubscribed' ? 'text-red-500' :
+						'text-navy/45'}">
+						{dl.sequenceStatus?.replace(/_/g, ' ') ?? '—'}
+					</p>
+				</div>
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Next email</p>
+					<p class="text-[13px] text-navy/80">
+						{dl.nextEmailAt ? new Date(dl.nextEmailAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+					</p>
+				</div>
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Last sent</p>
+					<p class="text-[13px] text-navy/80">
+						{dl.lastEmailAt ? new Date(dl.lastEmailAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+					</p>
+				</div>
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Last email key</p>
+					<p class="text-[13px] text-navy/60 font-mono">{dl.lastEmailKey ?? '—'}</p>
+				</div>
+				{#if dl.quizResult}
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Quiz result</p>
+						<p class="text-[13px] text-navy/80">{dl.quizResult.replace(/_/g, ' ')}</p>
+					</div>
+				{/if}
+				{#if dl.appStatus}
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">App status</p>
+						<p class="text-[13px] text-navy/80">{dl.appStatus.replace(/_/g, ' ')}</p>
+					</div>
+				{/if}
+				{#if dl.stoppedReason}
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Stop reason</p>
+						<p class="text-[13px] text-navy/60">{dl.stoppedReason.replace(/_/g, ' ')}</p>
+					</div>
+				{/if}
+			</div>
+
+			{#if dl.complexityFlags && dl.complexityFlags.length > 0}
+				<div class="flex flex-wrap gap-1.5 mb-3">
+					{#each dl.complexityFlags as flag}
+						<span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700">{flag.replace(/_/g, ' ')}</span>
+					{/each}
+				</div>
+			{/if}
+
+			{#if dl.manualFollowUpReasons && dl.manualFollowUpReasons.length > 0}
+				<div class="flex flex-wrap gap-1.5 mb-3">
+					<span class="text-[10px] text-navy/40 pt-0.5">Follow-up flags:</span>
+					{#each dl.manualFollowUpReasons as reason}
+						<span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700">{reason.replace(/_/g, ' ')}</span>
+					{/each}
+				</div>
+			{/if}
+
+			{#if data.dripEmailLogs && data.dripEmailLogs.length > 0}
+				<div class="border-t border-navy/[0.06] pt-3 mt-2">
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-2">Send log (last {data.dripEmailLogs.length})</p>
+					<div class="space-y-1">
+						{#each data.dripEmailLogs as log}
+							<div class="flex items-center gap-3 text-[11px]">
+								<span class="text-navy/35 tabular-nums shrink-0">{new Date(log.sentAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}</span>
+								<span class="font-mono text-navy/45 shrink-0">{log.emailKey}</span>
+								<span class="text-navy/60 truncate">{log.subject}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
+
+	{#if trust}
+		{#if notarizationCard}
 				<div class="rounded-2xl border border-emerald-accent/20 bg-white/70 backdrop-blur-sm p-6 md:p-7 shadow-sm mb-6">
 					<div class="flex flex-col sm:flex-row sm:items-stretch gap-5">
 						<div class="shrink-0 w-20 sm:w-24 rounded-xl border border-emerald-accent/30 bg-white overflow-hidden text-center shadow-sm">

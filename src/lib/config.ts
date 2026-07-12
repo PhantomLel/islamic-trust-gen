@@ -8,6 +8,11 @@ export const notarizationBookingUrl = 'https://calendly.com/sumayya-mcdanielesta
 /** Default trust preparation fee in whole USD (e.g. 1199 → $1,199.00). */
 export const defaultPrepFee = 1199;
 
+/** CAN-SPAM physical mailing address required in all marketing emails. */
+export const firmMailingAddress = 'McDaniel Estate Planning, PLLC · 3800 N Lamar Blvd, Ste 200 · Austin, TX 78756';
+/** Reply-to address for marketing emails (a real inbox, not no-reply). */
+export const replyToEmail = 'info@mcdanielestateplanning.com';
+
 /** Format a whole-dollar USD amount for display (e.g. 1199 → "$1,199.00"). */
 export function formatUsd(amountUsd: number): string {
 	return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amountUsd);
