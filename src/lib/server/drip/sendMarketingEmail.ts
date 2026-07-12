@@ -4,6 +4,7 @@ import { siteName, replyToEmail } from '$lib/config';
 import { db } from '$lib/server/db';
 import { marketingEmailLog, marketingLead } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
+import { adminUserUrl, notifyAdmins } from '$lib/server/notifyAdmins';
 
 export type MarketingEmailPayload = {
 	leadId: number;
@@ -38,6 +39,18 @@ export async function sendMarketingEmail(payload: MarketingEmailPayload): Promis
 		throw err;
 	}
 
+	const lead = await db.query.marketingLead.findFirst({
+		where: eq(marketingLead.id, payload.leadId),
+		columns: {
+			firstName: true,
+			userId: true,
+			leadType: true,
+			quizResult: true,
+			appStatus: true,
+			manualFollowUp: true,
+		},
+	}).catch(() => null);
+
 	try {
 		await db.insert(marketingEmailLog).values({
 			leadId: payload.leadId,
@@ -54,4 +67,24 @@ export async function sendMarketingEmail(payload: MarketingEmailPayload): Promis
 	} catch (err) {
 		console.error('[drip] Failed to log email send:', err);
 	}
+
+	// Production-only admin alert (notifyAdmins no-ops outside production / local ORIGIN).
+	notifyAdmins(
+		`Drip sent — ${payload.emailKey}`,
+		[
+			'Event: Automated marketing drip email sent',
+			`Recipient: ${payload.to}`,
+			`First name: ${lead?.firstName?.trim() || '(none)'}`,
+			`Sequence: ${payload.sequence}`,
+			`Email key: ${payload.emailKey}`,
+			`Subject: ${payload.subject}`,
+			`Lead type: ${lead?.leadType ?? '(unknown)'}`,
+			`Quiz result: ${lead?.quizResult ?? '(n/a)'}`,
+			`App status: ${lead?.appStatus ?? '(n/a)'}`,
+			`Manual follow-up: ${lead?.manualFollowUp ? 'yes' : 'no'}`,
+			`Resend ID: ${resendId ?? '(none)'}`,
+			`Lead ID: ${payload.leadId}`,
+			lead?.userId ? `Open in admin: ${adminUserUrl(lead.userId)}` : 'Open in admin: (no linked user yet)',
+		].join('\n'),
+	).catch((err) => console.error('[drip] Admin notify failed:', err));
 }
