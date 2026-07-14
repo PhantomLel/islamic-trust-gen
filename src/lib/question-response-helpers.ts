@@ -357,7 +357,7 @@ export function isQuestionResponseComplete(
 		return true; // optional — user can skip if no high-value items
 	}
 	if (type === 'house-deed') {
-		return true; // optional — upload goes directly to trust.house_deed_url, not responses
+		return value === true || value === false;
 	}
 	if (type === 'trustee-on-first-death') {
 		return value === 'survivor-serves' || value === 'survivor-skipped';

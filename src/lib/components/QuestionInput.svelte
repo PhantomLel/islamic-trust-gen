@@ -389,7 +389,16 @@
 	<NonCharitableBequestsInput {value} {onresponse} {allResponses} />
 
 {:else if question.type === 'house-deed'}
-	<HouseDeedQuestionInput {trustId} {userId} existingUrl={houseDeedUrl} {deedRetrievalRequested} saveActionPath="?/saveHouseDeed" />
+	{@const houseDeedValue = typeof value === 'boolean' ? value : null}
+	<HouseDeedQuestionInput
+		value={houseDeedValue}
+		onresponse={(v) => onresponse(v)}
+		{trustId}
+		{userId}
+		existingUrl={houseDeedUrl}
+		{deedRetrievalRequested}
+		saveActionPath="?/saveHouseDeed"
+	/>
 
 {:else if question.type === 'summary-review'}
 	<SummaryReviewScreen {value} {onresponse} {allResponses} {onnavigate} {oncomplete} {completing} {selectedPlan} />

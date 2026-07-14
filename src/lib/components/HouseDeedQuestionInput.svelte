@@ -5,19 +5,23 @@
 	let {
 		trustId,
 		userId,
+		value = null,
+		onresponse,
 		existingUrl = null,
 		deedRetrievalRequested = false,
 		saveActionPath = '/dashboard?/saveHouseDeed',
 	}: {
 		trustId: number;
 		userId: string;
+		value?: boolean | null;
+		onresponse: (value: boolean | null) => void;
 		existingUrl?: string | null;
 		deedRetrievalRequested?: boolean;
 		saveActionPath?: string;
 	} = $props();
 
 	// Phase: 'ask' = asking if they own a house, 'upload' = show upload, 'no-house' = user said no
-	let ownsHouse = $state<boolean | null>(null);
+	let ownsHouse = $state<boolean | null>(value);
 	let houseDeedUrl = $state<string | null>(null);
 	let saving = $state(false);
 	let error = $state('');
@@ -26,9 +30,16 @@
 	let skipped = $state(false);
 
 	$effect(() => {
+		if (value === true || value === false) {
+			ownsHouse = value;
+		}
+	});
+
+	$effect(() => {
 		if (!houseDeedUrl && existingUrl) {
 			houseDeedUrl = existingUrl;
 			ownsHouse = true;
+			if (value !== true) onresponse(true);
 		}
 	});
 
@@ -114,10 +125,16 @@
 		<p class="text-base text-navy/70 font-light leading-relaxed">Do you own a house?</p>
 		<div class="flex gap-3">
 			{#each [{ label: 'Yes', val: true }, { label: 'No', val: false }] as opt}
+				{@const selected = value === opt.val}
 				<button
-					onclick={() => { ownsHouse = opt.val; }}
+					onclick={() => {
+						ownsHouse = opt.val;
+						onresponse(opt.val);
+					}}
 					class="flex-1 px-5 py-4 rounded-xl border text-center transition-all duration-200 cursor-pointer
-						bg-white border-navy/10 text-navy/70 hover:border-navy/20"
+						{selected
+							? 'bg-emerald-accent/8 border-emerald-accent/30 text-navy font-medium'
+							: 'bg-white border-navy/10 text-navy/70 hover:border-navy/20'}"
 				>
 					{opt.label}
 				</button>
@@ -135,7 +152,10 @@
 		</div>
 		<p class="text-navy/60 text-sm">No house deed needed. You can continue to the next step.</p>
 		<button
-			onclick={() => { ownsHouse = null; }}
+			onclick={() => {
+				ownsHouse = null;
+				onresponse(null);
+			}}
 			class="text-xs text-emerald-accent hover:text-emerald-accent/80 transition-colors cursor-pointer"
 		>
 			Change answer
@@ -252,7 +272,10 @@
 		{/if}
 
 		<button
-			onclick={() => { ownsHouse = null; }}
+			onclick={() => {
+				ownsHouse = false;
+				onresponse(false);
+			}}
 			class="text-xs text-navy/40 hover:text-navy/60 transition-colors cursor-pointer"
 		>
 			I don't own a house
