@@ -10,7 +10,6 @@
 		NonCharitableBequestsResponse,
 		PersonalDataResponse,
 		QuestionResponseValue,
-		PersonalPropertyEntry,
 		SeparatePropertyResponse,
 		SuccessorTrusteeEntry,
 		PourOverRepresentativeEntry,
@@ -151,11 +150,6 @@
 	let cannotFinalize = $derived(!intakeFullyComplete || discountedPledgeBlocksFinalize);
 	let spHusbandItems = $derived(separateProperty?.husband?.filter(e => e.assetName.trim()) ?? []);
 	let spWifeItems = $derived(separateProperty?.wife?.filter(e => e.assetName.trim()) ?? []);
-	let personalPropertyData = $derived.by(() => {
-		const v = allResponses['personal-property'];
-		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.itemDescription === 'string') return (v as PersonalPropertyEntry[]).filter(e => e.itemDescription.trim());
-		return null;
-	});
 
 	function charityLabel(ch: CharityResponse): string {
 		if (typeof ch.customName === 'string' && ch.customName.trim() !== '') {
@@ -324,38 +318,6 @@
 						</ul>
 					</div>
 				{/if}
-			{/if}
-		</div>
-	</div>
-
-	<!-- High-Value Personal Property -->
-	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
-		<div class="flex items-center justify-between px-5 py-3 bg-navy/3 border-b border-navy/8">
-			<h3 class="text-sm font-semibold text-navy">High-Value Personal Property</h3>
-			<button type="button" onclick={() => onnavigate?.('personal-property')} class={editBtnClass}>Edit</button>
-		</div>
-		<div class="px-5 py-4">
-			{#if personalPropertyData && personalPropertyData.length > 0}
-				<div class="rounded-xl border border-navy/8 overflow-hidden">
-					<table class="w-full text-[13px]">
-						<thead class="bg-navy/4">
-							<tr>
-								<th class="text-left px-3 py-2 font-medium text-navy/50">Item</th>
-								<th class="text-right px-3 py-2 font-medium text-navy/50">Owned By</th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-navy/5">
-							{#each personalPropertyData as entry}
-								<tr>
-									<td class="px-3 py-2 text-navy">{entry.itemDescription}</td>
-									<td class="px-3 py-2 text-right text-navy/70">{ownerLabel(entry.spouse)}</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-			{:else}
-				<p class="text-[13px] text-navy/40">None listed</p>
 			{/if}
 		</div>
 	</div>

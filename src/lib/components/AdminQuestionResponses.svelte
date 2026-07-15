@@ -14,7 +14,6 @@ import {
 	type AssetAllocationEntry,
 	type HebaAssetEntry,
 	type SeparatePropertyResponse,
-	type PersonalPropertyEntry,
 	type SuccessorTrusteeEntry,
 	type PourOverRepresentativeEntry,
 	type MinorDistributionResponse
@@ -930,20 +929,6 @@ import {
 									{/each}
 								</div>
 							{/if}
-						</div>
-					{:else}
-						<span class="text-[13px] text-navy/25">None</span>
-					{/if}
-				{:else if q.type === 'personal-property'}
-					{@const items = Array.isArray(raw) ? (raw as PersonalPropertyEntry[]) : []}
-					{#if items.length > 0}
-						<div class="space-y-1">
-							{#each items as item}
-								<div class="text-[12px] text-navy">
-									<span class="font-medium">{item.itemDescription}</span>
-									<span class="text-navy/40"> — {formatSpouse(item.spouse)}</span>
-								</div>
-							{/each}
 						</div>
 					{:else}
 						<span class="text-[13px] text-navy/25">None</span>

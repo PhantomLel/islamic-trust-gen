@@ -353,9 +353,6 @@ export function isQuestionResponseComplete(
 	if (type === 'separate-property') {
 		return true; // optional — user can leave it blank
 	}
-	if (type === 'personal-property') {
-		return true; // optional — user can skip if no high-value items
-	}
 	if (type === 'house-deed') {
 		return value === true || value === false;
 	}

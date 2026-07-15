@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { AssetAllocationEntry, QuestionResponseValue } from '$lib/config';
-	import InfoPopout from './InfoPopout.svelte';
+	import { textLooksLikeVehicle } from '$lib/asset-listing';
+	import AssetListingGuidance from './AssetListingGuidance.svelte';
+	import VehicleAssetWarning from './VehicleAssetWarning.svelte';
 
 	let {
 		value,
@@ -27,12 +29,38 @@
 
 	function removeRow(index: number) {
 		const updated = getAssets().filter((_, i) => i !== index);
+		const next = new Set<number>();
+		for (const i of vehicleKeep) {
+			if (i < index) next.add(i);
+			else if (i > index) next.add(i - 1);
+		}
+		vehicleKeep = next;
 		onresponse(updated.length > 0 ? updated : [{ assetName: '', accountId: '', spouse: 'husband' }]);
 	}
 
 	let assets = $derived(getAssets());
-	let islamicPopout = $state(false);
-	let defaultPopout = $state(false);
+	/** Row indices where the user dismissed the vehicle warning. */
+	let vehicleKeep = $state(new Set<number>());
+
+	function keepVehicle(index: number) {
+		vehicleKeep = new Set([...vehicleKeep, index]);
+	}
+
+	function removeVehicleItem(index: number) {
+		if (getAssets().length > 1) {
+			removeRow(index);
+			return;
+		}
+		vehicleKeep = new Set([...vehicleKeep].filter((i) => i !== index));
+		updateAsset(index, { assetName: '' });
+	}
+
+	function onAssetNameInput(index: number, next: string) {
+		if (!textLooksLikeVehicle(next)) {
+			vehicleKeep = new Set([...vehicleKeep].filter((i) => i !== index));
+		}
+		updateAsset(index, { assetName: next });
+	}
 
 	const ownerOptions: { value: AssetAllocationEntry['spouse']; label: string }[] = [
 		{ value: 'husband', label: 'Husband' },
@@ -42,30 +70,13 @@
 </script>
 
 <div class="space-y-6">
-	<div class="text-[13.5px] text-navy/60 leading-relaxed space-y-1.5">
-		<p>
-			For each significant asset, indicate which spouse
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<span
-				onclick={() => (islamicPopout = true)}
-				class="font-medium text-navy/80 underline decoration-navy/25 hover:decoration-navy/60 cursor-pointer transition-colors"
-			>Islamically owns it</span>.
-			Generally, this is the spouse whose income or savings acquired it.
-		</p>
-		<p>Focus on major assets — home, bank accounts, retirement accounts, vehicles, and other significant property. You do not need to list everything you own.</p>
-		<p>
-			Any asset you do not list will automatically
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<span
-				onclick={() => (defaultPopout = true)}
-				class="font-medium text-navy/80 underline decoration-navy/25 hover:decoration-navy/60 cursor-pointer transition-colors"
-			>default to a 50/50 split</span>.
-		</p>
-	</div>
+	<AssetListingGuidance variant="assets" />
 
 	<div class="space-y-2.5">
+		<p class="text-[12px] text-navy/45 leading-relaxed">
+			Use only the last 4 digits or a short identifier. Do not enter full account numbers.
+		</p>
+
 		{#each assets as entry, i}
 			<div class="rounded-2xl border border-navy/8 bg-white p-4 space-y-3">
 				<div class="flex items-end gap-2">
@@ -74,9 +85,9 @@
 						<label class="block text-[11px] font-medium text-navy/40 tracking-wider uppercase mb-1.5">Asset description</label>
 						<input
 							type="text"
-							placeholder="e.g. Primary home, Chase checking, Toyota Camry"
+							placeholder="e.g. Primary home; Chase checking; Ahmed’s 401(k)"
 							value={entry.assetName}
-							oninput={(e) => updateAsset(i, { assetName: (e.target as HTMLInputElement).value })}
+							oninput={(e) => onAssetNameInput(i, (e.target as HTMLInputElement).value)}
 							class="w-full rounded-xl border border-navy/8 bg-navy/2 px-3.5 py-2.5 text-sm text-navy placeholder:text-navy/30 focus:outline-none focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
 						/>
 					</div>
@@ -85,7 +96,7 @@
 						<label class="block text-[11px] font-medium text-navy/40 tracking-wider uppercase mb-1.5">Account / ID <span class="normal-case text-navy/30 font-normal">(optional)</span></label>
 						<input
 							type="text"
-							placeholder="Last 4 digits"
+							placeholder="Last 4 digits only"
 							value={entry.accountId ?? ''}
 							oninput={(e) => updateAsset(i, { accountId: (e.target as HTMLInputElement).value })}
 							class="w-full rounded-xl border border-navy/8 bg-navy/2 px-3.5 py-2.5 text-sm text-navy placeholder:text-navy/30 focus:outline-none focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
@@ -105,6 +116,13 @@
 					{/if}
 				</div>
 
+				<VehicleAssetWarning
+					assetName={entry.assetName}
+					dismissed={vehicleKeep.has(i)}
+					onkeep={() => keepVehicle(i)}
+					onremove={() => removeVehicleItem(i)}
+				/>
+
 				<div>
 					<!-- svelte-ignore a11y_label_has_associated_control -->
 					<label class="block text-[11px] font-medium text-navy/40 tracking-wider uppercase mb-1.5">Owned by</label>
@@ -122,6 +140,9 @@
 							</button>
 						{/each}
 					</div>
+					<p class="mt-2 text-[12px] text-navy/45 leading-relaxed">
+						Choose 50/50 if both spouses should share Islamic ownership equally or if you are unsure and want the default allocation.
+					</p>
 				</div>
 			</div>
 		{/each}
@@ -138,13 +159,4 @@
 			Add another asset
 		</button>
 	</div>
-
 </div>
-
-<InfoPopout open={islamicPopout} onclose={() => (islamicPopout = false)} title='What does "Islamically owns it" mean?'>
-	<p>Islamic ownership follows <span class="font-medium text-navy/85">who earned or acquired the asset</span> — not whose name is on the title or account. If the husband's salary paid the mortgage, the home is his Islamically. If both spouses contributed to an account, choose 50/50.</p>
-</InfoPopout>
-
-<InfoPopout open={defaultPopout} onclose={() => (defaultPopout = false)} title="What happens if I don't list an asset?">
-	<p>If you leave an asset off this list, your trustee will treat it as <span class="font-medium text-navy/85">equally owned by both spouses</span> for the purpose of calculating Islamic inheritance shares. This is a practical default, not a religious ruling.</p>
-</InfoPopout>

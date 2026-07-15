@@ -62,7 +62,7 @@ export type Question = {
 	id: string;
 	text: string;
 	subtext?: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'heba-assets' | 'assets' | 'separate-property' | 'personal-property' | 'trustee-on-first-death' | 'successor-trustees' | 'pour-over-representatives' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests' | 'house-deed' | 'summary-review';
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'heba-assets' | 'assets' | 'separate-property' | 'trustee-on-first-death' | 'successor-trustees' | 'pour-over-representatives' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests' | 'house-deed' | 'summary-review';
 	required: boolean;
 	bucket: string;
 	options?: string[];
@@ -152,6 +152,7 @@ export type SeparatePropertyEntry = {
 	approximateValue?: string;
 };
 
+/** @deprecated Merged into major-asset lists; kept for legacy responses / template until joint_template is updated. */
 export type PersonalPropertyEntry = {
 	itemDescription: string;
 	spouse: 'husband' | 'wife' | '50-50';
@@ -327,8 +328,7 @@ export const postPaymentQuestions: Question[] = [
 	},
 	{
 		id: "heba-assets",
-		text: "List your assets.",
-		subtext: "Because you've chosen the mutual gift (heba), everything is owned jointly — there's no need to designate who owns what. Just list your major assets so we can fund your trust accurately.",
+		text: "List your major assets.",
 		type: 'heba-assets',
 		required: false,
 		bucket: 'property',
@@ -336,7 +336,7 @@ export const postPaymentQuestions: Question[] = [
 	},
 	{
 		id: "assets",
-		text: "Let's designate who owns what.",
+		text: "Designate ownership of your major assets.",
 		type: 'assets',
 		required: true,
 		bucket: 'property',
@@ -346,14 +346,6 @@ export const postPaymentQuestions: Question[] = [
 		id: "separate-property",
 		text: "Did either of you own property before the marriage, or receive a personal gift or inheritance during the marriage?",
 		type: 'separate-property',
-		required: false,
-		bucket: 'property',
-		depends: { field: 'ownership-allocation', eq: 'assets' },
-	},
-	{
-		id: "personal-property",
-		text: "Do you have any high-value personal items to designate?",
-		type: 'personal-property',
 		required: false,
 		bucket: 'property',
 		depends: { field: 'ownership-allocation', eq: 'assets' },

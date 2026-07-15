@@ -16,7 +16,6 @@
 	import HebaAssetsInput from './HebaAssetsInput.svelte';
 	import AssetAllocationInput from './AssetAllocationInput.svelte';
 	import SeparatePropertyInput from './SeparatePropertyInput.svelte';
-	import PersonalPropertyInput from './PersonalPropertyInput.svelte';
 	import TrusteeSelectionInput from './TrusteeSelectionInput.svelte';
 	import SuccessorTrusteesInput from './SuccessorTrusteesInput.svelte';
 	import PourOverRepresentativesInput from './PourOverRepresentativesInput.svelte';
@@ -362,9 +361,6 @@
 
 {:else if question.type === 'separate-property'}
 	<SeparatePropertyInput {value} {onresponse} {allResponses} />
-
-{:else if question.type === 'personal-property'}
-	<PersonalPropertyInput {value} {onresponse} />
 
 {:else if question.type === 'trustee-on-first-death'}
 	<TrusteeSelectionInput {value} {onresponse} />
