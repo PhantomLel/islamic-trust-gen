@@ -152,7 +152,7 @@ export type SeparatePropertyEntry = {
 	approximateValue?: string;
 };
 
-/** @deprecated Merged into major-asset lists; kept for legacy responses / template until joint_template is updated. */
+/** @deprecated Merged into major-asset lists; kept only for reading legacy saved responses. */
 export type PersonalPropertyEntry = {
 	itemDescription: string;
 	spouse: 'husband' | 'wife' | '50-50';
