@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { invoice, trust, adminNote, freeWill, marketingLead } from '$lib/server/db/schema';
+import { invoice, trust, adminNote, freeWill, marketingLead, marketingEmailLog } from '$lib/server/db/schema';
 import type { GeneratedFile } from '$lib/server/db/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
@@ -53,28 +53,71 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	}
 
-	// ── Free Islamic Will submissions ─────────────────────────────────
-	// Loaded alongside trusts so admins can review generated wills, their
-	// responses, and the submitter's data. A will may have no account yet
-	// (userId null, pending email claim); those are still surfaced here.
 	const wills = await db.query.freeWill.findMany({
 		with: { user: true },
 		orderBy: [desc(freeWill.createdAt)],
 	});
 
-	/** Users who already have at least one (non-admin) trust → enables the trust link. */
 	const trustUserIds = new Set(
 		trusts.filter((t) => t.user.role !== 'admin').map((t) => t.userId),
 	);
 
-	// Fetch manual follow-up flags keyed by email.
-	const followUpLeads = await db.query.marketingLead.findMany({
-		where: eq(marketingLead.manualFollowUp, true),
-		columns: { email: true, manualFollowUpReasons: true, currentSequence: true },
+	const dripLeads = await db.query.marketingLead.findMany({
+		orderBy: [desc(marketingLead.updatedAt)],
+		limit: 200,
 	});
-	const followUpByEmail = new Map(followUpLeads.map((l) => [l.email, l]));
+	const dripByEmail = new Map(dripLeads.map((l) => [l.email.toLowerCase(), l]));
+
+	const recentDripSends = await db.query.marketingEmailLog.findMany({
+		orderBy: [desc(marketingEmailLog.sentAt)],
+		limit: 100,
+	});
+
+	const leadById = new Map(dripLeads.map((l) => [l.id, l]));
+	const missingLeadIds = [
+		...new Set(recentDripSends.map((s) => s.leadId).filter((id) => !leadById.has(id))),
+	];
+	if (missingLeadIds.length > 0) {
+		const extraLeads = await db.query.marketingLead.findMany({
+			where: inArray(marketingLead.id, missingLeadIds),
+		});
+		for (const l of extraLeads) {
+			leadById.set(l.id, l);
+			dripByEmail.set(l.email.toLowerCase(), l);
+		}
+	}
 
 	return {
+		dripSends: recentDripSends.map((s) => {
+			const lead = leadById.get(s.leadId);
+			return {
+				id: s.id,
+				sentAt: s.sentAt.toISOString(),
+				email: s.email,
+				firstName: lead?.firstName ?? null,
+				userId: lead?.userId ?? null,
+				sequence: s.sequence,
+				emailKey: s.emailKey,
+				subject: s.subject,
+				resendId: s.resendId,
+				sequenceStatus: lead?.sequenceStatus ?? null,
+			};
+		}),
+		dripLeads: dripLeads.map((l) => ({
+			id: l.id,
+			email: l.email,
+			firstName: l.firstName,
+			userId: l.userId,
+			leadType: l.leadType,
+			currentSequence: l.currentSequence,
+			sequenceStatus: l.sequenceStatus,
+			lastEmailKey: l.lastEmailKey,
+			lastEmailAt: l.lastEmailAt?.toISOString() ?? null,
+			nextEmailIndex: l.nextEmailIndex,
+			nextEmailAt: l.nextEmailAt?.toISOString() ?? null,
+			unsubscribed: l.unsubscribed,
+			enrolledAt: l.enrolledAt?.toISOString() ?? null,
+		})),
 		wills: wills
 			.filter((w) => w.user?.role !== 'admin')
 			.map((w) => ({
@@ -90,45 +133,56 @@ export const load: PageServerLoad = async ({ locals }) => {
 				responses: (w.responses ?? []) as { id: string; response: unknown }[],
 				generatedFiles: (w.generated_files ?? []) as GeneratedFile[],
 				claimEmail: w.claimEmail,
-				// Display name: prefer the linked account, fall back to the captured name.
 				name: w.user?.name ?? w.name ?? null,
 				user: w.user ? { id: w.user.id, name: w.user.name, email: w.user.email } : null,
-				// Link to the admin user page (which surfaces the trust) when the
-				// submitter has an account *and* a trust already exists for them.
 				trustUserId: w.userId && trustUserIds.has(w.userId) ? w.userId : null,
 			})),
 		trusts: trusts
 			.filter((t) => t.user.role !== 'admin')
-			.map((t) => ({
-				id: t.id,
-				createdAt: t.createdAt.toISOString(),
-				updatedAt: t.updatedAt.toISOString(),
-				joint: t.joint,
-				complete: t.complete,
-				approved: t.approved,
-				isEligible: t.isEligible,
-				businessOwnership:
-					t.screeningAnswers == null
-						? null
-						: typeof t.screeningAnswers.business_ownership === 'boolean'
-							? t.screeningAnswers.business_ownership
+			.map((t) => {
+				const drip = dripByEmail.get(t.user.email?.toLowerCase() ?? '');
+				return {
+					id: t.id,
+					createdAt: t.createdAt.toISOString(),
+					updatedAt: t.updatedAt.toISOString(),
+					joint: t.joint,
+					complete: t.complete,
+					approved: t.approved,
+					isEligible: t.isEligible,
+					businessOwnership:
+						t.screeningAnswers == null
+							? null
+							: typeof t.screeningAnswers.business_ownership === 'boolean'
+								? t.screeningAnswers.business_ownership
+								: null,
+					status: t.status,
+					selectedPlan: t.selectedPlan,
+					deedRetrievalRequested: t.deedRetrievalRequested,
+					customPrice: t.customPrice,
+					paidAmount:
+						t.selectedPlan !== null ? (paidTotalByUserId.get(t.userId) ?? null) : null,
+					responses: (t.responses ?? []) as {
+						id: string;
+						response: string | string[] | boolean | number | null;
+					}[],
+					user: {
+						id: t.user.id,
+						name: t.user.name,
+						email: t.user.email,
+						noteCount: noteCountByUserId.get(t.user.id) ?? 0,
+						recentNotes: recentNotesByUserId.get(t.user.id) ?? [],
+						drip: drip
+							? {
+									sequence: drip.currentSequence,
+									status: drip.sequenceStatus,
+									lastEmailKey: drip.lastEmailKey,
+									lastEmailAt: drip.lastEmailAt?.toISOString() ?? null,
+									nextEmailAt: drip.nextEmailAt?.toISOString() ?? null,
+								}
 							: null,
-				status: t.status,
-				selectedPlan: t.selectedPlan,
-				deedRetrievalRequested: t.deedRetrievalRequested,
-				customPrice: t.customPrice,
-				paidAmount:
-					t.selectedPlan !== null ? (paidTotalByUserId.get(t.userId) ?? null) : null,
-				responses: (t.responses ?? []) as { id: string; response: string | string[] | boolean | number | null }[],
-			user: {
-				id: t.user.id,
-				name: t.user.name,
-				email: t.user.email,
-				noteCount: noteCountByUserId.get(t.user.id) ?? 0,
-				recentNotes: recentNotesByUserId.get(t.user.id) ?? [],
-				dripFollowUp: followUpByEmail.has(t.user.email?.toLowerCase() ?? '') ? true : false,
-			},
-		})),
+					},
+				};
+			}),
 	};
 };
 
@@ -151,10 +205,7 @@ export const actions: Actions = {
 
 		if (!existing) throw error(404, 'Trust not found');
 
-		await db
-			.update(trust)
-			.set({ customPrice: price })
-			.where(eq(trust.id, trustId));
+		await db.update(trust).set({ customPrice: price }).where(eq(trust.id, trustId));
 
 		return { updated: true };
 	},

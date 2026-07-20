@@ -86,7 +86,11 @@ export async function enrollLead(input: EnrollInput): Promise<EnrollResult> {
 	}
 
 	const token = existing?.unsubscribeToken ?? randomBytes(24).toString('hex');
-	const enrolledAt = existing?.enrolledAt ?? now;
+	// Every subsequent email is scheduled as enrolledAt + offsetHours (see processDueEmails).
+	// On a real switch, the new sequence's clock must start now — preserving the old
+	// enrolledAt would make the new sequence's offsets resolve to the past and blast the
+	// early emails out all at once. Only keep the original timestamp when we're NOT switching.
+	const enrolledAt = shouldSwitch ? now : (existing?.enrolledAt ?? now);
 
 	// Determine nextEmailIndex and nextEmailAt.
 	let nextIndex: number;

@@ -9,11 +9,14 @@
 		onresponse,
 		role,
 		allResponses = {},
+		trusteeSourceId = 'husband-successor-trustees',
 	}: {
 		value: QuestionResponseValue;
 		onresponse: (val: QuestionResponseValue) => void;
 		role: 'personal-representative' | 'guardian';
 		allResponses?: Record<string, QuestionResponseValue>;
+		/** Which spouse's successor-trustee list to offer as a one-click copy source. */
+		trusteeSourceId?: 'husband-successor-trustees' | 'wife-successor-trustees';
 	} = $props();
 
 	const roleLabel = $derived(role === 'personal-representative' ? 'Personal Representative' : 'Guardian');
@@ -54,7 +57,7 @@
 	}
 
 	function getSuccessorTrustees(): SuccessorTrusteeEntry[] {
-		const v = allResponses['successor-trustees'];
+		const v = allResponses[trusteeSourceId];
 		if (
 			Array.isArray(v) &&
 			v.length > 0 &&

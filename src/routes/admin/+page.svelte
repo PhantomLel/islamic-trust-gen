@@ -10,8 +10,10 @@
 
 	let { data } = $props();
 
-	type View = 'trusts' | 'wills';
+	type View = 'trusts' | 'wills' | 'emails';
 	let view = $state<View>('trusts');
+	type EmailsSubView = 'sends' | 'leads';
+	let emailsSubView = $state<EmailsSubView>('sends');
 
 	let editingTrustId = $state<number | null>(null);
 	let editPrice = $state('');
@@ -223,6 +225,39 @@
 		return plan === 'full' ? 'Full' : 'Discounted';
 	}
 
+	function dripSequenceLabel(seq: string | null | undefined): string {
+		if (!seq) return '—';
+		const map: Record<string, string> = {
+			free_will_lead: 'Free Will',
+			quiz_lead: 'Quiz',
+			app_started: 'App Started',
+		};
+		return map[seq] ?? seq.replace(/_/g, ' ');
+	}
+
+	function dripStatusLabel(status: string | null | undefined): string {
+		if (!status) return '—';
+		return status.replace(/_/g, ' ');
+	}
+
+	function dripStatusColor(status: string | null | undefined): string {
+		switch (status) {
+			case 'active':
+				return 'bg-emerald-50 text-emerald-700 border-emerald-200/70';
+			case 'completed':
+				return 'bg-navy/[0.04] text-navy/55 border-navy/10';
+			case 'stopped_paid':
+				return 'bg-sky-50 text-sky-700 border-sky-200/70';
+			case 'stopped_consult':
+			case 'stopped_manual':
+				return 'bg-amber-50 text-amber-700 border-amber-200/70';
+			case 'unsubscribed':
+				return 'bg-rose-50 text-rose-700 border-rose-200/70';
+			default:
+				return 'bg-navy/[0.04] text-navy/45 border-navy/10';
+		}
+	}
+
 	function startEdit(trustId: number, currentPrice: number | null) {
 		editingTrustId = trustId;
 		editPrice = String(currentPrice ?? defaultPrepFee);
@@ -347,6 +382,17 @@
 				Free Wills
 				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
 					{data.wills.length}
+				</span>
+			</button>
+			<button
+				type="button"
+				onclick={() => (view = 'emails')}
+				class="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer flex items-center gap-2
+					{view === 'emails' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
+			>
+				Emails
+				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
+					{data.dripSends.length}
 				</span>
 			</button>
 		</div>
@@ -484,12 +530,6 @@
 											>
 												<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h4m1-12H7a2 2 0 00-2 2v14l4-3h8a2 2 0 002-2V6a2 2 0 00-2-2h-2" /></svg>
 												{t.user.noteCount}
-											</span>
-										{/if}
-										{#if t.user.dripFollowUp}
-											<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-50 text-orange-700 border border-orange-200/70" title="Drip: manual follow-up flagged">
-												<svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-												Follow up
 											</span>
 										{/if}
 										</div>
@@ -653,7 +693,7 @@
 				</div>
 			</div>
 		{/if}
-	{:else}
+	{:else if view === 'wills'}
 		<!-- ─── FREE WILLS ─── -->
 		<div class="mb-6">
 			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">Free Wills</h1>
@@ -917,6 +957,173 @@
 					</table>
 				</div>
 			</div>
+		{/if}
+	{:else if view === 'emails'}
+		<div class="mb-6">
+			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">Automated emails</h1>
+			<p class="text-navy/45 text-sm">
+				Who received which drip email, and who is enrolled. Empty send log usually means nothing has been sent yet (or the marketing tables are not migrated).
+			</p>
+		</div>
+
+		<div class="mb-5 inline-flex items-center gap-1 p-1 rounded-xl bg-navy/[0.04] border border-navy/[0.06]">
+			<button
+				type="button"
+				onclick={() => (emailsSubView = 'sends')}
+				class="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer flex items-center gap-2
+					{emailsSubView === 'sends' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
+			>
+				Sent
+				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
+					{data.dripSends.length}
+				</span>
+			</button>
+			<button
+				type="button"
+				onclick={() => (emailsSubView = 'leads')}
+				class="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer flex items-center gap-2
+					{emailsSubView === 'leads' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
+			>
+				Enrolled leads
+				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
+					{data.dripLeads.length}
+				</span>
+			</button>
+		</div>
+
+		{#if emailsSubView === 'sends'}
+			{#if data.dripSends.length === 0}
+				<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center space-y-2">
+					<p class="text-navy/50 text-sm font-medium">No drip emails have been logged yet.</p>
+					<p class="text-navy/35 text-xs max-w-md mx-auto leading-relaxed">
+						Sends appear here after quiz Email 1 or the cron job delivers a scheduled message. Test sends from Email preview are not logged.
+					</p>
+				</div>
+			{:else}
+				<div class="rounded-xl border border-navy/[0.06] overflow-hidden bg-white/70">
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm text-left">
+							<thead>
+								<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
+									<th class="px-4 py-3 font-medium">Sent</th>
+									<th class="px-4 py-3 font-medium">Recipient</th>
+									<th class="px-4 py-3 font-medium">Email</th>
+									<th class="px-4 py-3 font-medium">Sequence</th>
+									<th class="px-4 py-3 font-medium">Subject</th>
+									<th class="px-4 py-3 font-medium"></th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each data.dripSends as s}
+									<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
+										<td class="px-4 py-3 text-[12px] whitespace-nowrap">
+											<div class="text-navy/70 tabular-nums">{formatDateTime(s.sentAt)}</div>
+											<div class="text-[11px] text-navy/40">{timeAgo(s.sentAt)}</div>
+										</td>
+										<td class="px-4 py-3">
+											{#if s.firstName}
+												<div class="font-medium text-navy">{s.firstName}</div>
+											{/if}
+											<div class="text-[11px] text-navy/40 break-all">{s.email}</div>
+										</td>
+										<td class="px-4 py-3">
+											<span class="font-mono text-[12px] text-navy/70">{s.emailKey}</span>
+										</td>
+										<td class="px-4 py-3">
+											<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border {dripStatusColor(s.sequenceStatus)}">
+												{dripSequenceLabel(s.sequence)}
+											</span>
+										</td>
+										<td class="px-4 py-3 text-[12px] text-navy/60 max-w-[280px] truncate" title={s.subject}>
+											{s.subject}
+										</td>
+										<td class="px-4 py-3">
+											{#if s.userId}
+												<a href="/admin/user/{s.userId}" class="text-emerald-accent hover:text-emerald-accent/80 text-[12px] font-medium">View</a>
+											{:else}
+												<span class="text-[11px] text-navy/25">—</span>
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			{/if}
+		{:else}
+			{#if data.dripLeads.length === 0}
+				<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center space-y-2">
+					<p class="text-navy/50 text-sm font-medium">No drip leads enrolled yet.</p>
+					<p class="text-navy/35 text-xs max-w-md mx-auto leading-relaxed">
+						Leads appear when someone finishes a free will, submits the quiz email form, or abandons the app unpaid.
+					</p>
+				</div>
+			{:else}
+				<div class="rounded-xl border border-navy/[0.06] overflow-hidden bg-white/70">
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm text-left">
+							<thead>
+								<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
+									<th class="px-4 py-3 font-medium">Person</th>
+									<th class="px-4 py-3 font-medium">Sequence</th>
+									<th class="px-4 py-3 font-medium">Status</th>
+									<th class="px-4 py-3 font-medium">Last sent</th>
+									<th class="px-4 py-3 font-medium">Next</th>
+									<th class="px-4 py-3 font-medium"></th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each data.dripLeads as l}
+									<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
+										<td class="px-4 py-3">
+											<div class="flex items-center gap-1.5">
+												{#if l.firstName}
+													<span class="font-medium text-navy">{l.firstName}</span>
+												{/if}
+											</div>
+											<div class="text-[11px] text-navy/40 break-all">{l.email}</div>
+										</td>
+										<td class="px-4 py-3 text-[12px] text-navy/65">
+											{dripSequenceLabel(l.currentSequence)}
+										</td>
+										<td class="px-4 py-3">
+											<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border {dripStatusColor(l.sequenceStatus)}">
+												{dripStatusLabel(l.sequenceStatus)}
+											</span>
+										</td>
+										<td class="px-4 py-3 text-[12px]">
+											{#if l.lastEmailKey}
+												<div class="font-mono text-navy/65">{l.lastEmailKey}</div>
+												{#if l.lastEmailAt}
+													<div class="text-[11px] text-navy/35">{timeAgo(l.lastEmailAt)}</div>
+												{/if}
+											{:else}
+												<span class="text-navy/30">None yet</span>
+											{/if}
+										</td>
+										<td class="px-4 py-3 text-[12px] text-navy/55 whitespace-nowrap">
+											{#if l.sequenceStatus === 'active' && l.nextEmailAt}
+												{formatDateTime(l.nextEmailAt)}
+												<div class="text-[11px] text-navy/35">{timeAgo(l.nextEmailAt)}</div>
+											{:else}
+												—
+											{/if}
+										</td>
+										<td class="px-4 py-3">
+											{#if l.userId}
+												<a href="/admin/user/{l.userId}" class="text-emerald-accent hover:text-emerald-accent/80 text-[12px] font-medium">View</a>
+											{:else}
+												<span class="text-[11px] text-navy/25">—</span>
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			{/if}
 		{/if}
 	{/if}
 	</div>

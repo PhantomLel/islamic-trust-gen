@@ -609,24 +609,12 @@
 			<div class="flex items-center justify-between mb-4">
 				<div class="flex items-center gap-2">
 					<span class="text-[10px] tracking-[0.22em] uppercase font-semibold text-emerald-accent">Marketing Drip</span>
-					{#if dl.manualFollowUp}
-						<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 border border-amber-200 text-amber-700">
-							<svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-							Manual follow-up
-						</span>
-					{/if}
 				</div>
 				<div class="flex items-center gap-2">
 					{#if dl.sequenceStatus === 'active'}
 						<form method="POST" action="?/dripStop" use:enhance>
 							<input type="hidden" name="email" value={dl.email} />
 							<button type="submit" class="text-[11px] px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors cursor-pointer">Stop sequence</button>
-						</form>
-					{/if}
-					{#if dl.manualFollowUp}
-						<form method="POST" action="?/dripClearFollowUp" use:enhance>
-							<input type="hidden" name="email" value={dl.email} />
-							<button type="submit" class="text-[11px] px-3 py-1.5 rounded-lg border border-navy/10 bg-navy/[0.03] text-navy/55 hover:bg-navy/[0.06] transition-colors cursor-pointer">Clear follow-up</button>
 						</form>
 					{/if}
 				</div>
@@ -687,15 +675,6 @@
 				<div class="flex flex-wrap gap-1.5 mb-3">
 					{#each dl.complexityFlags as flag}
 						<span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700">{flag.replace(/_/g, ' ')}</span>
-					{/each}
-				</div>
-			{/if}
-
-			{#if dl.manualFollowUpReasons && dl.manualFollowUpReasons.length > 0}
-				<div class="flex flex-wrap gap-1.5 mb-3">
-					<span class="text-[10px] text-navy/40 pt-0.5">Follow-up flags:</span>
-					{#each dl.manualFollowUpReasons as reason}
-						<span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700">{reason.replace(/_/g, ' ')}</span>
 					{/each}
 				</div>
 			{/if}

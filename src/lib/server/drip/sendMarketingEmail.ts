@@ -47,7 +47,6 @@ export async function sendMarketingEmail(payload: MarketingEmailPayload): Promis
 			leadType: true,
 			quizResult: true,
 			appStatus: true,
-			manualFollowUp: true,
 		},
 	}).catch(() => null);
 
@@ -81,7 +80,6 @@ export async function sendMarketingEmail(payload: MarketingEmailPayload): Promis
 			`Lead type: ${lead?.leadType ?? '(unknown)'}`,
 			`Quiz result: ${lead?.quizResult ?? '(n/a)'}`,
 			`App status: ${lead?.appStatus ?? '(n/a)'}`,
-			`Manual follow-up: ${lead?.manualFollowUp ? 'yes' : 'no'}`,
 			`Resend ID: ${resendId ?? '(none)'}`,
 			`Lead ID: ${payload.leadId}`,
 			lead?.userId ? `Open in admin: ${adminUserUrl(lead.userId)}` : 'Open in admin: (no linked user yet)',

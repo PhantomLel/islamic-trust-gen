@@ -88,8 +88,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 					enrolledAt: dripLead.enrolledAt?.toISOString() ?? null,
 					stoppedAt: dripLead.stoppedAt?.toISOString() ?? null,
 					stoppedReason: dripLead.stoppedReason,
-					manualFollowUp: dripLead.manualFollowUp,
-					manualFollowUpReasons: dripLead.manualFollowUpReasons ?? [],
 					unsubscribed: dripLead.unsubscribed,
 			  }
 			: null,
@@ -523,18 +521,5 @@ export const actions: Actions = {
 			updatedAt: now,
 		}).where(eq(marketingLead.email, email.trim().toLowerCase()));
 		return { dripStopped: true };
-	},
-
-	dripClearFollowUp: async ({ request, locals }) => {
-		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
-		const formData = await request.formData();
-		const email = formData.get('email');
-		if (typeof email !== 'string' || !email) return fail(400, { message: 'Missing email' });
-		await db.update(marketingLead).set({
-			manualFollowUp: false,
-			manualFollowUpReasons: [],
-			updatedAt: new Date(),
-		}).where(eq(marketingLead.email, email.trim().toLowerCase()));
-		return { followUpCleared: true };
 	},
 };

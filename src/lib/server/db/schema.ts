@@ -71,10 +71,6 @@ export const marketingLead = pgTable('marketing_lead', {
 	// Compliance
 	unsubscribed: boolean('unsubscribed').notNull().default(false),
 	unsubscribeToken: text('unsubscribe_token').unique(),
-
-	// Ops
-	manualFollowUp: boolean('manual_follow_up').notNull().default(false),
-	manualFollowUpReasons: text('manual_follow_up_reasons').array(),
 }, (t) => [
 	index('marketing_lead_next_email_idx').on(t.nextEmailAt),
 	index('marketing_lead_user_idx').on(t.userId),

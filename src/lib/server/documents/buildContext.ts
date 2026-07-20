@@ -10,8 +10,6 @@ import {
 	type NonCharitableBequestEntry,
 	type NonCharitableBequestsResponse,
 	type PersonalDataResponse,
-	type SeparatePropertyEntry,
-	type SeparatePropertyResponse,
 	type SuccessorTrusteeEntry,
 } from '$lib/config';
 import {
@@ -40,7 +38,8 @@ export type JointTrustContext = {
 
 	husbandHeirs: HeirTableRow[];
 	wifeHeirs: HeirTableRow[];
-	trustees: string[];
+	husbandTrustees: string[];
+	wifeTrustees: string[];
 
 	/** True when that spouse has at least one charitable bequest row. */
 	hasHusbandCharitable: boolean;
@@ -78,15 +77,9 @@ export type JointTrustContext = {
 	 */
 	hebaAssets: { assetName: string; accountId: string }[];
 
-	/** Loop-ready arrays for Schedule A separate-property tables. */
-	husbandSeparateProperty: { assetName: string; accountId: string; approximateValue: string }[];
-	wifeSeparateProperty: { assetName: string; accountId: string; approximateValue: string }[];
-
 	/** Text fallbacks — used by the {xxxText} scalars that the :table preprocessor emits. */
 	heirsTableText: string;
 	hebaAssetsText: string;
-	husbandSeparatePropertyText: string;
-	wifeSeparatePropertyText: string;
 };
 
 type ResponseEntry = { id: string; response: unknown };
@@ -154,18 +147,6 @@ function formatHebaAssets(list: HebaAssetEntry[] | undefined): string {
 	);
 }
 
-function formatSeparateProperty(list: SeparatePropertyEntry[] | undefined): string {
-	if (!list || list.length === 0) return 'No separate property';
-	return bulletList(
-		list.map((p) => {
-			const pieces = [p.assetName];
-			if (p.accountId) pieces.push(`acct ${p.accountId}`);
-			if (p.approximateValue) pieces.push(`~${p.approximateValue}`);
-			return pieces.join(' \u2014 ');
-		}),
-	);
-}
-
 function formatOwnerLabel(spouse: string | undefined): string {
 	if (spouse === 'husband') return 'Husband';
 	if (spouse === 'wife') return 'Wife';
@@ -197,10 +178,12 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 	const ownership = getResponse<string>(trust, 'ownership-allocation');
 	const assetAllocationEntries = getResponse<AssetAllocationEntry[]>(trust, 'assets') ?? [];
 	const hebaAssetEntries = getResponse<HebaAssetEntry[]>(trust, 'heba-assets') ?? [];
-	const successors = getResponse<SuccessorTrusteeEntry[]>(trust, 'successor-trustees') ?? [];
+	const husbandSuccessors =
+		getResponse<SuccessorTrusteeEntry[]>(trust, 'husband-successor-trustees') ?? [];
+	const wifeSuccessors =
+		getResponse<SuccessorTrusteeEntry[]>(trust, 'wife-successor-trustees') ?? [];
 	const charitiesResp = getResponse<CharitiesResponse>(trust, 'charities');
 	const bequestsResp = getResponse<NonCharitableBequestsResponse>(trust, 'non-charitable-bequests');
-	const sepProp = getResponse<SeparatePropertyResponse>(trust, 'separate-property');
 	const minor = getResponse<MinorDistributionResponse>(trust, 'minor-distribution');
 	const trustName = getResponse<string>(trust, 'trust-name') ?? '';
 
@@ -241,7 +224,8 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 
 		husbandHeirs: flattenNamedHeirs(husbandHeirs?.namedHeirs),
 		wifeHeirs: flattenNamedHeirs(wifeHeirs?.namedHeirs),
-		trustees: successors.map((s) => s.fullName).filter(Boolean),
+		husbandTrustees: husbandSuccessors.map((s) => s.fullName).filter(Boolean),
+		wifeTrustees: wifeSuccessors.map((s) => s.fullName).filter(Boolean),
 
 		hasHusbandCharitable: husbandCharitable.length > 0,
 		hasWifeCharitable: wifeCharitable.length > 0,
@@ -270,24 +254,7 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 				accountId: a.accountId ?? '',
 			})),
 
-		husbandSeparateProperty: (sepProp?.husband ?? [])
-			.filter((p) => (p.assetName ?? '').trim().length > 0)
-			.map((p) => ({
-				assetName: p.assetName ?? '',
-				accountId: p.accountId ?? '',
-				approximateValue: p.approximateValue ?? '',
-			})),
-		wifeSeparateProperty: (sepProp?.wife ?? [])
-			.filter((p) => (p.assetName ?? '').trim().length > 0)
-			.map((p) => ({
-				assetName: p.assetName ?? '',
-				accountId: p.accountId ?? '',
-				approximateValue: p.approximateValue ?? '',
-			})),
-
 		heirsTableText: formatHeirsTable(husbandHeirs?.namedHeirs ?? wifeHeirs?.namedHeirs),
 		hebaAssetsText: formatHebaAssets(hebaAssetEntries),
-		husbandSeparatePropertyText: formatSeparateProperty(sepProp?.husband),
-		wifeSeparatePropertyText: formatSeparateProperty(sepProp?.wife),
 	};
 }

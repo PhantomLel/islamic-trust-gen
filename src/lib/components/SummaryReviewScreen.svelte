@@ -10,7 +10,6 @@
 		NonCharitableBequestsResponse,
 		PersonalDataResponse,
 		QuestionResponseValue,
-		SeparatePropertyResponse,
 		SuccessorTrusteeEntry,
 		PourOverRepresentativeEntry,
 	} from '$lib/config';
@@ -101,17 +100,16 @@
 		}
 		return null;
 	});
-	let separateProperty = $derived.by(() => {
-		const v = allResponses['separate-property'];
-		if (v && typeof v === 'object' && !Array.isArray(v) && 'husband' in v && 'wife' in v) return v as SeparatePropertyResponse;
-		return null;
-	});
 	let trusteeChoice = $derived(typeof allResponses['trustee-on-first-death'] === 'string' ? allResponses['trustee-on-first-death'] : null);
-	let successorTrustees = $derived.by(() => {
-		const v = allResponses['successor-trustees'];
-		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.fullName === 'string') return v as SuccessorTrusteeEntry[];
+	function trusteeList(key: string): SuccessorTrusteeEntry[] | null {
+		const v = allResponses[key];
+		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.fullName === 'string') {
+			return v as SuccessorTrusteeEntry[];
+		}
 		return null;
-	});
+	}
+	let husbandSuccessorTrustees = $derived(trusteeList('husband-successor-trustees'));
+	let wifeSuccessorTrustees = $derived(trusteeList('wife-successor-trustees'));
 	function pourOverList(key: string): PourOverRepresentativeEntry[] | null {
 		const v = allResponses[key];
 		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.fullName === 'string') {
@@ -148,8 +146,6 @@
 		isIntakePhaseComplete(allResponses, allIntakeQuestions, { selectedPlan })
 	);
 	let cannotFinalize = $derived(!intakeFullyComplete || discountedPledgeBlocksFinalize);
-	let spHusbandItems = $derived(separateProperty?.husband?.filter(e => e.assetName.trim()) ?? []);
-	let spWifeItems = $derived(separateProperty?.wife?.filter(e => e.assetName.trim()) ?? []);
 
 	function charityLabel(ch: CharityResponse): string {
 		if (typeof ch.customName === 'string' && ch.customName.trim() !== '') {
@@ -287,42 +283,6 @@
 		</div>
 	</div>
 
-	{#if ownershipChoice !== 'heba'}
-	<!-- Separate Property -->
-	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
-		<div class="flex items-center justify-between px-5 py-3 bg-navy/3 border-b border-navy/8">
-			<h3 class="text-sm font-semibold text-navy">Separate Property</h3>
-			<button type="button" onclick={() => onnavigate?.('separate-property')} class={editBtnClass}>Edit</button>
-		</div>
-		<div class="px-5 py-4 space-y-3">
-			{#if spHusbandItems.length === 0 && spWifeItems.length === 0}
-				<p class="text-[13px] text-navy/40">None listed</p>
-			{:else}
-				{#if spHusbandItems.length > 0}
-					<div>
-						<div class="text-[11px] font-medium text-navy/40 tracking-wider uppercase mb-1">{husband?.name || 'Husband'}</div>
-						<ul class="space-y-1">
-							{#each spHusbandItems as item}
-								<li class="text-[13px] text-navy">{item.assetName}{item.accountId ? ` · ${item.accountId}` : ''}{item.approximateValue ? ` · ~$${item.approximateValue}` : ''}</li>
-							{/each}
-						</ul>
-					</div>
-				{/if}
-				{#if spWifeItems.length > 0}
-					<div>
-						<div class="text-[11px] font-medium text-navy/40 tracking-wider uppercase mb-1">{wife?.name || 'Wife'}</div>
-						<ul class="space-y-1">
-							{#each spWifeItems as item}
-								<li class="text-[13px] text-navy">{item.assetName}{item.accountId ? ` · ${item.accountId}` : ''}{item.approximateValue ? ` · ~$${item.approximateValue}` : ''}</li>
-							{/each}
-						</ul>
-					</div>
-				{/if}
-			{/if}
-		</div>
-	</div>
-	{/if}
-
 	<!-- Trustee Upon First Death -->
 	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
 		<div class="flex items-center justify-between px-5 py-3 bg-navy/3 border-b border-navy/8">
@@ -344,24 +304,34 @@
 	<div class="rounded-2xl border border-navy/10 bg-white overflow-hidden">
 		<div class="flex items-center justify-between px-5 py-3 bg-navy/3 border-b border-navy/8">
 			<h3 class="text-sm font-semibold text-navy">Successor Trustees</h3>
-			<button type="button" onclick={() => onnavigate?.('successor-trustees')} class={editBtnClass}>Edit</button>
 		</div>
-		<div class="px-5 py-4">
-			{#if successorTrustees && successorTrustees.filter(t => t.fullName.trim()).length > 0}
-				<ol class="space-y-2">
-					{#each successorTrustees.filter(t => t.fullName.trim()) as trustee, i}
-						<li class="flex items-baseline gap-3">
-							<span class="text-[11px] font-semibold text-navy/30 tabular-nums">{i + 1}.</span>
-							<div>
-								<p class="text-sm text-navy font-medium">{trustee.fullName}</p>
-								<p class="text-[13px] text-navy/55">{trustee.relationship}{trustee.contact ? ` · ${trustee.contact}` : ''}</p>
-							</div>
-						</li>
-					{/each}
-				</ol>
-			{:else}
-				<p class="text-[13px] text-navy/40">None named</p>
-			{/if}
+		<div class="px-5 py-4 space-y-4">
+			{#each [
+				{ label: `${husband?.name || 'Husband'}'s Successor Trustees`, list: husbandSuccessorTrustees, id: 'husband-successor-trustees' },
+				{ label: `${wife?.name || 'Wife'}'s Successor Trustees`, list: wifeSuccessorTrustees, id: 'wife-successor-trustees' }
+			] as section}
+				<div>
+					<div class="flex items-center justify-between mb-2">
+						<div class="text-[11px] font-medium text-navy/40 tracking-wider uppercase">{section.label}</div>
+						<button type="button" onclick={() => onnavigate?.(section.id)} class={editBtnClass}>Edit</button>
+					</div>
+					{#if section.list && section.list.filter(t => t.fullName.trim()).length > 0}
+						<ol class="space-y-2">
+							{#each section.list.filter(t => t.fullName.trim()) as trustee, i}
+								<li class="flex items-baseline gap-3">
+									<span class="text-[11px] font-semibold text-navy/30 tabular-nums">{i + 1}.</span>
+									<div>
+										<p class="text-sm text-navy font-medium">{trustee.fullName}</p>
+										<p class="text-[13px] text-navy/55">{trustee.relationship}{trustee.contact ? ` · ${trustee.contact}` : ''}</p>
+									</div>
+								</li>
+							{/each}
+						</ol>
+					{:else}
+						<p class="text-[13px] text-navy/40">None named</p>
+					{/if}
+				</div>
+			{/each}
 		</div>
 	</div>
 

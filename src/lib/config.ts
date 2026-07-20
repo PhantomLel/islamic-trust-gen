@@ -62,7 +62,7 @@ export type Question = {
 	id: string;
 	text: string;
 	subtext?: string;
-	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'heba-assets' | 'assets' | 'separate-property' | 'trustee-on-first-death' | 'successor-trustees' | 'pour-over-representatives' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests' | 'house-deed' | 'summary-review';
+	type: 'text' | 'tel' | 'date' | 'select' | 'boolean' | 'children' | 'heir' | 'charities' | 'heirs-calculator' | 'personal-data' | 'ownership-allocation' | 'heba' | 'heba-assets' | 'assets' | 'trustee-on-first-death' | 'successor-trustees' | 'pour-over-representatives' | 'madhab' | 'heir-preview' | 'minor-distribution' | 'non-charitable-bequests' | 'house-deed' | 'summary-review';
 	required: boolean;
 	bucket: string;
 	options?: string[];
@@ -146,21 +146,10 @@ export type HebaAssetEntry = {
 	accountId?: string;
 };
 
-export type SeparatePropertyEntry = {
-	assetName: string;
-	accountId?: string;
-	approximateValue?: string;
-};
-
 /** @deprecated Merged into major-asset lists; kept only for reading legacy saved responses. */
 export type PersonalPropertyEntry = {
 	itemDescription: string;
 	spouse: 'husband' | 'wife' | '50-50';
-};
-
-export type SeparatePropertyResponse = {
-	husband: SeparatePropertyEntry[];
-	wife: SeparatePropertyEntry[];
 };
 
 export type SuccessorTrusteeEntry = {
@@ -226,7 +215,6 @@ export type QuestionResponseValue =
 	| HebaResponse
 	| AssetAllocationEntry[]
 	| HebaAssetEntry[]
-	| SeparatePropertyResponse
 	| PersonalPropertyEntry[]
 	| SuccessorTrusteeEntry[]
 	| PourOverRepresentativeEntry[]
@@ -343,14 +331,6 @@ export const postPaymentQuestions: Question[] = [
 		depends: { field: 'ownership-allocation', eq: 'assets' },
 	},
 	{
-		id: "separate-property",
-		text: "Did either of you own property before the marriage, or receive a personal gift or inheritance during the marriage?",
-		type: 'separate-property',
-		required: false,
-		bucket: 'property',
-		depends: { field: 'ownership-allocation', eq: 'assets' },
-	},
-	{
 		id: "charities",
 		text: "Would you like any of these charities to receive a portion of your wasiyyah?",
 		type: 'charities',
@@ -381,8 +361,17 @@ export const postPaymentQuestions: Question[] = [
 		bucket: 'trust',
 	},
 	{
-		id: "successor-trustees",
-		text: "Please name your successor trustees, in order of preference.",
+		id: "husband-successor-trustees",
+		text: "Husband — please name your successor trustees, in order of preference.",
+		subtext: "These trustees step in for your share of the trust if you are no longer able to serve. Name at least two, in order of preference.",
+		type: 'successor-trustees',
+		required: true,
+		bucket: 'trust',
+	},
+	{
+		id: "wife-successor-trustees",
+		text: "Wife — please name your successor trustees, in order of preference.",
+		subtext: "These trustees step in for your share of the trust if you are no longer able to serve. Name at least two, in order of preference.",
 		type: 'successor-trustees',
 		required: true,
 		bucket: 'trust',

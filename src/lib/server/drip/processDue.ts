@@ -181,18 +181,6 @@ export async function enrollAppAbandoners(): Promise<number> {
 			if (sa['taxable_estate']) flags.push('taxable_estate');
 		}
 
-		const manualFollowUpReasons: string[] = [];
-		if (row.status === TrustStatus.AwaitingPayment) manualFollowUpReasons.push('intake_completed_unpaid');
-		if (flags.length > 0) manualFollowUpReasons.push('complexity_flags');
-
-		const existing = await db.query.marketingLead.findFirst({
-			where: eq(marketingLead.email, email),
-		});
-
-		// Check inactive 7+ days for flag.
-		const daysInactive = (now.getTime() - abandonedAt.getTime()) / (1000 * 60 * 60 * 24);
-		if (daysInactive >= 7) manualFollowUpReasons.push('inactive_7_plus_days');
-
 		try {
 			await enrollLead({
 				email,
@@ -205,15 +193,6 @@ export async function enrollAppAbandoners(): Promise<number> {
 				complexityFlags: flags,
 				firstEmailDelayHours: 0, // delay already waited; send now
 			});
-
-			// Set manual follow-up flag if needed.
-			if (manualFollowUpReasons.length > 0) {
-				await db.update(marketingLead).set({
-					manualFollowUp: true,
-					manualFollowUpReasons: Array.from(new Set([...(existing?.manualFollowUpReasons ?? []), ...manualFollowUpReasons])),
-					updatedAt: now,
-				}).where(eq(marketingLead.email, email));
-			}
 
 			enrolled++;
 		} catch (err) {

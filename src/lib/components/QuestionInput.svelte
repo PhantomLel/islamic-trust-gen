@@ -15,7 +15,6 @@
 	import HebaAcknowledgmentInput from './HebaAcknowledgmentInput.svelte';
 	import HebaAssetsInput from './HebaAssetsInput.svelte';
 	import AssetAllocationInput from './AssetAllocationInput.svelte';
-	import SeparatePropertyInput from './SeparatePropertyInput.svelte';
 	import TrusteeSelectionInput from './TrusteeSelectionInput.svelte';
 	import SuccessorTrusteesInput from './SuccessorTrusteesInput.svelte';
 	import PourOverRepresentativesInput from './PourOverRepresentativesInput.svelte';
@@ -359,9 +358,6 @@
 {:else if question.type === 'assets'}
 	<AssetAllocationInput {value} {onresponse} />
 
-{:else if question.type === 'separate-property'}
-	<SeparatePropertyInput {value} {onresponse} {allResponses} />
-
 {:else if question.type === 'trustee-on-first-death'}
 	<TrusteeSelectionInput {value} {onresponse} />
 
@@ -370,7 +366,8 @@
 
 {:else if question.type === 'pour-over-representatives'}
 	{@const role = question.id.endsWith('-guardians') ? 'guardian' : 'personal-representative'}
-	<PourOverRepresentativesInput {value} {onresponse} {role} {allResponses} />
+	{@const trusteeSourceId = question.id.startsWith('wife-') ? 'wife-successor-trustees' : 'husband-successor-trustees'}
+	<PourOverRepresentativesInput {value} {onresponse} {role} {allResponses} {trusteeSourceId} />
 
 {:else if question.type === 'madhab'}
 	<MadhabInput {value} {onresponse} {onnext} />

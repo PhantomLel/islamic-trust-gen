@@ -13,7 +13,6 @@ import {
 	type HebaResponse,
 	type AssetAllocationEntry,
 	type HebaAssetEntry,
-	type SeparatePropertyResponse,
 	type SuccessorTrusteeEntry,
 	type PourOverRepresentativeEntry,
 	type MinorDistributionResponse
@@ -346,18 +345,6 @@ import {
 			!Array.isArray(value) &&
 			'husbandConfirmation' in value &&
 			'wifeConfirmation' in value
-		);
-	}
-
-	function isSeparatePropertyShape(value: unknown): value is SeparatePropertyResponse {
-		return (
-			value != null &&
-			typeof value === 'object' &&
-			!Array.isArray(value) &&
-			'husband' in value &&
-			'wife' in value &&
-			Array.isArray((value as { husband: unknown }).husband) &&
-			Array.isArray((value as { wife: unknown }).wife)
 		);
 	}
 
@@ -904,34 +891,6 @@ import {
 						</div>
 					{:else}
 						<span class="text-[13px] text-navy/25">—</span>
-					{/if}
-				{:else if q.type === 'separate-property'}
-					{@const sp = isSeparatePropertyShape(raw) ? raw : null}
-					{#if sp && (sp.husband.length > 0 || sp.wife.length > 0)}
-						<div class="space-y-2">
-							{#if sp.husband.length > 0}
-								<div>
-									<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Husband</div>
-									{#each sp.husband as item}
-										<div class="text-[12px] text-navy">
-											{item.assetName}{item.approximateValue ? ` — ~${item.approximateValue}` : ''}
-										</div>
-									{/each}
-								</div>
-							{/if}
-							{#if sp.wife.length > 0}
-								<div>
-									<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Wife</div>
-									{#each sp.wife as item}
-										<div class="text-[12px] text-navy">
-											{item.assetName}{item.approximateValue ? ` — ~${item.approximateValue}` : ''}
-										</div>
-									{/each}
-								</div>
-							{/if}
-						</div>
-					{:else}
-						<span class="text-[13px] text-navy/25">None</span>
 					{/if}
 				{:else if q.type === 'successor-trustees' || q.type === 'pour-over-representatives'}
 					{@const people = Array.isArray(raw) ? (raw as (SuccessorTrusteeEntry | PourOverRepresentativeEntry)[]) : []}

@@ -25,13 +25,13 @@
 			Right now, you and your spouse are the trustees. This question is about who takes over if you are both gone, or unable to serve.
 		</p>
 		<p class="text-[14px] text-navy/70 leading-relaxed">
-			On the next screen we will ask you to name up to four
+			On the next screens we will ask each of you to name up to four
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<span
 				onclick={() => (successorPopout = true)}
 				class="font-medium text-navy/85 underline decoration-navy/25 hover:decoration-navy/60 cursor-pointer transition-colors"
-			>successor trustees</span>, in order of preference. Only one serves at a time.
+			>successor trustees</span>, in order of preference. Only one serves at a time for each spouse's share.
 		</p>
 	</div>
 
@@ -68,7 +68,7 @@
 				<div class="flex-1 min-w-0">
 					<div class="text-sm font-semibold text-navy mb-1.5">The surviving spouse serves as trustee.</div>
 					<p class="text-[13px] text-navy/55 leading-relaxed text-pretty wrap-break-word">
-						The surviving spouse takes over as sole trustee and manages the trust until they pass or are unable to serve. The successor trustees named below step in after that.
+						The surviving spouse takes over as sole trustee and manages the trust until they pass or are unable to serve. Each spouse's successor trustees step in after that.
 					</p>
 				</div>
 			</div>
@@ -93,7 +93,7 @@
 				<div class="flex-1 min-w-0">
 					<div class="text-sm font-semibold text-navy mb-1.5">The surviving spouse does not serve as trustee.</div>
 					<p class="text-[13px] text-navy/55 leading-relaxed">
-						The first successor trustee named below serves immediately upon the first death.
+						The deceased spouse's first successor trustee serves immediately upon the first death.
 					</p>
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -119,5 +119,5 @@
 
 <InfoPopout open={skippedPopout} onclose={() => (skippedPopout = false)} title="When would I choose this option?">
 	<p>Some families choose this if they are concerned about the surviving spouse's ability or willingness to distribute the estate according to Islamic law.</p>
-	<p class="mt-3">This is uncommon but available. If you choose this option, make sure your successor trustees are people you deeply trust and who understand Islamic inheritance.</p>
+	<p class="mt-3">This is uncommon but available. If you choose this option, make sure each spouse's successor trustees are people you deeply trust and who understand Islamic inheritance.</p>
 </InfoPopout>

@@ -350,9 +350,6 @@ export function isQuestionResponseComplete(
 	if (type === 'heba-assets') {
 		return true; // optional — all heba property is jointly owned regardless of what's listed
 	}
-	if (type === 'separate-property') {
-		return true; // optional — user can leave it blank
-	}
 	if (type === 'house-deed') {
 		return value === true || value === false;
 	}
