@@ -7,7 +7,18 @@ import type { LoeAgreementData, WarningAgreementData } from '$lib/server/db/sche
 import type { UserFile } from '$lib/server/db/schema';
 import { documentsApprovedEmail } from '$lib/server/emails/documentsApproved';
 import { closingLetterEmail } from '$lib/server/emails/closingLetter';
+import { fundingActionNeededEmail } from '$lib/server/emails/funding/actionNeeded';
 import { createSingleUseSchedulingLink, isCalendlyConfigured } from '$lib/server/calendly';
+import {
+	seedFundingDashboardOnApprove,
+	unlockFundingComplete,
+	setActionNeededNote,
+	loadFundingForTrust,
+	flagsFromDashboard,
+} from '$lib/server/funding';
+import { fundingDashboard, fundingAdminFlag } from '$lib/server/db/schema';
+import { computeFundingProgress } from '$lib/funding/logic';
+import { ADMIN_NOTE_TEMPLATES } from '$lib/funding/content';
 import { eq, and, desc } from 'drizzle-orm';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
@@ -124,6 +135,36 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			warningAcceptedAt: t.warningAcceptedAt?.toISOString() ?? null,
 			warningAgreementData: (t.warningAgreementData ?? null) as WarningAgreementData | null,
 		})),
+		fundingByTrust: await Promise.all(
+			trusts.map(async (t) => {
+				const dash = await loadFundingForTrust(t.id);
+				if (!dash) return { trustId: t.id, dashboard: null };
+				const progress = computeFundingProgress(flagsFromDashboard(dash), dash.milestones, {
+					fundingUnlockedAt: dash.fundingUnlockedAt,
+				});
+				const openFlags = dash.adminFlags.filter((f) => !f.resolvedAt);
+				return {
+					trustId: t.id,
+					dashboard: {
+						id: dash.id,
+						documentsReadyAt: dash.documentsReadyAt?.toISOString() ?? null,
+						fundingUnlockedAt: dash.fundingUnlockedAt?.toISOString() ?? null,
+						implementationCompletedAt: dash.implementationCompletedAt?.toISOString() ?? null,
+						pourOverWillIncluded: dash.pourOverWillIncluded,
+						actionNeededNote: dash.actionNeededNote,
+						progress,
+						openFlags: openFlags.map((f) => ({
+							id: f.id,
+							flagKey: f.flagKey,
+							severity: f.severity,
+							reason: f.reason,
+							createdAt: f.createdAt.toISOString(),
+						})),
+					},
+				};
+			})
+		),
+		fundingNoteTemplates: ADMIN_NOTE_TEMPLATES,
 	};
 };
 
@@ -198,11 +239,18 @@ export const actions: Actions = {
 			})
 			.where(eq(trust.id, trustId));
 
+		try {
+			await seedFundingDashboardOnApprove(trustId, locals.user.id);
+		} catch (err) {
+			console.error('[approveDocuments] Funding dashboard seed failed:', err);
+		}
+
 		const to = row.user.email?.trim();
 		if (to && env.RESEND_API_KEY && env.FROM_EMAIL) {
 			try {
 				const resend = new Resend(env.RESEND_API_KEY);
 				const origin = (env.ORIGIN ?? '').replace(/\/$/, '');
+				const fundingUrl = origin ? `${origin}/make-your-trust-work/${trustId}` : null;
 				const dashboardUrl = origin ? `${origin}/dashboard` : null;
 				await resend.emails.send({
 					from: env.FROM_EMAIL,
@@ -211,6 +259,7 @@ export const actions: Actions = {
 					html: documentsApprovedEmail({
 						trustId,
 						dashboardUrl,
+						fundingUrl,
 						schedulingUrl: bookingUrl ?? undefined,
 					}),
 				});
@@ -247,11 +296,18 @@ export const actions: Actions = {
 			})
 			.where(eq(trust.id, trustId));
 
+		try {
+			await unlockFundingComplete(trustId, locals.user.id);
+		} catch (err) {
+			console.error('[finalizeCase] Funding unlock failed:', err);
+		}
+
 		const to = row.user.email?.trim();
 		if (to && env.RESEND_API_KEY && env.FROM_EMAIL) {
 			try {
 				const resend = new Resend(env.RESEND_API_KEY);
 				const origin = (env.ORIGIN ?? '').replace(/\/$/, '');
+				const fundingUrl = origin ? `${origin}/make-your-trust-work/${trustId}` : null;
 				const dashboardUrl = origin ? `${origin}/dashboard` : null;
 				await resend.emails.send({
 					from: env.FROM_EMAIL,
@@ -261,6 +317,7 @@ export const actions: Actions = {
 						trustId,
 						recipientName: row.user.name,
 						dashboardUrl,
+						fundingUrl,
 					}),
 				});
 			} catch (err) {
@@ -269,6 +326,92 @@ export const actions: Actions = {
 		}
 
 		return { finalized: true };
+	},
+
+	setFundingActionNeeded: async ({ request, locals, params }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		const note = String(formData.get('note') ?? '').trim();
+		const sendEmail = formData.get('sendEmail') === 'true';
+		if (Number.isNaN(trustId) || !note) return fail(400, { message: 'Trust and note required' });
+
+		const dash = await loadFundingForTrust(trustId);
+		if (!dash || dash.userId !== params.id) return fail(404, { message: 'Funding dashboard not found' });
+
+		await setActionNeededNote(dash.id, note, locals.user.id);
+
+		if (sendEmail && env.RESEND_API_KEY && env.FROM_EMAIL) {
+			const target = await db.query.user.findFirst({
+				where: eq(user.id, params.id),
+				columns: { email: true, name: true },
+			});
+			const to = target?.email?.trim();
+			if (to) {
+				try {
+					const resend = new Resend(env.RESEND_API_KEY);
+					const origin = (env.ORIGIN ?? '').replace(/\/$/, '');
+					const fundingUrl = origin ? `${origin}/make-your-trust-work/${trustId}` : null;
+					await resend.emails.send({
+						from: env.FROM_EMAIL,
+						to,
+						subject: `We need something from you to finish your Good Tree documents`,
+						html: fundingActionNeededEmail({
+							trustId,
+							recipientName: target?.name,
+							note,
+							fundingUrl,
+						}),
+					});
+				} catch (err) {
+					console.error('[setFundingActionNeeded] email failed:', err);
+				}
+			}
+		}
+		return { fundingActionNeeded: true };
+	},
+
+	clearFundingActionNeeded: async ({ request, locals, params }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		if (Number.isNaN(trustId)) return fail(400, { message: 'Missing trust' });
+		const dash = await loadFundingForTrust(trustId);
+		if (!dash || dash.userId !== params.id) return fail(404, { message: 'Not found' });
+		await setActionNeededNote(dash.id, null, locals.user.id);
+		return { cleared: true };
+	},
+
+	togglePourOverIncluded: async ({ request, locals, params }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		const included = formData.get('included') === 'true';
+		if (Number.isNaN(trustId)) return fail(400, { message: 'Missing trust' });
+		const dash = await loadFundingForTrust(trustId);
+		if (!dash || dash.userId !== params.id) return fail(404, { message: 'Not found' });
+		await db
+			.update(fundingDashboard)
+			.set({ pourOverWillIncluded: included, updatedAt: new Date() })
+			.where(eq(fundingDashboard.id, dash.id));
+		return { toggled: true };
+	},
+
+	resolveFundingFlag: async ({ request, locals, params }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+		const formData = await request.formData();
+		const flagId = Number(formData.get('flagId'));
+		if (Number.isNaN(flagId)) return fail(400, { message: 'Missing flag' });
+		const flag = await db.query.fundingAdminFlag.findFirst({
+			where: eq(fundingAdminFlag.id, flagId),
+			with: { dashboard: { columns: { userId: true } } },
+		});
+		if (!flag || flag.dashboard.userId !== params.id) return fail(404, { message: 'Flag not found' });
+		await db
+			.update(fundingAdminFlag)
+			.set({ resolvedAt: new Date(), updatedAt: new Date() })
+			.where(eq(fundingAdminFlag.id, flagId));
+		return { resolved: true };
 	},
 
 	toggleConsultation: async ({ request, locals }) => {

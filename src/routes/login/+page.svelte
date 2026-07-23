@@ -1,8 +1,18 @@
 <script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { authClient } from '$lib/auth-client';
 	import { siteName } from '$lib/config';
+
+	function safeRedirectPath(path: string | null): string | null {
+		if (!path || !path.startsWith('/') || path.startsWith('//')) return null;
+		return path;
+	}
+
+	const callbackURL = $derived(
+		safeRedirectPath(page.url.searchParams.get('redirectTo')) ?? '/dashboard',
+	);
 
 	let email = $state('');
 	let magicLinkSent = $state(false);
@@ -16,6 +26,8 @@
 
 		const formData = new FormData();
 		formData.set('email', email.trim());
+		const redirectTo = page.url.searchParams.get('redirectTo');
+		if (redirectTo) formData.set('redirectTo', redirectTo);
 
 		const response = await fetch('?/signInMagicLink', {
 			method: 'POST',
@@ -47,7 +59,7 @@
 	}
 
 	async function handleGoogle() {
-		await authClient.signIn.social({ provider: 'google', callbackURL: '/dashboard' });
+		await authClient.signIn.social({ provider: 'google', callbackURL });
 	}
 </script>
 

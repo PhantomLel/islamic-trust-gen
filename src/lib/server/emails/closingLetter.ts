@@ -7,6 +7,8 @@ export type ClosingLetterEmailInput = {
 	recipientName?: string | null;
 	/** Absolute dashboard/portal URL; omit when ORIGIN is not configured. */
 	dashboardUrl?: string | null;
+	/** Make Your Trust Work deep link. */
+	fundingUrl?: string | null;
 };
 
 type StatusKind = 'complete' | 'action';
@@ -87,11 +89,33 @@ export function closingLetterEmail(input: ClosingLetterEmailInput): string {
 		: 'Assalamu alaikum';
 
 	const consultHref = escapeHtmlAttr(consultationBookingUrl);
+	const fundingHref =
+		input.fundingUrl && /^https?:\/\//i.test(input.fundingUrl)
+			? escapeHtmlAttr(input.fundingUrl)
+			: input.dashboardUrl && /^https?:\/\//i.test(input.dashboardUrl)
+				? escapeHtmlAttr(input.dashboardUrl)
+				: null;
 
 	const portalLine =
 		input.dashboardUrl && /^https?:\/\//i.test(input.dashboardUrl)
 			? `Log in to <a href="${escapeHtmlAttr(input.dashboardUrl)}" style="color:#1e3a3a;text-decoration:underline;font-weight:500;">your portal</a> to access the homestead tax exemption guide. If it is not uploaded yet, check back in a few days.`
 			: `Log in to your portal to access the homestead tax exemption guide. If it is not uploaded yet, check back in a few days.`;
+
+	const fundingCta = fundingHref
+		? `
+          <tr>
+            <td style="padding:8px 24px 0 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:10px;border:1px solid #e2dbd3;">
+                <tr>
+                  <td style="padding:24px;text-align:center;">
+                    <p style="margin:0 0 14px 0;font-size:14px;color:#3a4e48;line-height:1.7;">Use your <strong style="color:#2c3e3a;">Make Your Trust Work</strong> dashboard to finish signing steps, update institutions, and protect your plan — with checklists and progress tracking.</p>
+                    <a href="${fundingHref}" style="display:inline-block;background:#1e3a3a;color:#f5f0eb;text-decoration:none;font-size:15px;font-weight:600;padding:14px 32px;border-radius:8px;">Open Make Your Trust Work</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`
+		: '';
 
 	const mainRows = `
           <!-- ── Congratulations header ── -->
@@ -106,19 +130,21 @@ export function closingLetterEmail(input: ClosingLetterEmailInput): string {
                 Your app document preparation and included deed service are complete. Your trust has been notarized, your home has been deeded into your trust, and the deed has been recorded with the county. That is a major accomplishment, and your family is now protected in a way that most families are not.
               </p>
               <p style="margin:0 auto;max-width:540px;color:#4a5e58;font-size:15px;line-height:1.7;">
-                Your trust is not just a legal document — it is an <em>amanah</em>, a sacred trust, for your family (${trustRef}). Below is everything you need to know about your documents and what still needs your attention.
+                Your trust is not just a legal document — it is an <em>amanah</em>, a sacred trust, for your family (${trustRef}). The guided steps below still need your attention.
               </p>
             </td>
           </tr>
 
+          ${fundingCta}
+
           <!-- ── Read-closely banner ── -->
           <tr>
-            <td style="padding:8px 24px 0 24px;">
+            <td style="padding:16px 24px 0 24px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#1e3a3a;border-radius:10px;">
                 <tr>
                   <td style="padding:22px 24px;">
                     <p style="margin:0;font-size:14px;line-height:1.7;color:#d4e0db;">
-                      <strong style="color:#f5f0eb;">Please read this letter closely and all the way to the end.</strong> Your trust <u>will not fully work</u> unless you complete the remaining steps — especially funding your trust and protecting your homestead exemption. Life is busy and important things get overlooked. We recommend saving this email and keeping it visible until every action item is complete.
+                      <strong style="color:#f5f0eb;">Please finish Completing Your Funding in the app.</strong> Your trust will not fully work unless you coordinate accounts, beneficiary designations, storage, and trustee notification. Life is busy — keep the dashboard open until every applicable step is done.
                     </p>
                   </td>
                 </tr>
@@ -133,20 +159,20 @@ export function closingLetterEmail(input: ClosingLetterEmailInput): string {
           ${documentCard(
 						'Your trust &amp; recorded deed',
 						statusPill('complete', 'Complete'),
-						`<p style="margin:0;font-size:13px;color:#4a5e58;line-height:1.65;">Signed, notarized, and recorded. You do not need to do anything else with the recorded deed except store it somewhere safe and make sure your successor trustee knows where to find your trust documents (details below).</p>`
+						`<p style="margin:0;font-size:13px;color:#4a5e58;line-height:1.65;">Signed, notarized, and recorded. Store the recorded deed safely and make sure your successor trustee knows where to find your trust documents.</p>`
 					)}
 
           ${documentCard(
 						'Pour-over wills',
 						statusPill('action', 'Action needed'),
-						`<p style="margin:0 0 8px 0;font-size:13px;color:#4a5e58;line-height:1.65;">Each spouse must sign their will <strong style="color:#2c3e3a;">in person</strong> in front of <strong style="color:#2c3e3a;">two witnesses</strong> who are not beneficiaries. We strongly recommend signing the self-proving affidavit in person before a notary at the same time.</p>
-             <p style="margin:0;font-size:13px;color:#4a5e58;line-height:1.65;"><strong style="color:#2c3e3a;">This must be done in person — do not use an online notary</strong> for your will or self-proving affidavit. You can usually do this at a UPS Store or your bank. It often takes about ten minutes.</p>`
+						`<p style="margin:0 0 8px 0;font-size:13px;color:#4a5e58;line-height:1.65;">Each spouse must sign their will <strong style="color:#2c3e3a;">in person</strong> in front of <strong style="color:#2c3e3a;">two witnesses</strong> who are not beneficiaries. Use the will-signing card in Make Your Trust Work.</p>
+             <p style="margin:0;font-size:13px;color:#4a5e58;line-height:1.65;"><strong style="color:#2c3e3a;">This must be done in person — do not use an online notary</strong> for your will or self-proving affidavit.</p>`
 					)}
 
           ${documentCard(
-						'Funding instructions',
+						'Funding &amp; follow-through',
 						statusPill('action', 'Action needed'),
-						`<p style="margin:0;font-size:13px;color:#4a5e58;line-height:1.65;">The deed for your primary residence is complete, but the rest of your trust funding is your responsibility. Use the checklist below to coordinate bank accounts, investment accounts, life insurance, retirement accounts, and other assets with your trust plan. Most of this you can do yourself. If you need individualized help, you may <a href="${consultHref}" style="color:#1e3a3a;text-decoration:underline;font-weight:500;">book a separate consultation</a>.</p>`
+						`<p style="margin:0;font-size:13px;color:#4a5e58;line-height:1.65;">The deed for your primary residence is complete. Use <strong style="color:#2c3e3a;">Complete Your Funding</strong> in the app for banks, retirement, insurance, storage, and trustee notification. If you need individualized help, <a href="${consultHref}" style="color:#1e3a3a;text-decoration:underline;font-weight:500;">book a separate consultation</a>.</p>`
 					)}
 
           <!-- ── Funding your trust ── -->
@@ -157,28 +183,16 @@ export function closingLetterEmail(input: ClosingLetterEmailInput): string {
           <tr><td style="padding:10px 0 0 0;"></td></tr>
 
           ${fundingItem(
-						'Bank and investment accounts',
-						`For accounts that allow transfer-on-death (TOD) or payable-on-death (POD) designations, name your trust as beneficiary if appropriate (for example, &quot;[Full Name of Trust], dated [date], as amended&quot;). This can be done online or at your branch. Do this for your IRA, 401(k), investment, and bank accounts.`
+						'Follow the in-app checklist',
+						`Bank and brokerage accounts, employer plans, IRAs, life insurance, vehicles, and crypto each have their own institution process. The Make Your Trust Work dashboard walks through them with safe reminders — without asking for account numbers or passwords.`
 					)}
           ${fundingItem(
 						'Real estate',
 						`Your primary residence has been deeded into your trust. If you purchase additional real estate later, instruct the realtor and title company to title it in the name of your trust, or seek separate legal advice before closing.`
 					)}
           ${fundingItem(
-						'Life insurance',
-						`Review ownership and beneficiary designations so they align with your trust plan. The app does not review or update these designations for you.`
-					)}
-          ${fundingItem(
-						'Business interests',
-						`Consult an attorney before transferring or acquiring business interests to ensure proper structuring, transfer restrictions, and compliance.`
-					)}
-          ${fundingItem(
-						'Retirement accounts',
-						`Talk to your custodian (Charles Schwab, Fidelity, Edward Jones, etc.) — they deal with trusts often. Retirement accounts may require separate beneficiary decisions, and the app does not provide individualized tax advice about whether they should pass to individuals, a trust, or charity.`
-					)}
-          ${fundingItem(
 						'Cars',
-						`We generally do not recommend retitling cars into your trust, as it can complicate insurance, registration, and financing. For Texas vehicles, use a Beneficiary Designation for a Motor Vehicle (Form VTR-121) together with Form 130-U, submitted to your county tax assessor-collector before death with the required fee and ownership evidence. This is your responsibility to complete.`
+						`We generally do not recommend retitling cars into your trust. For Texas vehicles, consider a Beneficiary Designation for a Motor Vehicle if you want one — details are in the Vehicles card.`
 					)}
 
           <!-- ── Tell your trustee ── -->
@@ -201,7 +215,7 @@ export function closingLetterEmail(input: ClosingLetterEmailInput): string {
           <!-- ── Storage ── -->
           ${sectionHeading('Storage', 'Store your trust safely — but accessibly')}
           ${paragraph(
-						`Keep original signed documents in a fireproof, waterproof folder or box, in a location your trustee can access — do not bury them in a random drawer. Do not rely on the app or our firm as your document vault; you are responsible for keeping your signed originals safe and making sure your successor trustee can find them.`
+						`Keep original signed documents in a fireproof, waterproof folder or box, in a location your trustee can access. Do not rely on the app or our firm as your document vault.`
 					)}
 
           <!-- ── Homestead exemption ── -->
@@ -232,7 +246,7 @@ export function closingLetterEmail(input: ClosingLetterEmailInput): string {
           <!-- ── Closing ── -->
           ${sectionHeading('Closing', 'Limited app engagement complete')}
           ${paragraph(
-						`<strong style="color:#2c3e3a;">Your limited GoodTree Trust App engagement is now complete.</strong> McDaniel Estate Planning is no longer representing you in this matter unless we sign a separate written engagement.`
+						`<strong style="color:#2c3e3a;">Your limited Good Tree Trust App engagement is now complete.</strong> McDaniel Estate Planning is no longer representing you in this matter unless we sign a separate written engagement.`
 					)}
           ${paragraph(
 						`We have no ongoing duty to monitor changes in your family, assets, tax situation, state of residence, beneficiary designations, homestead status, or applicable law. If you want future legal help, trust updates, funding help, or review of new assets, you must separately hire McDaniel Estate Planning or another attorney.`
@@ -243,7 +257,7 @@ export function closingLetterEmail(input: ClosingLetterEmailInput): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#1e3a3a;border-radius:10px;">
                 <tr>
                   <td style="padding:22px 24px;">
-                    <p style="margin:0 0 12px 0;font-size:14px;line-height:1.7;color:#d4e0db;"><strong style="color:#f5f0eb;">Keep this letter and your action items visible until every step is done.</strong> Your trust is a powerful step, but it only works properly if you finish the follow-through.</p>
+                    <p style="margin:0 0 12px 0;font-size:14px;line-height:1.7;color:#d4e0db;"><strong style="color:#f5f0eb;">Keep Make Your Trust Work open until every applicable step is done.</strong> Your trust is a powerful step, but it only works properly if you finish the follow-through.</p>
                     <p style="margin:0;font-size:14px;line-height:1.7;color:#d4e0db;"><strong style="color:#f5f0eb;">Review your estate plan</strong> after major life events — marriage, divorce, birth of a child, significant changes in assets, relocation to another state, a death in the family, or major changes to beneficiary designations.</p>
                   </td>
                 </tr>

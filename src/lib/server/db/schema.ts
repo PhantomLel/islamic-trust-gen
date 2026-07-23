@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, text, timestamp, boolean, jsonb, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { user, session, account } from './auth.schema';
 import { relations } from 'drizzle-orm';
 import { defaultPrepFee } from '../../config';
@@ -268,6 +268,121 @@ export const invoice = pgTable('invoice', {
 	stripeCheckoutSessionId: text('stripe_checkout_session_id'),
 });
 
+// ── Make Your Trust Work (funding journey) ───────────────────────────────────
+
+export type FundingTriState = 'yes' | 'no' | 'not_sure';
+export type FundingPhase = 'prepare' | 'complete';
+export type FundingMilestoneStatus =
+	| 'locked'
+	| 'not_started'
+	| 'in_progress'
+	| 'action_needed'
+	| 'complete'
+	| 'not_applicable';
+
+/** Checklist item id → checked. */
+export type FundingChecklistState = Record<string, boolean>;
+
+/**
+ * One row per paid trust. Tracks overall funding-journey state, Find Your Stuff
+ * answers, and unlock timestamps. Milestone progress lives in funding_milestone.
+ */
+export const fundingDashboard = pgTable('funding_dashboard', {
+	id: serial('id').primaryKey(),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	updatedAt: timestamp('updated_at').defaultNow().notNull(),
+	trustId: integer('trust_id').references(() => trust.id, { onDelete: 'cascade' }).notNull().unique(),
+	userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
+
+	/** Set when admin approves documents (Prepare unlocks). */
+	documentsReadyAt: timestamp('documents_ready_at'),
+	/** Set when admin finalizes after notarization (Complete unlocks). */
+	fundingUnlockedAt: timestamp('funding_unlocked_at'),
+	/** Set when all applicable core milestones are complete or N/A. */
+	implementationCompletedAt: timestamp('implementation_completed_at'),
+
+	pourOverWillIncluded: boolean('pour_over_will_included').notNull().default(true),
+	isHomeowner: boolean('is_homeowner'),
+	isMarried: boolean('is_married'),
+
+	hasBankAccounts: text('has_bank_accounts').$type<FundingTriState | null>(),
+	hasBrokerage: text('has_brokerage').$type<FundingTriState | null>(),
+	hasEmployerPlan: text('has_employer_plan').$type<FundingTriState | null>(),
+	hasIra: text('has_ira').$type<FundingTriState | null>(),
+	hasLifeInsurance: text('has_life_insurance').$type<FundingTriState | null>(),
+	hasVehicle: text('has_vehicle').$type<FundingTriState | null>(),
+	hasCrypto: text('has_crypto').$type<FundingTriState | null>(),
+	hasBusiness: text('has_business').$type<FundingTriState | null>(),
+	retirementOverThreshold: text('retirement_over_threshold').$type<FundingTriState | null>(),
+	/** True once Find Your Stuff has been submitted at least once. */
+	findYourStuffCompletedAt: timestamp('find_your_stuff_completed_at'),
+
+	/** User-visible note when admin sets action needed. */
+	actionNeededNote: text('action_needed_note'),
+	actionNeededAt: timestamp('action_needed_at'),
+
+	/** Optional free-text inventory notes (no account numbers). */
+	inventoryNotes: text('inventory_notes'),
+}, (t) => [
+	index('funding_dashboard_user_idx').on(t.userId),
+	index('funding_dashboard_docs_ready_idx').on(t.documentsReadyAt),
+	index('funding_dashboard_funding_unlocked_idx').on(t.fundingUnlockedAt),
+]);
+
+export const fundingMilestone = pgTable('funding_milestone', {
+	id: serial('id').primaryKey(),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	updatedAt: timestamp('updated_at').defaultNow().notNull(),
+	dashboardId: integer('dashboard_id').references(() => fundingDashboard.id, { onDelete: 'cascade' }).notNull(),
+	key: text('key').notNull(),
+	phase: text('phase').$type<FundingPhase>().notNull(),
+	status: text('status').$type<FundingMilestoneStatus>().notNull().default('not_started'),
+	checklist: jsonb('checklist').$type<FundingChecklistState>().notNull().default({}),
+	naReason: text('na_reason'),
+	completedAt: timestamp('completed_at'),
+}, (t) => [
+	index('funding_milestone_dashboard_idx').on(t.dashboardId),
+	index('funding_milestone_key_idx').on(t.dashboardId, t.key),
+]);
+
+export const fundingEvent = pgTable('funding_event', {
+	id: serial('id').primaryKey(),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	dashboardId: integer('dashboard_id').references(() => fundingDashboard.id, { onDelete: 'cascade' }).notNull(),
+	eventKey: text('event_key').notNull(),
+	payload: jsonb('payload').$type<Record<string, unknown>>(),
+	actorUserId: text('actor_user_id').references(() => user.id, { onDelete: 'set null' }),
+}, (t) => [
+	index('funding_event_dashboard_idx').on(t.dashboardId),
+]);
+
+export const fundingReminderLog = pgTable('funding_reminder_log', {
+	id: serial('id').primaryKey(),
+	sentAt: timestamp('sent_at').defaultNow().notNull(),
+	dashboardId: integer('dashboard_id').references(() => fundingDashboard.id, { onDelete: 'cascade' }).notNull(),
+	reminderKey: text('reminder_key').notNull(),
+	resendId: text('resend_id'),
+}, (t) => [
+	index('funding_reminder_log_dashboard_idx').on(t.dashboardId),
+	uniqueIndex('funding_reminder_unique_idx').on(t.dashboardId, t.reminderKey),
+]);
+
+export type FundingFlagSeverity = 'info' | 'attention' | 'risk';
+
+export const fundingAdminFlag = pgTable('funding_admin_flag', {
+	id: serial('id').primaryKey(),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	updatedAt: timestamp('updated_at').defaultNow().notNull(),
+	dashboardId: integer('dashboard_id').references(() => fundingDashboard.id, { onDelete: 'cascade' }).notNull(),
+	flagKey: text('flag_key').notNull(),
+	severity: text('severity').$type<FundingFlagSeverity>().notNull().default('attention'),
+	reason: text('reason'),
+	payload: jsonb('payload').$type<Record<string, unknown>>(),
+	resolvedAt: timestamp('resolved_at'),
+}, (t) => [
+	index('funding_admin_flag_dashboard_idx').on(t.dashboardId),
+	index('funding_admin_flag_open_idx').on(t.dashboardId, t.resolvedAt),
+]);
 
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
@@ -275,6 +390,7 @@ export const userRelations = relations(user, ({ many }) => ({
 	trusts: many(trust),
 	invoices: many(invoice),
 	freeWills: many(freeWill),
+	fundingDashboards: many(fundingDashboard),
 }));
 
 export const freeWillRelations = relations(freeWill, ({ one }) => ({
@@ -303,12 +419,59 @@ export const trustRelations = relations(trust, ({ one }) => ({
 		fields: [trust.userId],
 		references: [user.id],
 	}),
+	fundingDashboard: one(fundingDashboard, {
+		fields: [trust.id],
+		references: [fundingDashboard.trustId],
+	}),
 }));
 
 export const invoiceRelations = relations(invoice, ({ one }) => ({
 	user: one(user, {
 		fields: [invoice.userId],
 		references: [user.id],
+	}),
+}));
+
+export const fundingDashboardRelations = relations(fundingDashboard, ({ one, many }) => ({
+	trust: one(trust, {
+		fields: [fundingDashboard.trustId],
+		references: [trust.id],
+	}),
+	user: one(user, {
+		fields: [fundingDashboard.userId],
+		references: [user.id],
+	}),
+	milestones: many(fundingMilestone),
+	events: many(fundingEvent),
+	reminderLogs: many(fundingReminderLog),
+	adminFlags: many(fundingAdminFlag),
+}));
+
+export const fundingMilestoneRelations = relations(fundingMilestone, ({ one }) => ({
+	dashboard: one(fundingDashboard, {
+		fields: [fundingMilestone.dashboardId],
+		references: [fundingDashboard.id],
+	}),
+}));
+
+export const fundingEventRelations = relations(fundingEvent, ({ one }) => ({
+	dashboard: one(fundingDashboard, {
+		fields: [fundingEvent.dashboardId],
+		references: [fundingDashboard.id],
+	}),
+}));
+
+export const fundingReminderLogRelations = relations(fundingReminderLog, ({ one }) => ({
+	dashboard: one(fundingDashboard, {
+		fields: [fundingReminderLog.dashboardId],
+		references: [fundingDashboard.id],
+	}),
+}));
+
+export const fundingAdminFlagRelations = relations(fundingAdminFlag, ({ one }) => ({
+	dashboard: one(fundingDashboard, {
+		fields: [fundingAdminFlag.dashboardId],
+		references: [fundingDashboard.id],
 	}),
 }));
 

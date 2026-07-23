@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { trust } from '$lib/server/db/schema';
+import { trust, fundingDashboard } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { stopLead } from '$lib/server/drip/stop';
 import { getIntakeQuestionnaireProgress } from '$lib/question-response-helpers';
@@ -8,6 +8,9 @@ import { TrustStatus } from '$lib/server/db/schema';
 import type { UserFile } from '$lib/server/db/schema';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
+import { isFundingAccessible, computeFundingProgress, getNextUp } from '$lib/funding/logic';
+import { flagsFromDashboard } from '$lib/server/funding';
+import { getModuleContent } from '$lib/funding/content';
 import type { Actions, PageServerLoad } from './$types';
 
 const utapi = new UTApi({ token: env.UPLOADTHING_TOKEN });
@@ -65,11 +68,56 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const awaitingPayment = existing.status === TrustStatus.AwaitingPayment && !hasPaid;
 	const intakeUnderReview = existing.status === TrustStatus.RequiresReview;
 
+	let fundingSummary: {
+		pct: number;
+		label: string;
+		href: string;
+		completeUnlocked: boolean;
+		implementationComplete: boolean;
+	} | null = null;
+
+	if (isFundingAccessible(existing.status)) {
+		const dash = await db.query.fundingDashboard.findFirst({
+			where: eq(fundingDashboard.trustId, existing.id),
+			with: { milestones: true },
+		});
+		if (dash) {
+			const flags = flagsFromDashboard(dash);
+			const progress = computeFundingProgress(flags, dash.milestones, {
+				fundingUnlockedAt: dash.fundingUnlockedAt,
+			});
+			const next = getNextUp(flags, dash.milestones, {
+				fundingUnlockedAt: dash.fundingUnlockedAt,
+			});
+			const modTitle = next ? getModuleContent(next.moduleId)?.title : null;
+			fundingSummary = {
+				pct: progress.journey.pct,
+				label: progress.implementationComplete
+					? 'Guided steps complete'
+					: modTitle
+						? `Funding: ${progress.journey.pct}% · ${modTitle}`
+						: `Funding: ${progress.journey.pct}%`,
+				href: `/make-your-trust-work/${existing.id}`,
+				completeUnlocked: dash.fundingUnlockedAt != null,
+				implementationComplete: progress.implementationComplete,
+			};
+		} else if (existing.approved) {
+			fundingSummary = {
+				pct: 0,
+				label: 'Prepare your funding',
+				href: `/make-your-trust-work/${existing.id}`,
+				completeUnlocked: false,
+				implementationComplete: false,
+			};
+		}
+	}
+
 	return {
 		userId: locals.user.id,
 		userName: locals.user.name,
 		requestedConsultation: (locals.user as any).requestedConsultationAt != null,
 		paid: hasPaid,
+		fundingSummary,
 		trust: {
 			id: existing.id,
 			createdAt: existing.createdAt.toISOString(),

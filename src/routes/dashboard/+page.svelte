@@ -78,6 +78,15 @@
 				desc: 'Book an appointment to notarize your documents',
 				external: true,
 			},
+			data.fundingSummary &&
+				!data.fundingSummary.implementationComplete && {
+					label: data.fundingSummary.completeUnlocked
+						? 'Complete your funding'
+						: 'Prepare your funding',
+					href: data.fundingSummary.href,
+					desc: data.fundingSummary.label,
+					progress: data.fundingSummary.pct,
+				},
 		].filter(Boolean) as { label: string; href: string; desc: string; external?: boolean; progress?: number }[]
 	);
 
@@ -249,6 +258,15 @@
 		<div class="mb-10">
 			<h1 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight mb-1">Welcome back, {firstName}</h1>
 			<p class="text-navy/40 text-sm font-light">Here's the current status of your trust.</p>
+			{#if data.fundingSummary}
+				<a
+					href={data.fundingSummary.href}
+					class="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full border border-emerald-accent/25 bg-emerald-accent/8 text-[12px] text-emerald-accent font-medium hover:bg-emerald-accent/12 transition-colors"
+				>
+					<span class="w-1.5 h-1.5 rounded-full bg-emerald-accent"></span>
+					{data.fundingSummary.label}
+				</a>
+			{/if}
 		</div>
 
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -292,8 +310,18 @@
 									Your trust is complete. Your documents have been notarized, and your home has been deeded into your trust and recorded with the county.
 								</p>
 								<p class="text-[13px] text-navy/55 leading-relaxed">
-									We've emailed you a closing letter with your remaining action items — funding your trust, signing your pour-over wills, protecting your homestead exemption, and safely storing your documents. Please read it closely and keep it handy until every step is complete.
+									Your remaining steps — funding accounts, signing pour-over wills, notifying your trustee, and storing originals — are in
+									<a href="/make-your-trust-work/{t.id}" class="text-emerald-accent font-medium underline underline-offset-2 hover:text-emerald-accent/80">Make Your Trust Work</a>.
+									We've also emailed you a closing letter; keep it handy until every applicable step is done.
 								</p>
+								{#if data.fundingSummary}
+									<a
+										href={data.fundingSummary.href}
+										class="inline-flex mt-1 px-4 py-2.5 rounded-xl bg-navy text-cream text-sm font-medium hover:bg-navy-light transition-colors"
+									>
+										{data.fundingSummary.implementationComplete ? 'Review guided steps' : 'Continue Make Your Trust Work'}
+									</a>
+								{/if}
 							</div>
 						</div>
 					</div>

@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import { processDueEmails, enrollAppAbandoners } from '$lib/server/drip/processDue';
+import { processFundingReminders } from '$lib/server/fundingReminders';
 
 /**
  * Secured Vercel Cron endpoint. Vercel calls this every 15 minutes.
@@ -23,11 +24,13 @@ export const GET: RequestHandler = async ({ request }) => {
 	const start = Date.now();
 	let sent = 0;
 	let enrolled = 0;
+	let fundingSent = 0;
 
 	try {
-		[sent, enrolled] = await Promise.all([
+		[sent, enrolled, fundingSent] = await Promise.all([
 			processDueEmails(),
 			enrollAppAbandoners(),
+			processFundingReminders(),
 		]);
 	} catch (err) {
 		console.error('[cron/drip] Error:', err);
@@ -35,6 +38,8 @@ export const GET: RequestHandler = async ({ request }) => {
 	}
 
 	const elapsed = Date.now() - start;
-	console.log(`[cron/drip] sent=${sent} enrolled=${enrolled} elapsed=${elapsed}ms`);
-	return json({ ok: true, sent, enrolled, elapsedMs: elapsed });
+	console.log(
+		`[cron/drip] sent=${sent} enrolled=${enrolled} fundingSent=${fundingSent} elapsed=${elapsed}ms`,
+	);
+	return json({ ok: true, sent, enrolled, fundingSent, elapsedMs: elapsed });
 };

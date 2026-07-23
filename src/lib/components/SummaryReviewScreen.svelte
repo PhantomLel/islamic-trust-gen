@@ -16,6 +16,7 @@
 	import { allIntakeQuestions, charities } from '$lib/config';
 	import {
 		isIntakePhaseComplete,
+		getIncompleteIntakeQuestions,
 		isCharitiesResponseShape,
 		isPersonalDataShape,
 		isNonCharitableBequestsShape,
@@ -146,6 +147,43 @@
 		isIntakePhaseComplete(allResponses, allIntakeQuestions, { selectedPlan })
 	);
 	let cannotFinalize = $derived(!intakeFullyComplete || discountedPledgeBlocksFinalize);
+
+	/** Friendly, section-style labels for questions listed as "incomplete" below (falls back to the question's own text). */
+	let incompleteQuestionLabels = $derived.by((): Record<string, string> => {
+		const h = husband?.name || 'Husband';
+		const w = wife?.name || 'Wife';
+		return {
+			'husband-data': `${h} — Personal Information`,
+			'wife-data': `${w} — Personal Information`,
+			'marriage-date': 'Marriage Date',
+			'husband-heirs': `${h}'s Heirs`,
+			'wife-heirs': `${w}'s Heirs`,
+			'ownership-allocation': 'Ownership Allocation',
+			heba: '50/50 Mutual Gift (Heba) Confirmation',
+			assets: 'Asset by Asset Ownership',
+			charities: 'Charitable Bequests',
+			'non-charitable-bequests': 'Non-Charitable Bequests',
+			'house-deed': 'House Deed',
+			'trustee-on-first-death': 'Trustee Upon First Death',
+			'husband-successor-trustees': `${h}'s Successor Trustees`,
+			'wife-successor-trustees': `${w}'s Successor Trustees`,
+			'heir-preview': 'Heirs Preview',
+			'minor-distribution': "Children's Distribution Age",
+			madhab: 'School of Jurisprudence',
+			'trust-name': 'Trust Name',
+			'husband-personal-representatives': `${h}'s Personal Representatives`,
+			'wife-personal-representatives': `${w}'s Personal Representatives`,
+			'husband-guardians': `${h}'s Guardians`,
+			'wife-guardians': `${w}'s Guardians`,
+		};
+	});
+
+	/** Active, required-for-completion questions that are still missing an answer (excludes this review step itself). */
+	let incompleteQuestions = $derived(
+		getIncompleteIntakeQuestions(allResponses, allIntakeQuestions, { selectedPlan })
+			.filter((q) => q.id !== 'summary-review')
+			.map((q) => ({ id: q.id, label: incompleteQuestionLabels[q.id] ?? q.text }))
+	);
 
 	function charityLabel(ch: CharityResponse): string {
 		if (typeof ch.customName === 'string' && ch.customName.trim() !== '') {
@@ -576,7 +614,29 @@
 			</div>
 		{:else if !intakeFullyComplete}
 			<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950 leading-relaxed">
-				Some required questions are still incomplete. Use the <strong>sidebar</strong> or <strong>Edit</strong> links above to finish each section before you can finalize.
+				<p>
+					{incompleteQuestions.length === 1
+						? 'One question is still incomplete:'
+						: `${incompleteQuestions.length} questions are still incomplete:`}
+				</p>
+				{#if incompleteQuestions.length > 0}
+					<ul class="mt-2 space-y-1.5">
+						{#each incompleteQuestions as q}
+							<li>
+								<button
+									type="button"
+									onclick={() => onnavigate?.(q.id)}
+									class="inline-flex items-center gap-1.5 font-medium text-amber-950 underline decoration-amber-400/70 underline-offset-2 hover:decoration-amber-600 cursor-pointer"
+								>
+									<svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+									</svg>
+									{q.label}
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
 			</div>
 		{/if}
 		<button

@@ -6,10 +6,29 @@ import { sql } from 'drizzle-orm';
 import { auth } from '$lib/server/auth';
 import { APIError } from 'better-auth/api';
 
+function safeRedirectPath(path: string | null | undefined): string | null {
+	if (!path || !path.startsWith('/') || path.startsWith('//')) return null;
+	return path;
+}
+
+function resolveCallbackURL(url: URL, data: FormData): string {
+	const fromForm = data.get('redirectTo');
+	const fromQuery = url.searchParams.get('redirectTo');
+	return (
+		safeRedirectPath(typeof fromForm === 'string' ? fromForm : null) ??
+		safeRedirectPath(fromQuery) ??
+		'/dashboard'
+	);
+}
+
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
 		if (event.locals.user.role === "admin") {
 			return redirect(302, '/admin');
+		}
+		const redirectTo = safeRedirectPath(event.url.searchParams.get('redirectTo'));
+		if (redirectTo) {
+			return redirect(302, redirectTo);
 		}
 		return redirect(302, '/create-trust');
 	}
@@ -17,7 +36,7 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	signInMagicLink: async ({ request }) => {
+	signInMagicLink: async ({ request, url }) => {
 		const data = await request.formData();
 		const emailRaw = data.get('email');
 		if (typeof emailRaw !== 'string' || !emailRaw.trim()) {
@@ -39,7 +58,7 @@ export const actions: Actions = {
 			await auth.api.signInMagicLink({
 				body: {
 					email,
-					callbackURL: '/dashboard',
+					callbackURL: resolveCallbackURL(url, data),
 				},
 				headers: request.headers,
 			});

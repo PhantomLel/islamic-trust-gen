@@ -5,6 +5,8 @@ export type DocumentsApprovedEmailInput = {
 	trustId: number;
 	/** Absolute dashboard URL; omit when ORIGIN is not configured. */
 	dashboardUrl?: string | null;
+	/** Make Your Trust Work deep link (preferred CTA when set). */
+	fundingUrl?: string | null;
 	/** Per-trust Calendly scheduling URL. Falls back to the generic link if omitted. */
 	schedulingUrl?: string;
 };
@@ -15,18 +17,28 @@ export function documentsApprovedEmail(input: DocumentsApprovedEmailInput): stri
 	const scheduleText = escapeHtmlText(schedulingUrl);
 	const trustRef = escapeHtmlText(`Trust #${input.trustId}`);
 
+	const journeyUrl =
+		input.fundingUrl && /^https?:\/\//i.test(input.fundingUrl)
+			? input.fundingUrl
+			: input.dashboardUrl && /^https?:\/\//i.test(input.dashboardUrl)
+				? input.dashboardUrl
+				: null;
+
 	const dashboardSection =
-		input.dashboardUrl && /^https?:\/\//i.test(input.dashboardUrl)
+		journeyUrl
 			? (() => {
-					const dashHref = escapeHtmlAttr(input.dashboardUrl!);
-					const dashText = escapeHtmlText(input.dashboardUrl!);
+					const dashHref = escapeHtmlAttr(journeyUrl);
+					const dashText = escapeHtmlText(journeyUrl);
+					const isFunding = !!(input.fundingUrl && /^https?:\/\//i.test(input.fundingUrl));
 					return `
           <tr>
             <td style="padding:32px 24px 0 24px;border-top:1px solid #d4cdc4;">
-              <p style="margin:0 0 6px 0;font-size:11px;letter-spacing:3px;color:#5a9e8f;text-transform:uppercase;font-weight:600;">Your documents</p>
-              <p style="margin:0 0 12px 0;font-family:'Lora',Georgia,serif;font-size:19px;font-weight:500;color:#1e3a3a;">Available in your dashboard</p>
+              <p style="margin:0 0 6px 0;font-size:11px;letter-spacing:3px;color:#5a9e8f;text-transform:uppercase;font-weight:600;">${isFunding ? 'Make Your Trust Work' : 'Your documents'}</p>
+              <p style="margin:0 0 12px 0;font-family:'Lora',Georgia,serif;font-size:19px;font-weight:500;color:#1e3a3a;">${isFunding ? 'Prepare while you schedule notarization' : 'Available in your dashboard'}</p>
               <p style="margin:0 0 6px 0;font-size:14px;color:#3a4e48;line-height:1.7;">
-                You can view or download your approved documents anytime from your account.
+                ${isFunding
+									? 'Download and review your documents, then start Prepare Your Funding — inventory and forms only until your trust is signed.'
+									: 'You can view or download your approved documents anytime from your account.'}
               </p>
               <p style="margin:0;font-size:13px;color:#5a7a70;word-break:break-all;">
                 <a href="${dashHref}" style="color:#1e3a3a;text-decoration:underline;font-weight:500;">${dashText}</a>

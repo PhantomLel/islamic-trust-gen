@@ -447,6 +447,18 @@ export function isIntakePhaseComplete(
 	);
 }
 
+/** The active questions in `questionList` that are still missing a complete response. */
+export function getIncompleteIntakeQuestions(
+	record: Record<string, QuestionResponseValue>,
+	questionList: Question[],
+	completionContext?: QuestionCompletionContext
+): Question[] {
+	const { active } = getActiveQuestions(record, questionList);
+	return active.filter(
+		(q) => !isQuestionResponseComplete(q.type, record[q.id], record, completionContext)
+	);
+}
+
 export type IntakeProgressOptions = {
 	/** When false, only pre-payment questions count (matches create-trust gating). */
 	hasPaid?: boolean;

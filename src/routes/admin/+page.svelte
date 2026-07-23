@@ -10,10 +10,10 @@
 
 	let { data } = $props();
 
-	type View = 'trusts' | 'wills' | 'emails';
+	type View = 'trusts' | 'wills' | 'drip';
 	let view = $state<View>('trusts');
-	type EmailsSubView = 'sends' | 'leads';
-	let emailsSubView = $state<EmailsSubView>('sends');
+	type DripSubView = 'sends' | 'leads';
+	let dripSubView = $state<DripSubView>('sends');
 
 	let editingTrustId = $state<number | null>(null);
 	let editPrice = $state('');
@@ -386,13 +386,13 @@
 			</button>
 			<button
 				type="button"
-				onclick={() => (view = 'emails')}
+				onclick={() => (view = 'drip')}
 				class="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer flex items-center gap-2
-					{view === 'emails' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
+					{view === 'drip' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
 			>
-				Emails
+				Marketing Drip
 				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
-					{data.dripSends.length}
+					{data.dripLeads.length}
 				</span>
 			</button>
 		</div>
@@ -958,9 +958,9 @@
 				</div>
 			</div>
 		{/if}
-	{:else if view === 'emails'}
+	{:else if view === 'drip'}
 		<div class="mb-6">
-			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">Automated emails</h1>
+			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">Marketing Drip</h1>
 			<p class="text-navy/45 text-sm">
 				Who received which drip email, and who is enrolled. Empty send log usually means nothing has been sent yet (or the marketing tables are not migrated).
 			</p>
@@ -969,20 +969,20 @@
 		<div class="mb-5 inline-flex items-center gap-1 p-1 rounded-xl bg-navy/[0.04] border border-navy/[0.06]">
 			<button
 				type="button"
-				onclick={() => (emailsSubView = 'sends')}
+				onclick={() => (dripSubView = 'sends')}
 				class="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer flex items-center gap-2
-					{emailsSubView === 'sends' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
+					{dripSubView === 'sends' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
 			>
-				Sent
+				Send log
 				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
 					{data.dripSends.length}
 				</span>
 			</button>
 			<button
 				type="button"
-				onclick={() => (emailsSubView = 'leads')}
+				onclick={() => (dripSubView = 'leads')}
 				class="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer flex items-center gap-2
-					{emailsSubView === 'leads' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
+					{dripSubView === 'leads' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
 			>
 				Enrolled leads
 				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
@@ -991,7 +991,7 @@
 			</button>
 		</div>
 
-		{#if emailsSubView === 'sends'}
+		{#if dripSubView === 'sends'}
 			{#if data.dripSends.length === 0}
 				<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center space-y-2">
 					<p class="text-navy/50 text-sm font-medium">No drip emails have been logged yet.</p>

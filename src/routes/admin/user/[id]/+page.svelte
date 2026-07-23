@@ -602,6 +602,137 @@
 			</div>
 		</div>
 
+	<!-- ── Make Your Trust Work ───────────────────────────────────────── -->
+	{#each data.fundingByTrust as fb}
+		{#if fb.dashboard}
+			{@const fd = fb.dashboard}
+			<div class="rounded-2xl border border-navy/[0.08] bg-white/60 p-6 mb-6">
+				<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+					<div>
+						<span class="text-[10px] tracking-[0.22em] uppercase font-semibold text-emerald-accent">Make Your Trust Work</span>
+						<p class="text-[13px] text-navy/50 mt-1">Trust #{fb.trustId}</p>
+					</div>
+					<a
+						href="/make-your-trust-work/{fb.trustId}"
+						class="text-[12px] px-3 py-1.5 rounded-lg border border-navy/10 text-navy/70 hover:border-emerald-accent/30 transition-colors"
+						>Open user view</a
+					>
+				</div>
+
+				<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Progress</p>
+						<p class="text-[13px] text-navy/80 font-medium tabular-nums">{fd.progress.journey.pct}%</p>
+					</div>
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Prepare</p>
+						<p class="text-[13px] text-navy/80 font-medium tabular-nums">{fd.progress.prepare.done}/{fd.progress.prepare.total}</p>
+					</div>
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Complete</p>
+						<p class="text-[13px] text-navy/80 font-medium tabular-nums">
+							{#if fd.progress.completePhaseLocked}
+								Locked
+							{:else}
+								{fd.progress.complete.done}/{fd.progress.complete.total}
+							{/if}
+						</p>
+					</div>
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+							Pour-over will
+							<span
+								class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-navy/20 text-[9px] font-semibold text-navy/40 cursor-help"
+								title="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents."
+								aria-label="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents."
+							>i</span>
+						</p>
+						<form method="POST" action="?/togglePourOverIncluded" use:enhance class="inline">
+							<input type="hidden" name="trustId" value={fb.trustId} />
+							<input type="hidden" name="included" value={fd.pourOverWillIncluded ? 'false' : 'true'} />
+							<button type="submit" class="text-[13px] text-emerald-accent font-medium cursor-pointer hover:underline">
+								{fd.pourOverWillIncluded ? 'Included' : 'Not included'} (toggle)
+							</button>
+						</form>
+						<p class="text-[10px] text-navy/35 leading-snug mt-1 max-w-[11rem]">
+							Shows or hides will-signing checklist cards only — not the legal documents.
+						</p>
+					</div>
+				</div>
+
+				{#if fd.actionNeededNote}
+					<div class="mb-4 rounded-xl border border-red-200 bg-red-50/70 p-3">
+						<p class="text-[11px] uppercase tracking-wider text-red-700 font-semibold mb-1">Action needed (user-visible)</p>
+						<p class="text-[13px] text-navy/75 leading-relaxed">{fd.actionNeededNote}</p>
+						<form method="POST" action="?/clearFundingActionNeeded" use:enhance class="mt-2">
+							<input type="hidden" name="trustId" value={fb.trustId} />
+							<button type="submit" class="text-[12px] text-navy/50 underline cursor-pointer">Clear note</button>
+						</form>
+					</div>
+				{/if}
+
+				<form method="POST" action="?/setFundingActionNeeded" use:enhance class="space-y-3 mb-4">
+					<input type="hidden" name="trustId" value={fb.trustId} />
+					<label class="block">
+						<span class="text-[10px] uppercase tracking-wider text-navy/35 font-medium">Set action-needed note</span>
+						<select
+							class="mt-1 w-full rounded-xl border border-navy/10 bg-white px-3 py-2 text-[13px] text-navy"
+							onchange={(e) => {
+								const sel = e.currentTarget;
+								const tpl = data.fundingNoteTemplates.find((t) => t.id === sel.value);
+								const ta = sel.form?.querySelector('textarea[name="note"]') as HTMLTextAreaElement | null;
+								if (tpl && ta) ta.value = tpl.body;
+							}}
+						>
+							<option value="">Template…</option>
+							{#each data.fundingNoteTemplates as tpl}
+								<option value={tpl.id}>{tpl.label}</option>
+							{/each}
+						</select>
+					</label>
+					<textarea
+						name="note"
+						rows="3"
+						required
+						class="w-full rounded-xl border border-navy/10 bg-white px-3 py-2 text-[13px] text-navy"
+						placeholder="User-visible note"
+					></textarea>
+					<label class="flex items-center gap-2 text-[12px] text-navy/60">
+						<input type="checkbox" name="sendEmail" value="true" class="rounded border-navy/20" />
+						Also send action-needed email
+					</label>
+					<button
+						type="submit"
+						class="px-4 py-2 rounded-xl bg-navy text-cream text-[12px] font-medium cursor-pointer hover:bg-navy-light"
+						>Save action needed</button
+					>
+				</form>
+
+				{#if fd.openFlags.length}
+					<div>
+						<p class="text-[10px] uppercase tracking-wider text-navy/35 font-medium mb-2">Open flags</p>
+						<ul class="space-y-2">
+							{#each fd.openFlags as flag}
+								<li class="flex items-start justify-between gap-3 rounded-lg border border-navy/8 px-3 py-2">
+									<div>
+										<p class="text-[12px] font-medium text-navy">{flag.flagKey} <span class="text-navy/35 font-normal">({flag.severity})</span></p>
+										{#if flag.reason}
+											<p class="text-[11px] text-navy/50 mt-0.5">{flag.reason}</p>
+										{/if}
+									</div>
+									<form method="POST" action="?/resolveFundingFlag" use:enhance>
+										<input type="hidden" name="flagId" value={flag.id} />
+										<button type="submit" class="text-[11px] text-emerald-accent cursor-pointer hover:underline">Resolve</button>
+									</form>
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+			</div>
+		{/if}
+	{/each}
+
 	<!-- ── Marketing Drip Panel ───────────────────────────────────────── -->
 	{#if data.dripLead}
 		{@const dl = data.dripLead}
