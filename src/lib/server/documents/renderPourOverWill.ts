@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { env } from '$env/dynamic/private';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -55,9 +54,14 @@ export function preprocessPourOverXml(xml: string): string {
 	return out;
 }
 
-function loadTemplateBuffer(): Buffer {
-	const path = join(process.cwd(), 'static', 'templates', POUR_OVER_TEMPLATE);
-	return readFileSync(path);
+async function loadTemplateBuffer(): Promise<Buffer> {
+	const response = await fetch(`${env.ORIGIN}/templates/${POUR_OVER_TEMPLATE}`);
+	if (!response.ok) {
+		throw new Error(
+			`Failed to load pour-over will template ${POUR_OVER_TEMPLATE}: ${response.status} ${response.statusText}`,
+		);
+	}
+	return Buffer.from(await response.arrayBuffer());
 }
 
 function safeFilenameFragment(s: string | null | undefined, fallback: string): string {
@@ -73,8 +77,8 @@ function toTemplateData(ctx: PourOverWillContext) {
 	};
 }
 
-function renderPourOverDocx(data: PourOverWillContext): Buffer {
-	const raw = loadTemplateBuffer();
+async function renderPourOverDocx(data: PourOverWillContext): Promise<Buffer> {
+	const raw = await loadTemplateBuffer();
 	const zip = new PizZip(raw);
 
 	const docXmlPath = 'word/document.xml';
@@ -99,7 +103,7 @@ export async function renderPourOverWill(
 	role: PourOverWillRole,
 ): Promise<RenderedDocument> {
 	const data = buildPourOverWillContext(trust, role);
-	const buffer = renderPourOverDocx(data);
+	const buffer = await renderPourOverDocx(data);
 
 	const userPart = safeFilenameFragment(trust.user?.name, 'client');
 	const rolePart = role === 'husband' ? 'husband' : 'wife';

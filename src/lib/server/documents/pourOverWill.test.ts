@@ -1,6 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildPourOverWillContext } from './buildPourOverWillContext';
 import { preprocessPourOverXml, renderPourOverWill } from './renderPourOverWill';
+
+const pourOverTemplate = readFileSync(
+	join(process.cwd(), 'static', 'templates', 'pour_over_will_texas.docx'),
+);
+
+beforeEach(() => {
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(async (url: string) => {
+			if (url.includes('pour_over_will_texas.docx')) {
+				return new Response(pourOverTemplate, { status: 200 });
+			}
+			throw new Error(`Unexpected fetch: ${url}`);
+		}),
+	);
+});
 
 const sampleTrust = {
 	id: 1,
