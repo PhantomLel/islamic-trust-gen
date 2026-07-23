@@ -6,7 +6,6 @@ import type { InferSelectModel } from 'drizzle-orm';
 import {
 	allIntakeQuestions,
 	prePaymentQuestions,
-	postPaymentQuestions,
 	screeningQuestions,
 	isEligibleForOnlineTrustFromScreening
 } from '$lib/config';
@@ -20,10 +19,10 @@ import {
 import type { QuestionResponseValue } from '$lib/config';
 import type { PageServerLoad, Actions } from './$types';
 import { adminUserUrl, notifyAdmins } from '$lib/server/notifyAdmins';
+import { stripe } from '$lib/server/stripe';
+import { fulfillCheckoutSession } from '$lib/server/fulfillCheckout';
 
 type TrustRow = InferSelectModel<typeof trust>;
-
-const POST_PAYMENT_IDS = new Set(postPaymentQuestions.map((q) => q.id));
 
 function responsesToRecord(
 	rows: { id: string; response: unknown }[]
@@ -58,27 +57,29 @@ function parseScreeningAnswersJson(raw: string | FormDataEntryValue | null): Tru
 
 function mergeResponses(
 	existing: { id: string; response: unknown }[] | null | undefined,
-	parsed: { id: string; response: unknown }[],
-	hasPaidInvoice: boolean
+	parsed: { id: string; response: unknown }[]
 ): { id: string; response: unknown }[] {
 	const map = new Map<string, unknown>();
 	for (const r of existing ?? []) {
 		map.set(r.id, r.response);
 	}
+	// Persist every answer the client sends, including post-payment ones. Answers are
+	// harmless before payment (they cannot be submitted — `completePostPayment` still
+	// requires a confirmed payment via `selectedPlan`), and silently dropping them here
+	// used to destroy a user's progress whenever payment confirmation was pending.
 	for (const { id, response } of parsed) {
-		if (!hasPaidInvoice && POST_PAYMENT_IDS.has(id)) continue;
 		map.set(id, response);
 	}
 	return [...map.entries()].map(([id, response]) => ({ id, response }));
 }
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async ({ locals, params, url }) => {
 	if (!locals.user) throw redirect(302, '/login');
 
 	const trustId = parseInt(params.trust_id, 10);
 	if (isNaN(trustId)) throw error(404, 'Trust not found');
 
-	const [existing, countyRow] = await Promise.all([
+	let [existing, countyRow] = await Promise.all([
 		db.query.trust.findFirst({
 			where: and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)),
 		}),
@@ -89,6 +90,37 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	]);
 
 	if (!existing) throw error(404, 'Trust not found');
+
+	// Reconcile payment on the return from Stripe. This is a safety net for when the
+	// `checkout.session.completed` webhook is delayed or never delivered (Stripe does
+	// not reliably send it for no-cost orders). Without this, a paid trust can stay in
+	// AwaitingPayment with a null selectedPlan, which silently discards the user's
+	// post-payment answers and bounces them back to the payment page. Idempotent.
+	if (
+		url.searchParams.get('payment') === 'success' &&
+		existing.status === TrustStatus.AwaitingPayment
+	) {
+		const sessionId = url.searchParams.get('session_id');
+		if (sessionId) {
+			try {
+				const session = await stripe.checkout.sessions.retrieve(sessionId);
+				const paid =
+					session.status === 'complete' ||
+					session.payment_status === 'paid' ||
+					session.payment_status === 'no_payment_required';
+				if (paid && session.metadata?.trustId === String(trustId)) {
+					await fulfillCheckoutSession(session);
+					const refreshed = await db.query.trust.findFirst({
+						where: and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)),
+					});
+					if (refreshed) existing = refreshed;
+				}
+			} catch (err) {
+				console.error('[create-trust load] Payment reconciliation failed:', err);
+			}
+		}
+	}
+
 	if (existing.isEligible === false) throw redirect(302, `/consultation/${trustId}`);
 
 	// Intake is closed after submission; user continues from the dashboard.
@@ -242,7 +274,7 @@ export const actions: Actions = {
 		if (typeof responsesRaw !== 'string') throw error(400, 'Invalid data');
 
 		const parsed = JSON.parse(responsesRaw) as { id: string; response: unknown }[];
-		const merged = mergeResponses(currentTrust.responses, parsed, hasPaidInvoice);
+		const merged = mergeResponses(currentTrust.responses, parsed);
 		const record = responsesToRecord(merged);
 
 		const completionCtx: QuestionCompletionContext = { selectedPlan: currentTrust.selectedPlan };

@@ -6,6 +6,7 @@ import type { WarningAgreementData } from '$lib/server/db/schema';
 import { WARNING_AGREEMENT_VERSION } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { stripe } from '$lib/server/stripe';
+import { promoteTrustAfterPayment } from '$lib/server/fulfillCheckout';
 import type { PageServerLoad, Actions } from './$types';
 import { defaultPrepFee, postPaymentEntryQuestionId } from '$lib/config';
 
@@ -79,9 +80,63 @@ export const actions: Actions = {
 		}
 
 		const baseAmount = existing.customPrice ?? defaultPrepFee;
+		const deedAmount = addDeedRetrieval ? DEED_RETRIEVAL_FEE : 0;
+		// Stripe caps a fixed-amount coupon at the order subtotal, so the effective total
+		// can only bottom out at $0 (never negative) even for a large discount on a low price.
+		const discountApplied = selectedPlan === 'discounted'
+			? Math.min(CHARITY_DISCOUNT, baseAmount + deedAmount)
+			: 0;
+		const effectiveTotal = baseAmount + deedAmount - discountApplied;
 		const trustFeeAmount = selectedPlan === 'discounted'
 			? Math.max(0, baseAmount - CHARITY_DISCOUNT)
 			: baseAmount;
+
+		const successUrl = `${env.ORIGIN}/create-trust/${trustId}?payment=success&session_id={CHECKOUT_SESSION_ID}#${postPaymentEntryQuestionId}`;
+
+		// ── No-cost order ($0 effective total) ────────────────────────────────
+		// A comped price or a discount that meets/exceeds the subtotal (e.g. $1 base
+		// with the $200 wasiyyah pledge) reduces the total to $0. Stripe does not
+		// reliably deliver `checkout.session.completed` for no-cost orders, which would
+		// otherwise leave the trust stuck in AwaitingPayment (webhook never sets
+		// selectedPlan) and silently discard the user's post-payment answers. Skip
+		// Stripe entirely and fulfill directly instead.
+		if (effectiveTotal <= 0) {
+			const now = new Date();
+			await db.insert(invoice).values({
+				userId: locals.user.id,
+				name: 'Trust Preparation Fee',
+				description: 'Trust preparation and document drafting',
+				amount: trustFeeAmount,
+				paid: true,
+				paidAt: now,
+				createdAt: now,
+			});
+			if (addDeedRetrieval) {
+				await db.insert(invoice).values({
+					userId: locals.user.id,
+					name: 'Deed Retrieval Fee',
+					description: 'Retrieval of house deed from county records office',
+					amount: DEED_RETRIEVAL_FEE,
+					paid: true,
+					paidAt: now,
+					createdAt: now,
+				});
+			}
+
+			await promoteTrustAfterPayment({
+				trustId,
+				selectedPlan,
+				deedRetrievalRequested: addDeedRetrieval,
+				customerEmail: locals.user.email,
+				amountTotalCents: 0,
+				stripeCheckoutSessionId: null,
+			});
+
+			// Same-origin success URL (no Stripe session id for no-cost orders).
+			return {
+				checkoutUrl: `${env.ORIGIN}/create-trust/${trustId}?payment=success#${postPaymentEntryQuestionId}`,
+			};
+		}
 
 		const lineItems: {
 			price_data: { currency: string; product_data: { name: string; description?: string }; unit_amount: number };
@@ -134,7 +189,7 @@ export const actions: Actions = {
 				selectedPlan,
 				addDeedRetrieval: String(addDeedRetrieval),
 			},
-			success_url: `${env.ORIGIN}/create-trust/${trustId}?payment=success#${postPaymentEntryQuestionId}`,
+			success_url: successUrl,
 			cancel_url: `${env.ORIGIN}/create-trust/${trustId}/payment?cancelled=true`,
 		});
 

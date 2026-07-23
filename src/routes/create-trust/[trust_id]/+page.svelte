@@ -210,6 +210,19 @@
 					return;
 				}
 				await goto('/dashboard');
+			} else if (returningFromPayment || paymentReturnHandled) {
+				// Payment went through but confirmation is still pending (webhook lag or a
+				// no-cost order still reconciling). Never bounce back to payment or lose the
+				// answers already saved — refresh to pick up the confirmed state and let the
+				// user try again in a moment.
+				await invalidateAll();
+				if (!hasPaidInvoice) {
+					completeBlockedMessage =
+						'We are still confirming your payment. Your answers are saved — please wait a few seconds and click Complete again.';
+				} else {
+					const res = await fetch('?/completePostPayment', { method: 'POST', body: form });
+					if (res.ok) await goto('/dashboard');
+				}
 			} else {
 				await fetch('?/completePrePayment', { method: 'POST', body: form });
 				await goto(`/create-trust/${data.trust.id}/payment`);
