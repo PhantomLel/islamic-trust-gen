@@ -366,19 +366,15 @@
 				{/if}
 
 				{#if t.intakeUnderReview}
-					<div class="rounded-2xl border border-emerald-accent/15 from-white/90 to-emerald-accent/[0.04] backdrop-blur-sm p-6 md:p-7 shadow-sm">
-						<div class="flex flex-col sm:flex-row sm:items-start gap-4">
-							<div class="shrink-0 w-11 h-11 rounded-xl bg-emerald-accent/10 flex items-center justify-center">
-								<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-								</svg>
-							</div>
-							<div class="min-w-0 space-y-3">
-								<p class="text-[11px] text-emerald-accent/90 tracking-wider uppercase font-medium">Under review</p>
-								<p class="text-[15px] md:text-base text-navy leading-relaxed font-medium">
+					<div class="rounded-2xl bg-white border border-navy/[0.06] overflow-hidden">
+						<div class="flex">
+							<div class="w-0.5 shrink-0 bg-emerald-accent/50" aria-hidden="true"></div>
+							<div class="flex-1 px-5 py-5 md:px-6 md:py-5">
+								<p class="text-[11px] tracking-[0.2em] uppercase text-emerald-accent font-semibold mb-2">Under review</p>
+								<h2 class="text-base font-semibold text-navy tracking-tight mb-2">
 									Give us a few days for our legal team to draft and review your documents.
-								</p>
-								<p class="text-[13px] text-navy/55 leading-relaxed">
+								</h2>
+								<p class="text-sm text-navy/50 leading-relaxed max-w-2xl">
 									Once your documents are ready, we will notify you with how to notarize them using our online notarization.
 								</p>
 							</div>
