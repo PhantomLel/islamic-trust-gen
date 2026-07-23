@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { trust } from '$lib/server/db/schema';
 import { renderAllTrustDocuments } from '$lib/server/documents/generateTrustDocuments';
-import { saveGeneratedDocx } from '$lib/server/documents/storage';
+import { saveGeneratedDocxBatch } from '$lib/server/documents/storage';
 import type { RequestHandler } from './$types';
 
 async function loadTrustRow(trustId: number) {
@@ -28,26 +28,26 @@ async function persistAllGeneratedDocuments(
 	trustId: number,
 	docs: Awaited<ReturnType<typeof renderAllTrustDocuments>>,
 ) {
-	const [jointTrust, pourOverWillHusband, pourOverWillWife] = await Promise.all([
-		saveGeneratedDocx({
-			trustId,
-			kind: 'joint-trust',
-			buffer: docs.jointTrust.buffer,
-			filename: docs.jointTrust.filename,
-		}),
-		saveGeneratedDocx({
-			trustId,
-			kind: 'pour-over-will-husband',
-			buffer: docs.pourOverWillHusband.buffer,
-			filename: docs.pourOverWillHusband.filename,
-		}),
-		saveGeneratedDocx({
-			trustId,
-			kind: 'pour-over-will-wife',
-			buffer: docs.pourOverWillWife.buffer,
-			filename: docs.pourOverWillWife.filename,
-		}),
-	]);
+	const [jointTrust, pourOverWillHusband, pourOverWillWife] = await saveGeneratedDocxBatch({
+		trustId,
+		files: [
+			{
+				kind: 'joint-trust',
+				buffer: docs.jointTrust.buffer,
+				filename: docs.jointTrust.filename,
+			},
+			{
+				kind: 'pour-over-will-husband',
+				buffer: docs.pourOverWillHusband.buffer,
+				filename: docs.pourOverWillHusband.filename,
+			},
+			{
+				kind: 'pour-over-will-wife',
+				buffer: docs.pourOverWillWife.buffer,
+				filename: docs.pourOverWillWife.filename,
+			},
+		],
+	});
 
 	return { jointTrust, pourOverWillHusband, pourOverWillWife };
 }

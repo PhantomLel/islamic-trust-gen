@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
+import { uploadBufferToUploadThing } from '$lib/server/uploadthingUpload';
 import { db } from '$lib/server/db';
 import { trust, freeWill, type GeneratedFile } from '$lib/server/db/schema';
 
@@ -10,6 +11,60 @@ let _utapi: UTApi | null = null;
 function utapi(): UTApi {
 	if (!_utapi) _utapi = new UTApi({ token: env.UPLOADTHING_TOKEN });
 	return _utapi;
+}
+
+/**
+ * Upload multiple generated documents and persist them in one DB write so
+ * parallel saves cannot overwrite each other's `generated_files` entries.
+ */
+export async function saveGeneratedDocxBatch(opts: {
+	trustId: number;
+	files: Array<{ kind: string; buffer: Buffer; filename: string }>;
+}): Promise<GeneratedFile[]> {
+	if (opts.files.length === 0) return [];
+
+	const entries = await Promise.all(
+		opts.files.map(async (file) => {
+			const result = await uploadBufferToUploadThing(file.buffer, file.filename, DOCX_MIME);
+
+			const entry: GeneratedFile = {
+				kind: file.kind,
+				url: result.ufsUrl,
+				filename: file.filename,
+				storageKey: result.key,
+				generatedAt: new Date().toISOString(),
+			};
+			return entry;
+		}),
+	);
+
+	const existing = await db.query.trust.findFirst({
+		where: eq(trust.id, opts.trustId),
+		columns: { generated_files: true },
+	});
+
+	const prior = existing?.generated_files ?? [];
+	const replacedKinds = new Set(opts.files.map((file) => file.kind));
+	const superseded = prior.filter((file) => replacedKinds.has(file.kind));
+	const next = [...prior.filter((file) => !replacedKinds.has(file.kind)), ...entries];
+
+	await db
+		.update(trust)
+		.set({ generated_files: next, updatedAt: new Date() })
+		.where(eq(trust.id, opts.trustId));
+
+	const storageKeys = superseded
+		.map((file) => file.storageKey)
+		.filter((key): key is string => Boolean(key));
+	if (storageKeys.length > 0) {
+		try {
+			await utapi().deleteFiles(storageKeys);
+		} catch (err) {
+			console.error('Failed to delete superseded generated files', err);
+		}
+	}
+
+	return entries;
 }
 
 /**
@@ -23,43 +78,10 @@ export async function saveGeneratedDocx(opts: {
 	buffer: Buffer;
 	filename: string;
 }): Promise<GeneratedFile> {
-	const file = new File([new Uint8Array(opts.buffer)], opts.filename, { type: DOCX_MIME });
-
-	const result = await utapi().uploadFiles(file);
-	if (result.error || !result.data) {
-		throw new Error(`Upload failed: ${result.error?.message ?? 'unknown error'}`);
-	}
-
-	const entry: GeneratedFile = {
-		kind: opts.kind,
-		url: result.data.ufsUrl,
-		filename: opts.filename,
-		storageKey: result.data.key,
-		generatedAt: new Date().toISOString(),
-	};
-
-	const existing = await db.query.trust.findFirst({
-		where: eq(trust.id, opts.trustId),
-		columns: { generated_files: true },
+	const [entry] = await saveGeneratedDocxBatch({
+		trustId: opts.trustId,
+		files: [{ kind: opts.kind, buffer: opts.buffer, filename: opts.filename }],
 	});
-
-	const prior = existing?.generated_files ?? [];
-	const replaced = prior.find((f) => f.kind === opts.kind);
-	const next = [...prior.filter((f) => f.kind !== opts.kind), entry];
-
-	await db
-		.update(trust)
-		.set({ generated_files: next, updatedAt: new Date() })
-		.where(eq(trust.id, opts.trustId));
-
-	if (replaced?.storageKey) {
-		try {
-			await utapi().deleteFiles(replaced.storageKey);
-		} catch (err) {
-			console.error('Failed to delete superseded generated file', err);
-		}
-	}
-
 	return entry;
 }
 
@@ -74,18 +96,13 @@ export async function saveGeneratedWillDocx(opts: {
 	buffer: Buffer;
 	filename: string;
 }): Promise<GeneratedFile> {
-	const file = new File([new Uint8Array(opts.buffer)], opts.filename, { type: DOCX_MIME });
-
-	const result = await utapi().uploadFiles(file);
-	if (result.error || !result.data) {
-		throw new Error(`Upload failed: ${result.error?.message ?? 'unknown error'}`);
-	}
+	const result = await uploadBufferToUploadThing(opts.buffer, opts.filename, DOCX_MIME);
 
 	const entry: GeneratedFile = {
 		kind: opts.kind,
-		url: result.data.ufsUrl,
+		url: result.ufsUrl,
 		filename: opts.filename,
-		storageKey: result.data.key,
+		storageKey: result.key,
 		generatedAt: new Date().toISOString(),
 	};
 

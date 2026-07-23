@@ -310,8 +310,8 @@
 		onClientUploadComplete: async (files) => {
 			if (!trust) return;
 			const file = files?.[0] as any;
-			// UploadThing v7+: ufsUrl is preferred; serverData carries what onUploadComplete returned
-			const url = file?.ufsUrl ?? file?.serverData?.url ?? file?.url;
+			// UploadThing v7+: read ufsUrl from the upload result or server callback payload
+			const url = file?.ufsUrl ?? file?.serverData?.ufsUrl;
 			const key = file?.key ?? file?.serverData?.key;
 			if (!url) { uploadError = 'Upload succeeded but no URL returned.'; return; }
 			uploadSaving = true;

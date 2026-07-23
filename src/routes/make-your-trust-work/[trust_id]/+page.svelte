@@ -190,19 +190,23 @@
 	});
 </script>
 
-<div class="min-h-[100dvh] w-full bg-cream font-sans relative pb-24 md:pb-12">
+<div class="min-h-[100dvh] w-full bg-cream font-sans relative pb-12">
 	<div
 		class="absolute inset-0 pointer-events-none"
 		style="background: radial-gradient(ellipse 80% 60% at 50% 20%, rgba(74,124,111,0.06) 0%, transparent 70%);"
 	></div>
 
-	<nav class="relative z-10 flex items-center justify-between px-5 md:px-8 py-4 border-b border-navy/[0.06] max-w-6xl mx-auto">
+	<nav class="sticky top-0 z-30 flex items-center justify-between px-5 md:px-8 py-4 border-b border-navy/[0.06] max-w-6xl mx-auto bg-cream/95 backdrop-blur-sm">
 		<a href="/dashboard" class="flex items-center gap-2 text-navy font-semibold text-base tracking-tight">
 			<span class="w-2 h-2 rounded-full bg-emerald-accent"></span>
 			{siteName}
 		</a>
 		<div class="flex items-center gap-4">
-			<a href="/dashboard" class="text-sm text-navy/45 hover:text-navy transition-colors">Dashboard</a>
+			<a
+				href="/dashboard"
+				class="text-sm font-medium text-navy/70 hover:text-navy transition-colors underline-offset-4 hover:underline"
+				>Trust dashboard</a
+			>
 			<button onclick={handleLogout} class="text-sm text-navy/45 hover:text-navy transition-colors cursor-pointer"
 				>Log out</button
 			>
@@ -210,6 +214,15 @@
 	</nav>
 
 	<div class="relative z-10 max-w-6xl mx-auto px-5 md:px-8 py-8 md:py-10">
+		<a
+			href="/dashboard"
+			class="hidden md:inline-flex items-center gap-1.5 text-[13px] text-navy/45 hover:text-navy transition-colors mb-6"
+		>
+			<svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+			</svg>
+			Back to trust dashboard
+		</a>
 		<header class="mb-6 md:mb-8">
 			<p class="text-[11px] tracking-[0.2em] uppercase text-emerald-accent font-semibold mb-2">Guided journey</p>
 			<h1 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight mb-2">Make Your Trust Work</h1>
@@ -785,7 +798,16 @@
 			</div>
 
 			<!-- Right rail -->
-			<aside class="space-y-4 lg:sticky lg:top-6 lg:self-start">
+			<aside class="space-y-4 lg:sticky lg:top-24 lg:self-start">
+				<a
+					href="/dashboard"
+					class="flex items-center gap-2 rounded-2xl border border-navy/[0.06] bg-white/80 px-4 py-3 text-[13px] font-medium text-navy/70 hover:text-navy hover:border-navy/12 transition-colors"
+				>
+					<svg class="w-4 h-4 shrink-0 text-navy/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+					</svg>
+					Trust dashboard
+				</a>
 				<div class="rounded-2xl bg-white/80 border border-navy/[0.06] p-4">
 					<p class="text-[11px] tracking-wider uppercase text-navy/35 font-medium mb-3">Journey modules</p>
 					<nav class="space-y-1">
@@ -883,21 +905,6 @@
 			</aside>
 		</div>
 	</div>
-
-	<!-- Sticky Continue (mobile) -->
-	{#if data.nextUp}
-		<div
-			class="md:hidden fixed bottom-0 inset-x-0 z-20 p-4 bg-gradient-to-t from-cream via-cream/95 to-transparent pt-8"
-		>
-			<button
-				type="button"
-				onclick={() => scrollToMilestone(data.nextUp!.milestoneKey)}
-				class="w-full py-3.5 rounded-2xl bg-navy text-cream text-sm font-semibold shadow-lg active:scale-[0.98] transition-transform cursor-pointer"
-			>
-				Continue: {data.nextUp.milestoneTitle}
-			</button>
-		</div>
-	{/if}
 
 	<!-- Help modal -->
 	{#if helpOpen}

@@ -80,7 +80,7 @@
 		},
 		onClientUploadComplete: async (files) => {
 			const file = files?.[0];
-			const url = file?.ufsUrl ?? file?.url;
+			const url = file?.ufsUrl ?? file?.serverData?.ufsUrl;
 			if (!url) {
 				error = 'Upload succeeded but no file URL was returned.';
 				return;
