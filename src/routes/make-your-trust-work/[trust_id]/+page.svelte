@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { siteName, notarizationBookingUrl } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
@@ -188,6 +189,8 @@
 
 	const fysAnswers = $state({ ...data.findYourStuff.answers });
 	let fysRetirementBeneficiary = $state(data.findYourStuff.retirementBeneficiary);
+	let fysFormEl = $state<HTMLFormElement | null>(null);
+	let fysSubmitting = $state(false);
 
 	$effect(() => {
 		Object.assign(fysAnswers, data.findYourStuff.answers);
@@ -205,6 +208,33 @@
 				fysAnswers.hasIra === 'yes' ||
 				fysAnswers.hasIra === 'not_sure')),
 	);
+
+	function isFysComplete(): boolean {
+		for (const q of data.findYourStuffQuestions) {
+			if (!fysAnswers[q.field]) return false;
+		}
+		if (showRetirementBeneficiary && !fysRetirementBeneficiary) return false;
+		return true;
+	}
+
+	async function tryAutoSubmitFys(
+		trigger: 'retirement_over_threshold' | 'retirement_beneficiary',
+	) {
+		await tick();
+		if (fysSubmitting) return;
+		if (trigger === 'retirement_over_threshold') {
+			if (!showRetirementBeneficiary && isFysComplete()) fysFormEl?.requestSubmit();
+		} else if (isFysComplete()) {
+			fysFormEl?.requestSubmit();
+		}
+	}
+
+	function setFysAnswer(field: keyof typeof fysAnswers, val: (typeof fysAnswers)[typeof field]) {
+		fysAnswers[field] = val;
+		if (field === 'retirementOverThreshold') {
+			void tryAutoSubmitFys('retirement_over_threshold');
+		}
+	}
 </script>
 
 <div
@@ -277,17 +307,39 @@
 			{/if}
 		</div>
 
-		{#if data.actionNeededNote}
-			<div class="mb-6 rounded-xl border border-red-200 bg-red-50/80 p-4 md:p-5">
-				<p class="text-[11px] tracking-wider uppercase font-semibold text-red-700 mb-1">Action needed</p>
-				<p class="text-sm text-navy/80 leading-relaxed">{data.actionNeededNote}</p>
+		{#snippet infoCallout(
+			body: string,
+			eyebrow: string | null = null,
+			size: 'sm' | 'md' = 'sm',
+		)}
+			<div
+				class="{size === 'md' ? 'mb-6 rounded-2xl' : 'mb-3 rounded-xl'} bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden"
+			>
+				<div class="flex">
+					<div class="w-0.5 shrink-0 bg-emerald-accent/50" aria-hidden="true"></div>
+					<div class="flex-1 {size === 'md' ? 'px-5 py-5 md:px-6 md:py-5' : 'px-3.5 py-2.5'}">
+						{#if eyebrow}
+							<p class="text-[11px] tracking-[0.2em] uppercase text-emerald-accent font-semibold mb-1">{eyebrow}</p>
+						{/if}
+						<p class="{size === 'md' ? 'text-sm' : 'text-[12px]'} text-navy/55 leading-relaxed">{body}</p>
+					</div>
+				</div>
 			</div>
+		{/snippet}
+
+		{#if data.actionNeededNote}
+			{@render infoCallout(data.actionNeededNote, 'Action needed', 'md')}
 		{/if}
 
 		{#if data.fundingUnlockedAt && !data.implementationCompletedAt}
-			<div class="mb-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-5 md:px-6 md:py-5">
-				<p class="text-[11px] tracking-[0.2em] uppercase text-emerald-accent font-semibold mb-2">Trust signed</p>
-				<p class="text-sm text-navy/55 leading-relaxed max-w-2xl">{data.copy.fundingUnlockedBanner}</p>
+			<div class="mb-6 rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden">
+				<div class="flex">
+					<div class="w-0.5 shrink-0 bg-emerald-accent/50" aria-hidden="true"></div>
+					<div class="flex-1 px-5 py-5 md:px-6 md:py-5">
+						<p class="text-[11px] tracking-[0.2em] uppercase text-emerald-accent font-semibold mb-2">Trust signed</p>
+						<p class="text-sm text-navy/55 leading-relaxed max-w-2xl">{data.copy.fundingUnlockedBanner}</p>
+					</div>
+				</div>
 			</div>
 		{/if}
 
@@ -455,14 +507,17 @@
 								mark it not applicable later.
 							</p>
 							<form
+								bind:this={fysFormEl}
 								method="POST"
 								action="?/saveFindYourStuff"
 								use:enhance={() => {
+									fysSubmitting = true;
 									return async ({ result, update }) => {
 										if (result.type === 'success') {
 											findYourStuffOpen = false;
 										}
 										await update({ reset: false });
+										fysSubmitting = false;
 									};
 								}}
 								class="space-y-4"
@@ -484,7 +539,8 @@
 														value={val}
 														class="sr-only"
 														checked={fysAnswers[q.field] === val}
-														onchange={() => (fysAnswers[q.field] = val as typeof fysAnswers[typeof q.field])}
+														disabled={fysSubmitting}
+														onchange={() => setFysAnswer(q.field, val as typeof fysAnswers[typeof q.field])}
 														required
 													/>
 													{label}
@@ -513,7 +569,11 @@
 														value={opt.value}
 														class="sr-only"
 														checked={fysRetirementBeneficiary === opt.value}
-														onchange={() => (fysRetirementBeneficiary = opt.value)}
+														disabled={fysSubmitting}
+														onchange={() => {
+															fysRetirementBeneficiary = opt.value;
+															void tryAutoSubmitFys('retirement_beneficiary');
+														}}
 														required
 													/>
 													{opt.label}
@@ -523,12 +583,6 @@
 									</fieldset>
 								{/if}
 
-								<button
-									type="submit"
-									class="w-full sm:w-auto px-6 py-3 rounded-xl bg-navy text-cream text-sm font-medium hover:bg-navy-light transition-colors cursor-pointer active:scale-[0.98]"
-								>
-									Save answers
-								</button>
 							</form>
 
 							{#if data.findYourStuff.completed}
@@ -686,9 +740,7 @@
 											</div>
 											<p class="text-[13px] text-navy/55 leading-relaxed mb-3">{m.body}</p>
 											{#if m.warning}
-												<div class="mb-3 rounded-lg border border-red-100 bg-red-50/60 px-3 py-2.5">
-													<p class="text-[12px] text-red-800/80 leading-relaxed">{m.warning}</p>
-												</div>
+												{@render infoCallout(m.warning)}
 											{/if}
 											{#if m.riskNote}
 												<div class="mb-3 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5">

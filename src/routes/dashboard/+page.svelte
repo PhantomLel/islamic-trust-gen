@@ -314,10 +314,10 @@
 							<div class="min-w-0 space-y-3">
 								<p class="text-[11px] text-emerald-accent/90 tracking-wider uppercase font-medium">Congratulations</p>
 								<p class="text-[15px] md:text-base text-navy leading-relaxed font-medium">
-									Your trust is signed, notarized, and legally real — and your home is already inside it, deeded and recorded with the county.
+									Your trust is signed, notarized, and legally real!
 								</p>
 								<p class="text-[13px] text-navy/55 leading-relaxed">
-									But a trust only protects what's actually inside it. Think of it like a safe: signing the paperwork built the safe, and your home is already in it — but nothing else moves in by itself. Your bank accounts, investments, and other property have to be moved in, or set up to arrive automatically when you pass.
+									But a trust only protects what's actually inside it. Think of it like a safe: signing the paperwork built the safe. Your bank accounts, investments, and other property have to be moved in, or set up to arrive automatically when you pass.
 								</p>
 								<p class="text-[13px] text-navy/55 leading-relaxed">
 									Your remaining steps — funding your accounts, signing your pour-over wills, notifying your trustee, and storing your originals — are all tracked below in

@@ -61,6 +61,18 @@ export type FundingAssetCategory =
 	| 'crypto'
 	| 'real_property';
 
+/**
+ * When a card offers the consult CTA. The retirement cards gate it on the user's own risk answers
+ * rather than showing it to everyone, so the button stays a real routing signal — a click means
+ * someone with an actual risk factor asked for help.
+ */
+export type FundingConsultCondition =
+	| 'always'
+	/** Retirement beneficiary is someone other than the spouse, or the user is unsure. */
+	| 'retirement_beneficiary_risk'
+	/** Beneficiary risk, or combined retirement accounts over the threshold. */
+	| 'retirement_risk';
+
 export type FundingMilestoneContent = {
 	key: FundingMilestoneKey;
 	moduleId: FundingModuleId;
@@ -73,8 +85,8 @@ export type FundingMilestoneContent = {
 	videoUrl?: string | null;
 	/** Allow user to mark N/A. */
 	allowNa?: boolean;
-	/** Show consult CTA. */
-	showConsult?: boolean;
+	/** Show the consult CTA, either always or only when the user's answers show risk. */
+	consultWhen?: FundingConsultCondition;
 	/** Exclude from completion denominator (e.g. webinar without URL handled in logic). */
 	excludeFromCompletion?: boolean;
 	/** Informational only — no user checklist completion required beyond admin status. */
@@ -499,7 +511,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		body: 'Ask HR or the plan administrator for the beneficiary designation process (and spouse consent rules if married).',
 		checklist: [{ id: 'ready', label: 'I know how to request my plan’s beneficiary forms' }],
 		allowNa: true,
-		showConsult: true,
+		consultWhen: 'retirement_beneficiary_risk',
 		assetCategories: ['employer_plan'],
 	},
 	{
@@ -510,7 +522,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		body: 'Ask each IRA custodian what documents they require for beneficiary updates.',
 		checklist: [{ id: 'ready', label: 'I know how to get each custodian’s beneficiary forms' }],
 		allowNa: true,
-		showConsult: true,
+		consultWhen: 'retirement_risk',
 		assetCategories: ['ira'],
 	},
 	{
@@ -583,7 +595,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 			{ id: 'saved', label: 'Saved the plan’s accepted confirmation' },
 		],
 		allowNa: true,
-		showConsult: true,
+		consultWhen: 'retirement_beneficiary_risk',
 		assetCategories: ['employer_plan'],
 	},
 	{
@@ -602,7 +614,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 			{ id: 'saved', label: 'Saved written confirmation' },
 		],
 		allowNa: true,
-		showConsult: true,
+		consultWhen: 'retirement_risk',
 		assetCategories: ['ira'],
 	},
 	{
@@ -656,7 +668,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 			{ id: 'advice', label: 'Obtained separate advice if my holdings are significant' },
 		],
 		allowNa: true,
-		showConsult: true,
+		consultWhen: 'always',
 		assetCategories: ['crypto'],
 	},
 	{

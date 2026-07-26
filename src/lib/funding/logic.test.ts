@@ -4,8 +4,10 @@ import {
 	getNextUp,
 	isFundingAccessible,
 	isMilestoneApplicable,
+	shouldShowConsult,
 	statusRank,
 } from './logic';
+import { getMilestoneContent } from './content';
 import type { FindYourStuffFlags, MilestoneRow } from './logic';
 import { TrustStatus } from '$lib/server/db/schema';
 
@@ -26,6 +28,53 @@ const baseFlags: FindYourStuffFlags = {
 	isMarried: true,
 	pourOverWillIncluded: true,
 };
+
+describe('consult CTA gating', () => {
+	const consultFor = (key: string, flags: FindYourStuffFlags) =>
+		shouldShowConsult(getMilestoneContent(key)?.consultWhen, flags);
+
+	it('always offers a consult on the crypto card', () => {
+		expect(consultFor('crypto_digital', baseFlags)).toBe(true);
+	});
+
+	it('hides the retirement consult when the spouse is sole beneficiary and assets are modest', () => {
+		const safe: FindYourStuffFlags = {
+			...baseFlags,
+			retirementBeneficiary: 'spouse_sole',
+			retirementOverThreshold: 'no',
+		};
+		expect(consultFor('employer_retirement', safe)).toBe(false);
+		expect(consultFor('forms_employer', safe)).toBe(false);
+		expect(consultFor('ira', safe)).toBe(false);
+		expect(consultFor('forms_ira', safe)).toBe(false);
+	});
+
+	it('offers the retirement consult when the beneficiary is not the spouse or is unknown', () => {
+		for (const answer of ['other', 'not_sure'] as const) {
+			const risky: FindYourStuffFlags = { ...baseFlags, retirementBeneficiary: answer };
+			expect(consultFor('employer_retirement', risky)).toBe(true);
+			expect(consultFor('ira', risky)).toBe(true);
+		}
+	});
+
+	it('offers the IRA consult on substantial or unknown retirement assets alone', () => {
+		for (const answer of ['yes', 'not_sure'] as const) {
+			const flags: FindYourStuffFlags = {
+				...baseFlags,
+				retirementBeneficiary: 'spouse_sole',
+				retirementOverThreshold: answer,
+			};
+			expect(consultFor('ira', flags)).toBe(true);
+			// The spec ties the employer-plan consult to the beneficiary answer only.
+			expect(consultFor('employer_retirement', flags)).toBe(false);
+		}
+	});
+
+	it('offers no consult on cards that do not route to one', () => {
+		expect(consultFor('bank_brokerage', baseFlags)).toBe(false);
+		expect(consultFor('storage', baseFlags)).toBe(false);
+	});
+});
 
 describe('funding logic', () => {
 	it('gates access from notarization-pending onward', () => {

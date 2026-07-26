@@ -22,6 +22,8 @@ import {
 	isFundingAccessible,
 	isMilestoneApplicable,
 	deriveMilestoneStatus,
+	hasRetirementBeneficiaryRisk,
+	shouldShowConsult,
 } from '$lib/funding/logic';
 import {
 	FUNDING_MODULES,
@@ -122,8 +124,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			dash.hasEmployerPlan === 'not_sure' ||
 			dash.hasIra === 'yes' ||
 			dash.hasIra === 'not_sure');
-	const retirementBeneficiaryAtRisk =
-		dash.retirementBeneficiary === 'other' || dash.retirementBeneficiary === 'not_sure';
+	const retirementBeneficiaryAtRisk = hasRetirementBeneficiaryRisk(flags);
 	const progress = computeFundingProgress(flags, dash.milestones, {
 		fundingUnlockedAt: dash.fundingUnlockedAt,
 	});
@@ -150,7 +151,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			checklist: content.checklist,
 			videoUrl: content.videoUrl ?? null,
 			allowNa: !!content.allowNa,
-			showConsult: !!content.showConsult,
+			showConsult: shouldShowConsult(content.consultWhen, flags),
 			informational: !!content.informational,
 			riskNote:
 				retirementBeneficiaryAtRisk &&

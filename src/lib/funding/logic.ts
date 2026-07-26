@@ -20,6 +20,7 @@ import {
 	type FundingModuleId,
 	type FundingPhaseId,
 	type FundingMilestoneContent,
+	type FundingConsultCondition,
 } from './content';
 
 /** Ordered trust lifecycle for comparisons (TrustStatus is a string enum). */
@@ -63,6 +64,42 @@ export type FindYourStuffFlags = {
 	isMarried: boolean | null;
 	pourOverWillIncluded: boolean;
 };
+
+type RetirementRiskFlags = Pick<
+	FindYourStuffFlags,
+	'retirementBeneficiary' | 'retirementOverThreshold'
+>;
+
+/** Retirement beneficiary is someone other than the spouse, or the user does not know. */
+export function hasRetirementBeneficiaryRisk(flags: RetirementRiskFlags): boolean {
+	return flags.retirementBeneficiary === 'other' || flags.retirementBeneficiary === 'not_sure';
+}
+
+/**
+ * Whether a card's consult CTA applies. The retirement cards only offer it to users whose own
+ * answers show a risk factor, so a click is a meaningful routing signal rather than background
+ * furniture. "Not sure" counts as risk here, matching the admin flags — we should not raise a flag
+ * about someone while hiding their route to resolve it.
+ */
+export function shouldShowConsult(
+	when: FundingConsultCondition | undefined,
+	flags: RetirementRiskFlags,
+): boolean {
+	switch (when) {
+		case 'always':
+			return true;
+		case 'retirement_beneficiary_risk':
+			return hasRetirementBeneficiaryRisk(flags);
+		case 'retirement_risk':
+			return (
+				hasRetirementBeneficiaryRisk(flags) ||
+				flags.retirementOverThreshold === 'yes' ||
+				flags.retirementOverThreshold === 'not_sure'
+			);
+		default:
+			return false;
+	}
+}
 
 export type MilestoneRow = {
 	key: string;
