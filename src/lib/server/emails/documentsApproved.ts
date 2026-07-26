@@ -37,7 +37,7 @@ export function documentsApprovedEmail(input: DocumentsApprovedEmailInput): stri
               <p style="margin:0 0 12px 0;font-family:'Lora',Georgia,serif;font-size:19px;font-weight:500;color:#1e3a3a;">${isFunding ? 'Prepare while you schedule notarization' : 'Available in your dashboard'}</p>
               <p style="margin:0 0 6px 0;font-size:14px;color:#3a4e48;line-height:1.7;">
                 ${isFunding
-									? 'Download and review your documents, then start Prepare Your Funding — inventory and forms only until your trust is signed.'
+									? 'Download and review your documents, then start Prepare Your Funding — gather forms and get ready to sign until your trust is notarized.'
 									: 'You can view or download your approved documents anytime from your account.'}
               </p>
               <p style="margin:0;font-size:13px;color:#5a7a70;word-break:break-all;">

@@ -10,7 +10,6 @@ export type FundingPhaseId = 'prepare' | 'complete';
 export type FundingModuleId =
 	| 'get_oriented'
 	| 'get_ready_to_sign'
-	| 'map_assets'
 	| 'gather_forms'
 	| 'finish_signing'
 	| 'update_institutions'
@@ -24,13 +23,6 @@ export type FundingMilestoneKey =
 	| 'prepare_sign_trust'
 	| 'prepare_pour_over'
 	| 'home_deed_office'
-	| 'inventory_bank'
-	| 'inventory_brokerage'
-	| 'inventory_employer'
-	| 'inventory_ira'
-	| 'inventory_life'
-	| 'inventory_vehicle'
-	| 'inventory_crypto'
 	| 'forms_bank'
 	| 'forms_brokerage'
 	| 'forms_employer'
@@ -45,6 +37,7 @@ export type FundingMilestoneKey =
 	| 'vehicles'
 	| 'crypto_digital'
 	| 'home_insurance'
+	| 'homestead'
 	| 'storage'
 	| 'trustee_notification'
 	| 'family_discussion';
@@ -53,6 +46,20 @@ export type FundingChecklistItem = {
 	id: string;
 	label: string;
 };
+
+/**
+ * Categories used to match the asset list the user typed during intake against the funding cards.
+ * A card can cover more than one (bank and brokerage share a card).
+ */
+export type FundingAssetCategory =
+	| 'bank'
+	| 'brokerage'
+	| 'employer_plan'
+	| 'ira'
+	| 'life_insurance'
+	| 'vehicle'
+	| 'crypto'
+	| 'real_property';
 
 export type FundingMilestoneContent = {
 	key: FundingMilestoneKey;
@@ -72,6 +79,8 @@ export type FundingMilestoneContent = {
 	excludeFromCompletion?: boolean;
 	/** Informational only — no user checklist completion required beyond admin status. */
 	informational?: boolean;
+	/** Show the assets the user listed at intake that may belong to this step. */
+	assetCategories?: FundingAssetCategory[];
 };
 
 export type FundingModuleContent = {
@@ -84,6 +93,7 @@ export type FundingModuleContent = {
 
 export type FindYourStuffQuestion = {
 	field:
+		| 'ownsHome'
 		| 'hasBankAccounts'
 		| 'hasBrokerage'
 		| 'hasEmployerPlan'
@@ -142,6 +152,10 @@ export const fundingExplainerVideoUrl: string | null = null;
 
 export const FIND_YOUR_STUFF_QUESTIONS: FindYourStuffQuestion[] = [
 	{
+		field: 'ownsHome',
+		question: 'Do you own the home you live in?',
+	},
+	{
 		field: 'hasBankAccounts',
 		question: 'Do you have checking, savings, or credit union accounts?',
 	},
@@ -181,6 +195,45 @@ export const FIND_YOUR_STUFF_QUESTIONS: FindYourStuffQuestion[] = [
 		question: 'Very roughly, are your combined retirement accounts over $250,000?',
 	},
 ];
+
+/**
+ * Asked only of married users who have an employer plan or IRA. Naming anyone other than a
+ * spouse changes the tax and rollover analysis, so the answer routes the user to a consultation
+ * and raises an admin flag rather than being answered by the app.
+ */
+export const RETIREMENT_BENEFICIARY_QUESTION: {
+	field: 'retirementBeneficiary';
+	question: string;
+	help: string;
+	options: { value: 'spouse_sole' | 'other' | 'not_sure'; label: string }[];
+} = {
+	field: 'retirementBeneficiary',
+	question: 'On your retirement accounts, who is currently named as primary beneficiary?',
+	help: 'This does not change anything. It only tells us whether your situation needs a conversation before you update beneficiary forms.',
+	options: [
+		{ value: 'spouse_sole', label: 'My spouse, as the only primary beneficiary' },
+		{ value: 'other', label: 'Someone or something else — a child, my trust, or a charity' },
+		{ value: 'not_sure', label: 'Not sure' },
+	],
+};
+
+export const ASSET_REFERENCE_TITLE = 'Assets you listed';
+
+/** Reinforces the core message: the trust schedule is not the institution's record. */
+export const ASSET_REFERENCE_NOTE =
+	'You listed these when you set up your trust. Naming an asset there does not change the institution’s own records — that is what this step is for.';
+
+export const ASSET_REFERENCE_MATCH_HINT =
+	'These look like they belong to this step, based on how you described them. You know your accounts best, so use your own judgment.';
+
+export const ASSET_REFERENCE_NO_MATCH_HINT =
+	'Nothing you listed clearly belongs to this step. Your full list is here in case it helps.';
+
+export const ASSET_REFERENCE_SHOW_ALL = 'Show everything I listed';
+export const ASSET_REFERENCE_HIDE_ALL = 'Hide the full list';
+
+export const RETIREMENT_BENEFICIARY_RISK_NOTE =
+	'You told us your retirement accounts name someone other than your spouse as primary beneficiary, or that you are not sure. That choice can change the taxes your beneficiaries pay and can affect a surviving spouse’s rollover options. Please book a consultation before you submit any beneficiary forms.';
 
 export const CATEGORY_TRANSLATION: {
 	recognizes: string;
@@ -224,7 +277,8 @@ export const CATEGORY_TRANSLATION: {
 	{
 		recognizes: 'Your home',
 		category: 'Real property',
-		whatToDo: 'Our office handles your deed; complete homeowners insurance after recording.',
+		whatToDo:
+			'Our office handles your deed; after it is recorded, complete your homeowners insurance and homestead exemption steps.',
 		warning: 'Listing the home in the trust does not transfer title by itself.',
 	},
 	{
@@ -290,21 +344,6 @@ export const FUNDING_MODULES: FundingModuleContent[] = [
 		milestoneKeys: ['prepare_sign_trust', 'prepare_pour_over', 'home_deed_office'],
 	},
 	{
-		id: 'map_assets',
-		phase: 'prepare',
-		title: 'Map Your Assets',
-		shortLabel: 'Inventory',
-		milestoneKeys: [
-			'inventory_bank',
-			'inventory_brokerage',
-			'inventory_employer',
-			'inventory_ira',
-			'inventory_life',
-			'inventory_vehicle',
-			'inventory_crypto',
-		],
-	},
-	{
 		id: 'gather_forms',
 		phase: 'prepare',
 		title: 'Gather Your Forms',
@@ -331,6 +370,7 @@ export const FUNDING_MODULES: FundingModuleContent[] = [
 			'vehicles',
 			'crypto_digital',
 			'home_insurance',
+			'homestead',
 		],
 	},
 	{
@@ -414,8 +454,8 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 			'Do not treat the will as complete merely because your trust or deed was handled through an online process.',
 		checklist: [
 			{ id: 'read_will_instructions', label: 'Read the pour-over will signing instructions' },
-			{ id: 'arranged_will_witnesses', label: 'Arranged required witnesses if applicable' },
-			{ id: 'arranged_in_person_notary', label: 'Arranged an in-person notary if required' },
+			{ id: 'arranged_will_witnesses', label: 'Arranged required witnesses' },
+			{ id: 'arranged_in_person_notary', label: 'Arranged an in-person notary' },
 		],
 	},
 	{
@@ -432,77 +472,6 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		informational: true,
 	},
 	{
-		key: 'inventory_bank',
-		moduleId: 'map_assets',
-		phase: 'prepare',
-		title: 'List Bank Accounts',
-		body: 'List your checking, savings, and credit union accounts (institution names only — do not enter account numbers here).',
-		checklist: [
-			{ id: 'listed', label: 'Listed my bank and credit union accounts (names only)' },
-		],
-		allowNa: true,
-	},
-	{
-		key: 'inventory_brokerage',
-		moduleId: 'map_assets',
-		phase: 'prepare',
-		title: 'List Brokerage Accounts',
-		body: 'List regular non-retirement investment accounts (institution names only).',
-		checklist: [{ id: 'listed', label: 'Listed my non-retirement brokerage accounts (names only)' }],
-		allowNa: true,
-	},
-	{
-		key: 'inventory_employer',
-		moduleId: 'map_assets',
-		phase: 'prepare',
-		title: 'List Employer Retirement Plans',
-		body: 'Identify each 401(k), 403(b), pension, TSP, or similar plan through work.',
-		checklist: [{ id: 'listed', label: 'Identified each employer retirement plan' }],
-		allowNa: true,
-	},
-	{
-		key: 'inventory_ira',
-		moduleId: 'map_assets',
-		phase: 'prepare',
-		title: 'List IRAs',
-		body: 'Identify each Traditional, Roth, SEP, or SIMPLE IRA and its custodian (name only).',
-		checklist: [{ id: 'listed', label: 'Identified each IRA and custodian (names only)' }],
-		allowNa: true,
-	},
-	{
-		key: 'inventory_life',
-		moduleId: 'map_assets',
-		phase: 'prepare',
-		title: 'List Life Insurance Policies',
-		body: 'Identify each policy you own or have through work (carrier names only).',
-		checklist: [{ id: 'listed', label: 'Identified each life insurance policy' }],
-		allowNa: true,
-	},
-	{
-		key: 'inventory_vehicle',
-		moduleId: 'map_assets',
-		phase: 'prepare',
-		title: 'List Vehicles',
-		body: 'Note ordinary cars or trucks you may want to cover with a state TOD/beneficiary option.',
-		checklist: [{ id: 'listed', label: 'Noted vehicles I may want to designate' }],
-		allowNa: true,
-	},
-	{
-		key: 'inventory_crypto',
-		moduleId: 'map_assets',
-		phase: 'prepare',
-		title: 'Note Crypto / Digital Assets',
-		body: 'Create a plan to inventory crypto and digital accounts offline. Never enter passwords, seed phrases, or private keys in this app.',
-		warning:
-			'Never enter passwords, seed phrases, recovery phrases, or private keys into this app, into email, or into any online form we provide. We will never ask for them.',
-		checklist: [
-			{ id: 'plan', label: 'I have a plan to inventory crypto/digital assets offline' },
-			{ id: 'no_keys', label: 'I will not type or upload passwords, seed phrases, or private keys here' },
-		],
-		showConsult: true,
-		allowNa: true,
-	},
-	{
 		key: 'forms_bank',
 		moduleId: 'gather_forms',
 		phase: 'prepare',
@@ -510,6 +479,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		body: 'Contact each bank or find their trust retitle / POD forms so you are ready to submit after signing.',
 		checklist: [{ id: 'ready', label: 'I have the forms or know where to get them for each bank' }],
 		allowNa: true,
+		assetCategories: ['bank'],
 	},
 	{
 		key: 'forms_brokerage',
@@ -519,6 +489,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		body: 'Locate each brokerage’s trust title or TOD beneficiary process.',
 		checklist: [{ id: 'ready', label: 'I have the forms or know where to get them for each brokerage' }],
 		allowNa: true,
+		assetCategories: ['brokerage'],
 	},
 	{
 		key: 'forms_employer',
@@ -529,6 +500,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		checklist: [{ id: 'ready', label: 'I know how to request my plan’s beneficiary forms' }],
 		allowNa: true,
 		showConsult: true,
+		assetCategories: ['employer_plan'],
 	},
 	{
 		key: 'forms_ira',
@@ -539,6 +511,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		checklist: [{ id: 'ready', label: 'I know how to get each custodian’s beneficiary forms' }],
 		allowNa: true,
 		showConsult: true,
+		assetCategories: ['ira'],
 	},
 	{
 		key: 'forms_life',
@@ -548,6 +521,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		body: 'Locate each carrier’s beneficiary change form or online process.',
 		checklist: [{ id: 'ready', label: 'I have the forms or know where to get them for each policy' }],
 		allowNa: true,
+		assetCategories: ['life_insurance'],
 	},
 	{
 		key: 'confirm_trust_signing',
@@ -570,8 +544,8 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 			'An unsigned or incorrectly signed will may not work. Shortcuts on will signing can create serious problems later.',
 		checklist: [
 			{ id: 'read_instructions', label: 'Read the pour-over will signing instructions' },
-			{ id: 'witnesses', label: 'Arranged required witnesses if applicable' },
-			{ id: 'notary', label: 'Arranged an in-person notary if required' },
+			{ id: 'witnesses', label: 'Arranged required witnesses' },
+			{ id: 'notary', label: 'Arranged an in-person notary' },
 			{ id: 'signed', label: 'Signed the will using the required formalities' },
 			{ id: 'stored', label: 'Stored the original signed will with my trust documents' },
 		],
@@ -585,12 +559,13 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		warning:
 			'Listing an account in your trust paperwork does not change the bank’s or brokerage’s records. 401(k)s and IRAs are handled separately.',
 		checklist: [
-			{ id: 'listed', label: 'Listed my bank and regular investment accounts' },
+			{ id: 'listed', label: 'Identified my bank and regular investment accounts' },
 			{ id: 'contacted', label: 'Contacted each institution' },
 			{ id: 'completed', label: 'Completed each institution’s own retitle or POD/TOD process' },
 			{ id: 'saved', label: 'Saved written confirmation for each account' },
 		],
 		allowNa: true,
+		assetCategories: ['bank', 'brokerage'],
 	},
 	{
 		key: 'employer_retirement',
@@ -609,6 +584,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		],
 		allowNa: true,
 		showConsult: true,
+		assetCategories: ['employer_plan'],
 	},
 	{
 		key: 'ira',
@@ -627,6 +603,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		],
 		allowNa: true,
 		showConsult: true,
+		assetCategories: ['ira'],
 	},
 	{
 		key: 'life_insurance',
@@ -643,6 +620,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 			{ id: 'saved', label: 'Saved written confirmation' },
 		],
 		allowNa: true,
+		assetCategories: ['life_insurance'],
 	},
 	{
 		key: 'vehicles',
@@ -658,6 +636,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 			{ id: 'saved', label: 'Saved confirmation with my records' },
 		],
 		allowNa: true,
+		assetCategories: ['vehicle'],
 	},
 	{
 		key: 'crypto_digital',
@@ -678,6 +657,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		],
 		allowNa: true,
 		showConsult: true,
+		assetCategories: ['crypto'],
 	},
 	{
 		key: 'home_insurance',
@@ -693,6 +673,26 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 			{ id: 'mortgagee', label: 'Confirmed mortgagee/coverage details are unchanged or updated correctly' },
 			{ id: 'saved', label: 'Saved written confirmation with my trust records' },
 		],
+		assetCategories: ['real_property'],
+	},
+	{
+		key: 'homestead',
+		moduleId: 'update_institutions',
+		phase: 'complete',
+		title: 'Homestead Exemption Follow-Up',
+		body: 'Moving your home into your revocable living trust should not raise your property taxes, but your homestead exemption still has to stay in place. After your deed is recorded, follow the homestead exemption guide in your portal, then confirm with your county appraisal district that your exemption remains properly in place.',
+		warning:
+			'Our office provides the homestead guide but does not file the exemption for you. Forms, deadlines, and proof requirements are set by your county appraisal district — follow its current instructions and keep what it sends you.',
+		checklist: [
+			{ id: 'read_guide', label: 'Read the homestead exemption guide in my portal' },
+			{ id: 'followed', label: 'Followed the guide’s steps for my county' },
+			{
+				id: 'confirmed',
+				label: 'Confirmed with my county appraisal district that my exemption is still in place',
+			},
+			{ id: 'saved', label: 'Saved the confirmation with my trust records' },
+		],
+		assetCategories: ['real_property'],
 	},
 	{
 		key: 'storage',

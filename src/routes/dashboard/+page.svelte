@@ -22,23 +22,30 @@
 		{ status: 'completed', label: 'Documents delivered' },
 	] as const;
 
+	const MAKE_YOUR_TRUST_WORK_STEP = { label: 'Make Your Trust Work' };
+
 	let trustStatusIndex = $derived(
 		TRUST_STATUS_PIPELINE.findIndex((s) => s.status === t.status)
 	);
 	let statusIdx = $derived(trustStatusIndex === -1 ? 0 : trustStatusIndex);
 
-	let steps = $derived(
-		TRUST_STATUS_PIPELINE.map((step, i) => ({
+	let steps = $derived([
+		...TRUST_STATUS_PIPELINE.map((step, i) => ({
 			label: step.label,
-			done: i < statusIdx || t.status === 'completed',
-		}))
-	);
+			done: t.status === 'completed' ? i <= statusIdx : i < statusIdx,
+		})),
+		{
+			label: MAKE_YOUR_TRUST_WORK_STEP.label,
+			done: data.fundingSummary?.implementationComplete ?? false,
+		},
+	]);
 
 	let currentStepIndex = $derived(steps.findIndex((s) => !s.done));
 	let overallPct = $derived(steps.filter((s) => s.done).length / steps.length * 100);
 	let doneCount = $derived(steps.filter((s) => s.done).length);
 	let statusLabel = $derived(
-		t.status === 'completed' ? 'Completed' :
+		t.status === 'completed' && data.fundingSummary?.implementationComplete ? 'Completed' :
+		t.status === 'completed' ? 'Make Your Trust Work' :
 		t.status === 'notarization-scheduled' ? 'Notarization scheduled' :
 		t.status === 'notarization-pending' ? 'Notarization pending' :
 		t.intakeUnderReview ? 'Under review' :
@@ -307,19 +314,22 @@
 							<div class="min-w-0 space-y-3">
 								<p class="text-[11px] text-emerald-accent/90 tracking-wider uppercase font-medium">Congratulations</p>
 								<p class="text-[15px] md:text-base text-navy leading-relaxed font-medium">
-									Your trust is complete. Your documents have been notarized, and your home has been deeded into your trust and recorded with the county.
+									Your trust is signed, notarized, and legally real — and your home is already inside it, deeded and recorded with the county.
 								</p>
 								<p class="text-[13px] text-navy/55 leading-relaxed">
-									Your remaining steps — funding accounts, signing pour-over wills, notifying your trustee, and storing originals — are in
+									But a trust only protects what's actually inside it. Think of it like a safe: signing the paperwork built the safe, and your home is already in it — but nothing else moves in by itself. Your bank accounts, investments, and other property have to be moved in, or set up to arrive automatically when you pass.
+								</p>
+								<p class="text-[13px] text-navy/55 leading-relaxed">
+									Your remaining steps — funding your accounts, signing your pour-over wills, notifying your trustee, and storing your originals — are all tracked below in
 									<a href="/make-your-trust-work/{t.id}" class="text-emerald-accent font-medium underline underline-offset-2 hover:text-emerald-accent/80">Make Your Trust Work</a>.
-									We've also emailed you a closing letter; keep it handy until every applicable step is done.
+									This page is your one place to check what's done and what's left.
 								</p>
 								{#if data.fundingSummary}
 									<a
 										href={data.fundingSummary.href}
 										class="inline-flex mt-1 px-4 py-2.5 rounded-xl bg-navy text-cream text-sm font-medium hover:bg-navy-light transition-colors"
 									>
-										{data.fundingSummary.implementationComplete ? 'Review guided steps' : 'Continue Make Your Trust Work'}
+										Continue to Make Your Trust Work
 									</a>
 								{/if}
 							</div>

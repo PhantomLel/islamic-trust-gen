@@ -3,12 +3,14 @@ import {
 	computeFundingProgress,
 	getNextUp,
 	isFundingAccessible,
+	isMilestoneApplicable,
 	statusRank,
 } from './logic';
 import type { FindYourStuffFlags, MilestoneRow } from './logic';
 import { TrustStatus } from '$lib/server/db/schema';
 
 const baseFlags: FindYourStuffFlags = {
+	ownsHome: null,
 	hasBankAccounts: null,
 	hasBrokerage: null,
 	hasEmployerPlan: null,
@@ -18,6 +20,7 @@ const baseFlags: FindYourStuffFlags = {
 	hasCrypto: null,
 	hasBusiness: null,
 	retirementOverThreshold: null,
+	retirementBeneficiary: null,
 	findYourStuffCompletedAt: null,
 	isHomeowner: true,
 	isMarried: true,
@@ -67,5 +70,40 @@ describe('funding logic', () => {
 		expect(progress.prepare.done).toBeGreaterThanOrEqual(1);
 		const next = getNextUp(baseFlags, milestones, { fundingUnlockedAt: null });
 		expect(next?.milestoneKey).not.toBe('download_review');
+	});
+
+	it('hides the home cards only when the user says they do not own a home', () => {
+		const homeKeys = ['home_deed_office', 'home_insurance', 'homestead'] as const;
+		for (const key of homeKeys) {
+			expect(isMilestoneApplicable(key, { ...baseFlags, isHomeowner: true }, true)).toBe(true);
+			expect(isMilestoneApplicable(key, { ...baseFlags, isHomeowner: null }, true)).toBe(true);
+			expect(isMilestoneApplicable(key, { ...baseFlags, isHomeowner: false }, true)).toBe(false);
+		}
+	});
+
+	it('hides video-only cards that have no video configured', () => {
+		expect(isMilestoneApplicable('funding_explainer', baseFlags, false)).toBe(false);
+		expect(isMilestoneApplicable('webinar', baseFlags, false)).toBe(false);
+	});
+
+	it('never offers a card outside the denominator as next up', () => {
+		// Walk the whole journey; Next Up must always be a card that can move the progress bar.
+		const done: MilestoneRow[] = [];
+		for (let i = 0; i < 40; i += 1) {
+			const next = getNextUp(baseFlags, done, { fundingUnlockedAt: new Date() });
+			if (!next) break;
+			done.push({
+				key: next.milestoneKey,
+				phase: 'prepare',
+				status: 'complete',
+				checklist: {},
+				naReason: null,
+				completedAt: new Date(),
+			});
+		}
+		const progress = computeFundingProgress(baseFlags, done, { fundingUnlockedAt: new Date() });
+		expect(getNextUp(baseFlags, done, { fundingUnlockedAt: new Date() })).toBeNull();
+		expect(progress.journey.done).toBe(progress.journey.total);
+		expect(progress.implementationComplete).toBe(true);
 	});
 });

@@ -12,6 +12,7 @@
 	let helpSent = $state(false);
 	let findYourStuffOpen = $state(!data.findYourStuff.completed);
 	let expandedModules = $state<Record<string, boolean>>({});
+	let showAllAssets = $state<Record<string, boolean>>({});
 	let modulesInitialized = $state(false);
 	let prevModuleStatus = $state<Record<string, string>>({});
 	let prevPrepareComplete = $state<boolean | null>(null);
@@ -31,6 +32,7 @@
 	const completePhaseDone = $derived(
 		!completeLocked && data.progress.complete.total > 0 && data.progress.complete.pct === 100,
 	);
+	const showStickyContinue = $derived(!!data.nextUp && !data.progress.implementationComplete);
 
 	$effect(() => {
 		if (modulesInitialized) return;
@@ -163,13 +165,14 @@
 		);
 	}
 
+	/** Expand the owning section first — a collapsed module has no element to scroll to yet. */
 	function scrollToMilestone(key: string) {
-		const el = document.getElementById(`milestone-${key}`);
-		if (el) {
-			el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-			const mod = data.milestones.find((m) => m.key === key);
-			if (mod) expandedModules = { ...expandedModules, [mod.moduleId]: true };
-		}
+		if (key === 'find_your_stuff') findYourStuffOpen = true;
+		const mod = data.milestones.find((m) => m.key === key);
+		if (mod) expandedModules = { ...expandedModules, [mod.moduleId]: true };
+		requestAnimationFrame(() => {
+			document.getElementById(`milestone-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		});
 	}
 
 	function scrollToModule(id: string) {
@@ -184,13 +187,31 @@
 	}
 
 	const fysAnswers = $state({ ...data.findYourStuff.answers });
+	let fysRetirementBeneficiary = $state(data.findYourStuff.retirementBeneficiary);
 
 	$effect(() => {
 		Object.assign(fysAnswers, data.findYourStuff.answers);
+		fysRetirementBeneficiary = data.findYourStuff.retirementBeneficiary;
 	});
+
+	/**
+	 * Mirrors the server rule: only married users who have an employer plan or IRA are asked who is
+	 * named as beneficiary. Tracks the in-form answers so the question appears as they answer.
+	 */
+	const showRetirementBeneficiary = $derived(
+		data.findYourStuff.retirementQuestionApplies ||
+			(data.isMarried && (fysAnswers.hasEmployerPlan === 'yes' ||
+				fysAnswers.hasEmployerPlan === 'not_sure' ||
+				fysAnswers.hasIra === 'yes' ||
+				fysAnswers.hasIra === 'not_sure')),
+	);
 </script>
 
-<div class="min-h-[100dvh] w-full bg-cream font-sans relative pb-12">
+<div
+	class="min-h-[100dvh] w-full bg-cream font-sans relative pb-12 {showStickyContinue
+		? 'max-lg:pb-28'
+		: ''}"
+>
 	<div
 		class="absolute inset-0 pointer-events-none"
 		style="background: radial-gradient(ellipse 80% 60% at 50% 20%, rgba(74,124,111,0.06) 0%, transparent 70%);"
@@ -472,6 +493,36 @@
 										</div>
 									</fieldset>
 								{/each}
+
+								{#if showRetirementBeneficiary}
+									{@const rq = data.retirementBeneficiaryQuestion}
+									<fieldset class="space-y-2 pt-1">
+										<legend class="text-sm text-navy/80 mb-1">{rq.question}</legend>
+										<p class="text-[12px] text-navy/45 leading-relaxed mb-2">{rq.help}</p>
+										<div class="flex flex-col gap-2">
+											{#each rq.options as opt}
+												<label
+													class="px-3.5 py-2.5 rounded-xl border text-sm cursor-pointer transition-all
+													{fysRetirementBeneficiary === opt.value
+														? 'border-emerald-accent/40 bg-emerald-accent/10 text-emerald-accent'
+														: 'border-navy/10 text-navy/50 hover:border-navy/20'}"
+												>
+													<input
+														type="radio"
+														name={rq.field}
+														value={opt.value}
+														class="sr-only"
+														checked={fysRetirementBeneficiary === opt.value}
+														onchange={() => (fysRetirementBeneficiary = opt.value)}
+														required
+													/>
+													{opt.label}
+												</label>
+											{/each}
+										</div>
+									</fieldset>
+								{/if}
+
 								<button
 									type="submit"
 									class="w-full sm:w-auto px-6 py-3 rounded-xl bg-navy text-cream text-sm font-medium hover:bg-navy-light transition-colors cursor-pointer active:scale-[0.98]"
@@ -639,6 +690,14 @@
 													<p class="text-[12px] text-red-800/80 leading-relaxed">{m.warning}</p>
 												</div>
 											{/if}
+											{#if m.riskNote}
+												<div class="mb-3 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5">
+													<p class="text-[11px] uppercase tracking-wider font-semibold text-amber-800/80 mb-1">
+														Based on your answers
+													</p>
+													<p class="text-[12px] text-amber-900/75 leading-relaxed">{m.riskNote}</p>
+												</div>
+											{/if}
 											{#if m.videoUrl}
 												<div class="mb-4">
 													<VideoPlayer src={m.videoUrl} title={m.title} />
@@ -661,7 +720,7 @@
 												</div>
 											{/if}
 
-											{#if m.key === 'prepare_sign_trust'}
+											{#if m.key === 'prepare_sign_trust' && data.trustStatus !== 'completed'}
 												<a
 													href={data.notarizationLinkUrl ?? notarizationBookingUrl}
 													target="_blank"
@@ -691,6 +750,55 @@
 															class="px-4 py-2 rounded-xl border border-navy/10 text-sm text-navy hover:border-emerald-accent/30"
 															>Watch replay</a
 														>
+													{/if}
+												</div>
+											{/if}
+
+											{#if m.showAssetReference}
+												{@const expanded = showAllAssets[m.key] === true}
+												{@const shown = expanded ? data.listedAssets : m.matchedAssets}
+												<div class="mb-4 rounded-xl border border-navy/8 bg-navy/[0.015] px-3.5 py-3">
+													<p
+														class="text-[11px] uppercase tracking-wider font-semibold text-navy/45 mb-1.5"
+													>
+														{data.copy.assetReferenceTitle}
+													</p>
+													<p class="text-[12px] text-navy/50 leading-relaxed">
+														{m.matchedAssets.length
+															? data.copy.assetReferenceMatchHint
+															: data.copy.assetReferenceNoMatchHint}
+													</p>
+													{#if shown.length}
+														<ul class="mt-2.5 space-y-1.5">
+															{#each shown as asset (asset.name + (asset.accountId ?? ''))}
+																<li class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[13px]">
+																	<span class="font-medium text-navy/80">{asset.name}</span>
+																	{#if asset.accountId}
+																		<span class="text-[11px] text-navy/40">acct {asset.accountId}</span>
+																	{/if}
+																	{#if data.showAssetOwners && asset.owner}
+																		<span
+																			class="text-[10px] px-1.5 py-0.5 rounded-full bg-navy/[0.06] text-navy/45"
+																			>{asset.owner}</span
+																		>
+																	{/if}
+																</li>
+															{/each}
+														</ul>
+														<p class="mt-2.5 text-[11px] text-navy/35 leading-relaxed">
+															{data.copy.assetReferenceNote}
+														</p>
+													{/if}
+													{#if data.listedAssets.length > m.matchedAssets.length}
+														<button
+															type="button"
+															onclick={() => (showAllAssets[m.key] = !expanded)}
+															class="mt-2.5 text-[11px] font-medium text-emerald-accent hover:underline"
+														>
+															{expanded
+																? data.copy.assetReferenceHideAll
+																: data.copy.assetReferenceShowAll}
+														</button>
 													{/if}
 												</div>
 											{/if}
@@ -905,6 +1013,28 @@
 			</aside>
 		</div>
 	</div>
+
+	<!-- Sticky next-step bar (mobile / tablet) -->
+	{#if showStickyContinue && data.nextUp}
+		<div
+			class="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-navy/[0.08] bg-cream/95 backdrop-blur-sm"
+			style="padding-bottom: env(safe-area-inset-bottom);"
+		>
+			<div class="flex items-center gap-3 px-5 py-3">
+				<div class="min-w-0 flex-1">
+					<p class="text-[10px] tracking-wider uppercase text-emerald-accent font-semibold">Next up</p>
+					<p class="text-[13px] text-navy font-medium truncate">{data.nextUp.milestoneTitle}</p>
+				</div>
+				<button
+					type="button"
+					onclick={() => scrollToMilestone(data.nextUp!.milestoneKey)}
+					class="shrink-0 px-5 py-3 rounded-xl bg-navy text-cream text-sm font-medium hover:bg-navy-light transition-colors cursor-pointer active:scale-[0.98]"
+				>
+					Continue
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Help modal -->
 	{#if helpOpen}

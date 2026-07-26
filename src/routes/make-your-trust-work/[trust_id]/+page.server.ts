@@ -2,7 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { trust, invoice, TrustStatus } from '$lib/server/db/schema';
-import type { FundingTriState } from '$lib/server/db/schema';
+import type { FundingRetirementBeneficiary, FundingTriState } from '$lib/server/db/schema';
 import {
 	loadFundingForTrust,
 	seedFundingDashboardOnApprove,
@@ -13,6 +13,8 @@ import {
 	logFundingEvent,
 	flagsFromDashboard,
 	syncConfirmSigningFromTrustStatus,
+	syncPourOverFromFiles,
+	ensureMilestoneRows,
 } from '$lib/server/funding';
 import {
 	computeFundingProgress,
@@ -25,6 +27,14 @@ import {
 	FUNDING_MODULES,
 	FUNDING_MILESTONES,
 	FIND_YOUR_STUFF_QUESTIONS,
+	RETIREMENT_BENEFICIARY_QUESTION,
+	RETIREMENT_BENEFICIARY_RISK_NOTE,
+	ASSET_REFERENCE_TITLE,
+	ASSET_REFERENCE_NOTE,
+	ASSET_REFERENCE_MATCH_HINT,
+	ASSET_REFERENCE_NO_MATCH_HINT,
+	ASSET_REFERENCE_SHOW_ALL,
+	ASSET_REFERENCE_HIDE_ALL,
 	CATEGORY_TRANSLATION,
 	FUNDING_DISCLAIMER,
 	FUNDING_SUBTITLE,
@@ -43,6 +53,7 @@ import {
 	webinarReplayUrl,
 	getMilestoneContent,
 } from '$lib/funding/content';
+import { assetsForCategories, collectListedAssets } from '$lib/funding/assets';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -64,6 +75,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			file_urls: true,
 			notarizationLinkUrl: true,
 			joint: true,
+			responses: true,
 		},
 	});
 	if (!t) throw error(404, 'Trust not found');
@@ -91,13 +103,27 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	}
 	if (!dash) throw redirect(302, '/dashboard');
 
-	if (t.status === TrustStatus.Completed) {
-		await syncConfirmSigningFromTrustStatus(dash.id, t.status);
+	const packageFiles = [...(t.generated_files ?? []), ...(t.user_files ?? [])];
+	const pourOverChanged = await syncPourOverFromFiles(dash.id, packageFiles);
+	const rowsBackfilled = await ensureMilestoneRows(dash.id, dash.fundingUnlockedAt != null);
+
+	if (t.status === TrustStatus.Completed || pourOverChanged || rowsBackfilled) {
+		if (t.status === TrustStatus.Completed) {
+			await syncConfirmSigningFromTrustStatus(dash.id, t.status);
+		}
 		dash = await loadFundingForTrust(trustId);
 		if (!dash) throw redirect(302, '/dashboard');
 	}
 
 	const flags = flagsFromDashboard(dash);
+	const retirementQuestionApplies =
+		dash.isMarried === true &&
+		(dash.hasEmployerPlan === 'yes' ||
+			dash.hasEmployerPlan === 'not_sure' ||
+			dash.hasIra === 'yes' ||
+			dash.hasIra === 'not_sure');
+	const retirementBeneficiaryAtRisk =
+		dash.retirementBeneficiary === 'other' || dash.retirementBeneficiary === 'not_sure';
 	const progress = computeFundingProgress(flags, dash.milestones, {
 		fundingUnlockedAt: dash.fundingUnlockedAt,
 	});
@@ -106,6 +132,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	});
 
 	const completeUnlocked = dash.fundingUnlockedAt != null;
+
+	const listedAssets = collectListedAssets(t.responses);
 
 	const milestoneViews = FUNDING_MILESTONES.map((content) => {
 		const row = dash!.milestones.find((m) => m.key === content.key);
@@ -124,6 +152,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			allowNa: !!content.allowNa,
 			showConsult: !!content.showConsult,
 			informational: !!content.informational,
+			riskNote:
+				retirementBeneficiaryAtRisk &&
+				(content.key === 'employer_retirement' || content.key === 'ira')
+					? RETIREMENT_BENEFICIARY_RISK_NOTE
+					: null,
+			showAssetReference: !!content.assetCategories?.length && listedAssets.length > 0,
+			matchedAssets: assetsForCategories(listedAssets, content.assetCategories),
 			applicable,
 			status,
 			checklistState: row?.checklist ?? {},
@@ -159,9 +194,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		implementationCompletedAt: dash.implementationCompletedAt?.toISOString() ?? null,
 		actionNeededNote: dash.actionNeededNote,
 		pourOverWillIncluded: dash.pourOverWillIncluded,
+		isMarried: dash.isMarried === true,
 		findYourStuff: {
 			completed: dash.findYourStuffCompletedAt != null,
+			retirementQuestionApplies,
+			retirementBeneficiary: dash.retirementBeneficiary,
 			answers: {
+				ownsHome: dash.ownsHome,
 				hasBankAccounts: dash.hasBankAccounts,
 				hasBrokerage: dash.hasBrokerage,
 				hasEmployerPlan: dash.hasEmployerPlan,
@@ -180,6 +219,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			progress: progress.modules.find((p) => p.id === m.id)!,
 		})),
 		milestones: milestoneViews,
+		listedAssets,
+		showAssetOwners: t.joint === true && listedAssets.some((a) => a.owner !== null),
 		documents: docs,
 		copy: {
 			disclaimer: FUNDING_DISCLAIMER,
@@ -194,11 +235,18 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			completePhaseCompleteTitle: COMPLETE_PHASE_COMPLETE_TITLE,
 			completePhaseCompleteBody: COMPLETE_PHASE_COMPLETE_BODY,
 			fundingUnlockedBanner: FUNDING_UNLOCKED_BANNER,
+			assetReferenceTitle: ASSET_REFERENCE_TITLE,
+			assetReferenceNote: ASSET_REFERENCE_NOTE,
+			assetReferenceMatchHint: ASSET_REFERENCE_MATCH_HINT,
+			assetReferenceNoMatchHint: ASSET_REFERENCE_NO_MATCH_HINT,
+			assetReferenceShowAll: ASSET_REFERENCE_SHOW_ALL,
+			assetReferenceHideAll: ASSET_REFERENCE_HIDE_ALL,
 			bookingUrl: fundingBookingUrl,
 			webinarRegistrationUrl,
 			webinarReplayUrl,
 		},
 		findYourStuffQuestions: FIND_YOUR_STUFF_QUESTIONS,
+		retirementBeneficiaryQuestion: RETIREMENT_BENEFICIARY_QUESTION,
 		categoryTranslation: CATEGORY_TRANSLATION,
 	};
 };
@@ -208,6 +256,17 @@ const TRI: FundingTriState[] = ['yes', 'no', 'not_sure'];
 function parseTri(v: FormDataEntryValue | null): FundingTriState | null {
 	if (typeof v !== 'string') return null;
 	return TRI.includes(v as FundingTriState) ? (v as FundingTriState) : null;
+}
+
+const RETIREMENT_BENEFICIARIES: FundingRetirementBeneficiary[] = ['spouse_sole', 'other', 'not_sure'];
+
+function parseRetirementBeneficiary(
+	v: FormDataEntryValue | null,
+): FundingRetirementBeneficiary | null {
+	if (typeof v !== 'string') return null;
+	return RETIREMENT_BENEFICIARIES.includes(v as FundingRetirementBeneficiary)
+		? (v as FundingRetirementBeneficiary)
+		: null;
 }
 
 export const actions: Actions = {
@@ -221,6 +280,7 @@ export const actions: Actions = {
 
 		const fd = await request.formData();
 		const fields = [
+			'ownsHome',
 			'hasBankAccounts',
 			'hasBrokerage',
 			'hasEmployerPlan',
@@ -239,7 +299,19 @@ export const actions: Actions = {
 			input[f] = v;
 		}
 
-		await saveFindYourStuff(dash.id, input, locals.user.id);
+		// Only married users with a retirement account are asked who is named as beneficiary.
+		const retirementApplies =
+			dash.isMarried === true &&
+			(input.hasEmployerPlan !== 'no' || input.hasIra !== 'no');
+		let retirementBeneficiary: FundingRetirementBeneficiary | null = null;
+		if (retirementApplies) {
+			retirementBeneficiary = parseRetirementBeneficiary(fd.get('retirementBeneficiary'));
+			if (!retirementBeneficiary) {
+				return fail(400, { message: 'Missing answer for retirement beneficiary' });
+			}
+		}
+
+		await saveFindYourStuff(dash.id, { ...input, retirementBeneficiary }, locals.user.id);
 		return { saved: true };
 	},
 

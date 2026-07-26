@@ -114,14 +114,14 @@ export async function processFundingReminders(): Promise<number> {
 				sent += 1;
 		}
 
-		// day14_prepare — inventory/forms incomplete
+		// day14_prepare — forms incomplete
 		if (readyAt <= daysAgo(14) && !progress.prepareComplete) {
 			if (
 				await sendOnce(dash.id, 'day14_prepare', {
 					...base,
 					subject: 'Accounts like Schwab, Fidelity, Robinhood, Chase, and 401(k)s need institution-specific steps',
 					headline: 'Keep preparing your funding checklist',
-					body: 'Bank and brokerage accounts are different from employer plans and IRAs. Use Prepare Your Funding to list accounts and gather forms — you will submit to institutions after notarization.',
+					body: 'Bank and brokerage accounts are different from employer plans and IRAs. Use Prepare Your Funding to gather forms — you will submit to institutions after notarization.',
 				})
 			)
 				sent += 1;

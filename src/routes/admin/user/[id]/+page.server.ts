@@ -151,6 +151,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 						fundingUnlockedAt: dash.fundingUnlockedAt?.toISOString() ?? null,
 						implementationCompletedAt: dash.implementationCompletedAt?.toISOString() ?? null,
 						pourOverWillIncluded: dash.pourOverWillIncluded,
+						pourOverWillManual: dash.pourOverWillManual,
+						isHomeowner: dash.isHomeowner,
+						retirementBeneficiary: dash.retirementBeneficiary,
 						actionNeededNote: dash.actionNeededNote,
 						progress,
 						openFlags: openFlags.map((f) => ({
@@ -392,7 +395,7 @@ export const actions: Actions = {
 		if (!dash || dash.userId !== params.id) return fail(404, { message: 'Not found' });
 		await db
 			.update(fundingDashboard)
-			.set({ pourOverWillIncluded: included, updatedAt: new Date() })
+			.set({ pourOverWillIncluded: included, pourOverWillManual: true, updatedAt: new Date() })
 			.where(eq(fundingDashboard.id, dash.id));
 		return { toggled: true };
 	},

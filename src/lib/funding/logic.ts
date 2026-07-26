@@ -3,7 +3,12 @@
  */
 
 import { TrustStatus } from '$lib/server/db/schema';
-import type { FundingChecklistState, FundingMilestoneStatus, FundingTriState } from '$lib/server/db/schema';
+import type {
+	FundingChecklistState,
+	FundingMilestoneStatus,
+	FundingRetirementBeneficiary,
+	FundingTriState,
+} from '$lib/server/db/schema';
 import {
 	FUNDING_MILESTONES,
 	FUNDING_MODULES,
@@ -42,6 +47,7 @@ export function isCompletePhaseUnlocked(fundingUnlockedAt: Date | string | null 
 }
 
 export type FindYourStuffFlags = {
+	ownsHome: FundingTriState | null;
 	hasBankAccounts: FundingTriState | null;
 	hasBrokerage: FundingTriState | null;
 	hasEmployerPlan: FundingTriState | null;
@@ -51,6 +57,7 @@ export type FindYourStuffFlags = {
 	hasCrypto: FundingTriState | null;
 	hasBusiness: FundingTriState | null;
 	retirementOverThreshold: FundingTriState | null;
+	retirementBeneficiary: FundingRetirementBeneficiary | null;
 	findYourStuffCompletedAt: Date | string | null;
 	isHomeowner: boolean | null;
 	isMarried: boolean | null;
@@ -84,29 +91,25 @@ export function isMilestoneApplicable(
 	if (!content) return false;
 
 	if (content.key === 'webinar' && !(webinarRegistrationUrl || webinarReplayUrl)) return false;
-	if (content.key === 'funding_explainer' && !fundingExplainerVideoUrl) {
-		// Still show with written-only path if we want; plan says hide if no URL for webinar.
-		// Explainer can show without video (written only). Keep applicable.
-	}
+	// The explainer is a video card. With no video there is nothing to watch, so hide it rather
+	// than showing a checkbox that cannot move the progress bar.
+	if (content.key === 'funding_explainer' && !fundingExplainerVideoUrl) return false;
 
 	if (content.key === 'prepare_pour_over' || content.key === 'will_signing') {
 		if (!flags.pourOverWillIncluded || !willSigningEnabled) return false;
 	}
 
-	if (content.key === 'home_deed_office' || content.key === 'home_insurance') {
+	if (
+		content.key === 'home_deed_office' ||
+		content.key === 'home_insurance' ||
+		content.key === 'homestead'
+	) {
 		if (flags.isHomeowner === false) return false;
 	}
 
 	const needsStuff = findYourStuffDone(flags);
 
-	const inventoryMap: Partial<Record<FundingMilestoneKey, keyof FindYourStuffFlags>> = {
-		inventory_bank: 'hasBankAccounts',
-		inventory_brokerage: 'hasBrokerage',
-		inventory_employer: 'hasEmployerPlan',
-		inventory_ira: 'hasIra',
-		inventory_life: 'hasLifeInsurance',
-		inventory_vehicle: 'hasVehicle',
-		inventory_crypto: 'hasCrypto',
+	const assetGatedMap: Partial<Record<FundingMilestoneKey, keyof FindYourStuffFlags>> = {
 		forms_bank: 'hasBankAccounts',
 		forms_brokerage: 'hasBrokerage',
 		forms_employer: 'hasEmployerPlan',
@@ -125,7 +128,7 @@ export function isMilestoneApplicable(
 		return showsForTriState(flags.hasBankAccounts) || showsForTriState(flags.hasBrokerage);
 	}
 
-	const flagKey = inventoryMap[key];
+	const flagKey = assetGatedMap[key];
 	if (flagKey) {
 		if (!needsStuff) return false;
 		const v = flags[flagKey];
@@ -294,7 +297,9 @@ export function getNextUp(
 			const content = FUNDING_MILESTONES.find((m) => m.key === key);
 			if (!content) continue;
 			if (!isMilestoneApplicable(key, flags, completeUnlocked)) continue;
-			if (content.excludeFromCompletion && content.key === 'webinar') continue;
+			// Cards outside the denominator must not be offered as Next Up, or the journey can
+			// report a phase complete while still pointing the user at an unchecked card.
+			if (content.excludeFromCompletion) continue;
 
 			const row = byKey.get(key);
 			const status = deriveMilestoneStatus(row, content, {

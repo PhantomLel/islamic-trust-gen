@@ -272,6 +272,8 @@ export const invoice = pgTable('invoice', {
 
 export type FundingTriState = 'yes' | 'no' | 'not_sure';
 export type FundingPhase = 'prepare' | 'complete';
+/** Who is named as primary beneficiary on retirement accounts. */
+export type FundingRetirementBeneficiary = 'spouse_sole' | 'other' | 'not_sure';
 export type FundingMilestoneStatus =
 	| 'locked'
 	| 'not_started'
@@ -302,9 +304,13 @@ export const fundingDashboard = pgTable('funding_dashboard', {
 	implementationCompletedAt: timestamp('implementation_completed_at'),
 
 	pourOverWillIncluded: boolean('pour_over_will_included').notNull().default(true),
+	/** True once an admin has set pourOverWillIncluded by hand; stops re-derivation from files. */
+	pourOverWillManual: boolean('pour_over_will_manual').notNull().default(false),
+	/** Effective homeowner flag: derived from intake, then from the ownsHome answer. */
 	isHomeowner: boolean('is_homeowner'),
 	isMarried: boolean('is_married'),
 
+	ownsHome: text('owns_home').$type<FundingTriState | null>(),
 	hasBankAccounts: text('has_bank_accounts').$type<FundingTriState | null>(),
 	hasBrokerage: text('has_brokerage').$type<FundingTriState | null>(),
 	hasEmployerPlan: text('has_employer_plan').$type<FundingTriState | null>(),
@@ -314,6 +320,8 @@ export const fundingDashboard = pgTable('funding_dashboard', {
 	hasCrypto: text('has_crypto').$type<FundingTriState | null>(),
 	hasBusiness: text('has_business').$type<FundingTriState | null>(),
 	retirementOverThreshold: text('retirement_over_threshold').$type<FundingTriState | null>(),
+	/** Asked only of married users with a retirement account; drives the nonspouse risk flag. */
+	retirementBeneficiary: text('retirement_beneficiary').$type<FundingRetirementBeneficiary | null>(),
 	/** True once Find Your Stuff has been submitted at least once. */
 	findYourStuffCompletedAt: timestamp('find_your_stuff_completed_at'),
 

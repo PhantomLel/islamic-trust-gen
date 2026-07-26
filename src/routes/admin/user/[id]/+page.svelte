@@ -643,8 +643,8 @@
 							Pour-over will
 							<span
 								class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-navy/20 text-[9px] font-semibold text-navy/40 cursor-help"
-								title="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents."
-								aria-label="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents."
+								title="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents. Normally detected from the document package; toggling it here overrides that detection permanently."
+								aria-label="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents. Normally detected from the document package; toggling it here overrides that detection permanently."
 							>i</span>
 						</p>
 						<form method="POST" action="?/togglePourOverIncluded" use:enhance class="inline">
@@ -655,7 +655,38 @@
 							</button>
 						</form>
 						<p class="text-[10px] text-navy/35 leading-snug mt-1 max-w-[11rem]">
-							Shows or hides will-signing checklist cards only — not the legal documents.
+							{fd.pourOverWillManual
+								? 'Set manually — no longer auto-detected from the document package.'
+								: 'Auto-detected from the document package.'}
+						</p>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Homeowner</p>
+						<p class="text-[13px] text-navy/80 font-medium">
+							{fd.isHomeowner === null ? 'Not answered' : fd.isHomeowner ? 'Yes' : 'No'}
+						</p>
+						<p class="text-[10px] text-navy/35 leading-snug mt-1 max-w-[11rem]">
+							Controls the deed, homeowners insurance, and homestead cards.
+						</p>
+					</div>
+					<div class="sm:col-span-3">
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Retirement beneficiary</p>
+						<p
+							class="text-[13px] font-medium {fd.retirementBeneficiary === 'other' ||
+							fd.retirementBeneficiary === 'not_sure'
+								? 'text-red-600'
+								: 'text-navy/80'}"
+						>
+							{fd.retirementBeneficiary === 'spouse_sole'
+								? 'Spouse is sole primary beneficiary'
+								: fd.retirementBeneficiary === 'other'
+									? 'Nonspouse, trust, or charity named'
+									: fd.retirementBeneficiary === 'not_sure'
+										? 'User is not sure'
+										: 'Not asked (unmarried or no retirement accounts)'}
 						</p>
 					</div>
 				</div>

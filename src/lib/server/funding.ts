@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import {
 	fundingDashboard,
@@ -10,6 +10,7 @@ import {
 	TrustStatus,
 	type FundingChecklistState,
 	type FundingMilestoneStatus,
+	type FundingRetirementBeneficiary,
 	type FundingTriState,
 } from '$lib/server/db/schema';
 import { allMilestoneSeedRows, detectPourOverIncluded, computeFundingProgress, type FindYourStuffFlags } from '$lib/funding/logic';
@@ -17,6 +18,7 @@ import { getMilestoneContent } from '$lib/funding/content';
 
 function flagsFromDashboard(d: typeof fundingDashboard.$inferSelect): FindYourStuffFlags {
 	return {
+		ownsHome: d.ownsHome,
 		hasBankAccounts: d.hasBankAccounts,
 		hasBrokerage: d.hasBrokerage,
 		hasEmployerPlan: d.hasEmployerPlan,
@@ -26,6 +28,7 @@ function flagsFromDashboard(d: typeof fundingDashboard.$inferSelect): FindYourSt
 		hasCrypto: d.hasCrypto,
 		hasBusiness: d.hasBusiness,
 		retirementOverThreshold: d.retirementOverThreshold,
+		retirementBeneficiary: d.retirementBeneficiary,
 		findYourStuffCompletedAt: d.findYourStuffCompletedAt,
 		isHomeowner: d.isHomeowner,
 		isMarried: d.isMarried,
@@ -55,6 +58,7 @@ export async function seedFundingDashboardOnApprove(trustId: number, actorUserId
 			userId: true,
 			joint: true,
 			house_deed_url: true,
+			deedRetrievalRequested: true,
 			generated_files: true,
 			user_files: true,
 			screeningAnswers: true,
@@ -63,9 +67,6 @@ export async function seedFundingDashboardOnApprove(trustId: number, actorUserId
 	if (!t) throw new Error(`Trust ${trustId} not found for funding seed`);
 
 	const files = [...(t.generated_files ?? []), ...(t.user_files ?? [])];
-	const pourOver = detectPourOverIncluded(files);
-	// Product assumes primary residence for online trust; treat as homeowner unless screening says otherwise.
-	const isHomeowner = true;
 	const isMarried = t.joint === true;
 
 	const [dash] = await db
@@ -74,8 +75,11 @@ export async function seedFundingDashboardOnApprove(trustId: number, actorUserId
 			trustId: t.id,
 			userId: t.userId,
 			documentsReadyAt: new Date(),
-			pourOverWillIncluded: files.length > 0 ? pourOver : true,
-			isHomeowner,
+			pourOverWillIncluded: detectPourOverIncluded(files),
+			// Pre-fill from intake when the deed service tells us they own a home. Left null when
+			// unknown so the home cards still show until Find Your Stuff answers it — only an
+			// explicit "no" hides them.
+			isHomeowner: t.house_deed_url || t.deedRetrievalRequested ? true : null,
 			isMarried,
 			hasBusiness: t.screeningAnswers?.business_ownership ? 'yes' : null,
 		})
@@ -104,6 +108,48 @@ export async function seedFundingDashboardOnApprove(trustId: number, actorUserId
 	return dash.id;
 }
 
+/**
+ * Milestones that only exist to get the user ready for their trust's notarization (scheduling,
+ * witnesses, reading instructions). Once the admin has finalized the case, that notarization has
+ * already happened, so this prep step is no longer actionable and should read as done regardless
+ * of whether the user ever ticked the individual boxes. (The pour-over will has its own separate
+ * in-person notarization that may still be pending, so it is intentionally left untouched.)
+ */
+const PRE_SIGNING_MILESTONE_KEYS = ['prepare_sign_trust'] as const;
+
+async function autoCompletePreSigningMilestones(dashboardId: number, actorUserId?: string) {
+	const rows = await db.query.fundingMilestone.findMany({
+		where: and(
+			eq(fundingMilestone.dashboardId, dashboardId),
+			inArray(fundingMilestone.key, PRE_SIGNING_MILESTONE_KEYS),
+		),
+	});
+	const now = new Date();
+	for (const row of rows) {
+		if (row.status === 'complete' || row.status === 'not_applicable') continue;
+		const content = getMilestoneContent(row.key);
+		if (!content) continue;
+		const checklist: FundingChecklistState = Object.fromEntries(
+			content.checklist.map((item) => [item.id, true]),
+		);
+		await db
+			.update(fundingMilestone)
+			.set({
+				status: 'complete' as FundingMilestoneStatus,
+				checklist,
+				completedAt: now,
+				updatedAt: now,
+			})
+			.where(eq(fundingMilestone.id, row.id));
+		await logFundingEvent(
+			dashboardId,
+			'checklist_updated',
+			{ milestoneKey: row.key, status: 'complete', reason: 'auto_completed_on_finalize' },
+			actorUserId,
+		);
+	}
+}
+
 /** Unlock Complete phase after notarization finalize. */
 export async function unlockFundingComplete(trustId: number, actorUserId?: string) {
 	let dash = await db.query.fundingDashboard.findFirst({
@@ -126,6 +172,8 @@ export async function unlockFundingComplete(trustId: number, actorUserId?: strin
 			updatedAt: now,
 		})
 		.where(eq(fundingDashboard.id, dash.id));
+
+	await ensureMilestoneRows(dash.id, true);
 
 	const locked = await db.query.fundingMilestone.findMany({
 		where: and(eq(fundingMilestone.dashboardId, dash.id), eq(fundingMilestone.phase, 'complete')),
@@ -156,6 +204,7 @@ export async function unlockFundingComplete(trustId: number, actorUserId?: strin
 		actorUserId: actorUserId ?? null,
 	});
 
+	await autoCompletePreSigningMilestones(dash.id, actorUserId);
 	await recomputeImplementationComplete(dash.id);
 }
 
@@ -207,15 +256,24 @@ export async function logFundingEvent(
 export async function createFundingFlag(
 	dashboardId: number,
 	flagKey: string,
-	opts: { severity?: 'info' | 'attention' | 'risk'; reason?: string; payload?: Record<string, unknown> } = {},
-) {
+	opts: {
+		severity?: 'info' | 'attention' | 'risk';
+		reason?: string;
+		payload?: Record<string, unknown>;
+		/**
+		 * Raise this flag at most once per dashboard, even after an admin resolves it. Required for
+		 * flags raised from the cron, which would otherwise reappear on the next run.
+		 */
+		once?: boolean;
+	} = {},
+): Promise<{ id: number; created: boolean }> {
 	const open = await db.query.fundingAdminFlag.findFirst({
 		where: and(
 			eq(fundingAdminFlag.dashboardId, dashboardId),
 			eq(fundingAdminFlag.flagKey, flagKey),
 		),
 	});
-	if (open && !open.resolvedAt) return open.id;
+	if (open && (opts.once || !open.resolvedAt)) return { id: open.id, created: false };
 
 	const [row] = await db
 		.insert(fundingAdminFlag)
@@ -227,7 +285,7 @@ export async function createFundingFlag(
 			payload: opts.payload ?? null,
 		})
 		.returning({ id: fundingAdminFlag.id });
-	return row.id;
+	return { id: row.id, created: true };
 }
 
 export async function updateMilestoneChecklist(
@@ -279,6 +337,7 @@ export async function updateMilestoneChecklist(
 }
 
 export type FindYourStuffInput = {
+	ownsHome: FundingTriState;
 	hasBankAccounts: FundingTriState;
 	hasBrokerage: FundingTriState;
 	hasEmployerPlan: FundingTriState;
@@ -288,6 +347,8 @@ export type FindYourStuffInput = {
 	hasCrypto: FundingTriState;
 	hasBusiness: FundingTriState;
 	retirementOverThreshold: FundingTriState;
+	/** Only collected from married users who have an employer plan or IRA. */
+	retirementBeneficiary: FundingRetirementBeneficiary | null;
 };
 
 export async function saveFindYourStuff(
@@ -299,6 +360,8 @@ export async function saveFindYourStuff(
 		.update(fundingDashboard)
 		.set({
 			...input,
+			// "Not sure" shows the home cards; only an explicit no hides them.
+			isHomeowner: input.ownsHome !== 'no',
 			findYourStuffCompletedAt: new Date(),
 			updatedAt: new Date(),
 		})
@@ -336,6 +399,16 @@ export async function saveFindYourStuff(
 		await createFundingFlag(dashboardId, 'high_retirement_assets', {
 			severity: 'attention',
 			reason: 'Retirement assets over threshold or not sure',
+		});
+	}
+	if (input.retirementBeneficiary === 'other' || input.retirementBeneficiary === 'not_sure') {
+		await createFundingFlag(dashboardId, 'nonspouse_retirement_beneficiary', {
+			severity: 'risk',
+			reason:
+				input.retirementBeneficiary === 'other'
+					? 'Married user names a nonspouse, trust, or charity as retirement beneficiary'
+					: 'Married user is not sure who is named as retirement beneficiary',
+			payload: { retirementBeneficiary: input.retirementBeneficiary },
 		});
 	}
 
@@ -453,7 +526,71 @@ export async function loadFundingForTrust(trustId: number) {
 	});
 }
 
-/** Ensure confirm_trust_signing reflects completed trust status. */
+/**
+ * Insert milestone rows for any content keys this dashboard is missing. Dashboards seeded before a
+ * milestone was added to the content config would otherwise render the new card with no row behind
+ * it, and checklist writes would fail. Idempotent.
+ */
+export async function ensureMilestoneRows(
+	dashboardId: number,
+	completeUnlocked: boolean,
+): Promise<boolean> {
+	const existing = await db.query.fundingMilestone.findMany({
+		where: eq(fundingMilestone.dashboardId, dashboardId),
+		columns: { key: true },
+	});
+	const have = new Set(existing.map((r) => r.key));
+	const missing = allMilestoneSeedRows().filter((s) => !have.has(s.key));
+	if (missing.length === 0) return false;
+
+	await db.insert(fundingMilestone).values(
+		missing.map((s) => ({
+			dashboardId,
+			key: s.key,
+			phase: s.phase,
+			status: (s.phase === 'complete' && !completeUnlocked
+				? 'locked'
+				: 'not_started') as FundingMilestoneStatus,
+			checklist: {} as FundingChecklistState,
+		})),
+	);
+	await logFundingEvent(dashboardId, 'milestones_backfilled', {
+		keys: missing.map((m) => m.key),
+	});
+	return true;
+}
+
+/**
+ * Re-derive whether a pour-over will is included. The dashboard can be seeded before the
+ * generated documents land, and the will-signing card is mandatory when shown, so we keep it in
+ * sync with the actual document package until an admin sets it by hand.
+ */
+export async function syncPourOverFromFiles(
+	dashboardId: number,
+	files: { kind: string }[],
+): Promise<boolean> {
+	const dash = await db.query.fundingDashboard.findFirst({
+		where: eq(fundingDashboard.id, dashboardId),
+		columns: { id: true, pourOverWillIncluded: true, pourOverWillManual: true },
+	});
+	if (!dash || dash.pourOverWillManual || files.length === 0) return false;
+
+	const derived = detectPourOverIncluded(files);
+	if (derived === dash.pourOverWillIncluded) return false;
+
+	await db
+		.update(fundingDashboard)
+		.set({ pourOverWillIncluded: derived, updatedAt: new Date() })
+		.where(eq(fundingDashboard.id, dashboardId));
+	await logFundingEvent(dashboardId, 'pour_over_included_derived', { pourOverWillIncluded: derived });
+	return true;
+}
+
+/**
+ * Safety net: ensure confirm_trust_signing and the pre-signing prep milestones reflect a
+ * completed trust status, in case `unlockFundingComplete` ran before these milestones existed
+ * or otherwise didn't fully apply. Called on every Make Your Trust Work page load.
+ */
 export async function syncConfirmSigningFromTrustStatus(dashboardId: number, trustStatus: string) {
 	if (trustStatus !== TrustStatus.Completed) return;
 	const row = await db.query.fundingMilestone.findFirst({
@@ -462,11 +599,13 @@ export async function syncConfirmSigningFromTrustStatus(dashboardId: number, tru
 			eq(fundingMilestone.key, 'confirm_trust_signing'),
 		),
 	});
-	if (!row || row.status === 'complete') return;
-	await updateMilestoneChecklist(
-		dashboardId,
-		'confirm_trust_signing',
-		{ signed_trust: true, signed_related: true },
-		'complete',
-	);
+	if (row && row.status !== 'complete') {
+		await updateMilestoneChecklist(
+			dashboardId,
+			'confirm_trust_signing',
+			{ signed_trust: true, signed_related: true },
+			'complete',
+		);
+	}
+	await autoCompletePreSigningMilestones(dashboardId);
 }
