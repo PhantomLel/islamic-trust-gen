@@ -185,9 +185,9 @@
 
 	let notarizationCard = $derived.by(() => {
 		const t = trust;
-		if (!t?.notarizationStartTime) return null;
-		if (t.status !== 'notarization-scheduled') return null;
-		return buildNotarizationCard(t.notarizationStartTime, t.notarizationEndTime);
+		if (t?.status !== 'notarization-scheduled') return null;
+		if (!t.notarizationStartTime) return { fallback: true as const };
+		return { fallback: false as const, ...buildNotarizationCard(t.notarizationStartTime, t.notarizationEndTime) };
 	});
 
 	function isLikelyDocx(row: FileRow): boolean {
@@ -861,6 +861,27 @@
 	{#if trust}
 		{#if notarizationCard}
 				<div class="rounded-2xl border border-emerald-accent/20 bg-white/70 backdrop-blur-sm p-6 md:p-7 shadow-sm mb-6">
+					{#if notarizationCard.fallback}
+						<div class="min-w-0 flex-1 flex flex-col">
+							<div class="flex flex-wrap items-center gap-2 mb-2">
+								<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-emerald-accent/12 text-emerald-accent border border-emerald-accent/30">
+									<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+									Notarization scheduled
+								</span>
+							</div>
+							<p class="text-[17px] md:text-[18px] font-semibold text-navy tracking-tight leading-snug">
+								Appointment booked — awaiting Calendly time details.
+							</p>
+							<p class="text-[13px] text-navy/55 mt-2 leading-relaxed">
+								The booking was recorded, but the meeting time was not returned. Check Calendly or the client's confirmation email.
+							</p>
+							{#if trust.notarizationBookedAt}
+								<p class="text-[11px] text-navy/35 mt-2 tabular-nums">
+									Booking confirmed {formatDate(trust.notarizationBookedAt)}
+								</p>
+							{/if}
+						</div>
+					{:else}
 					<div class="flex flex-col sm:flex-row sm:items-stretch gap-5">
 						<div class="shrink-0 w-20 sm:w-24 rounded-xl border border-emerald-accent/30 bg-white overflow-hidden text-center shadow-sm">
 							<div class="bg-emerald-accent text-white text-[10px] tracking-[0.18em] uppercase font-semibold py-1.5">
@@ -899,6 +920,7 @@
 							{/if}
 						</div>
 					</div>
+					{/if}
 				</div>
 			{/if}
 

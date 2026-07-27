@@ -240,6 +240,10 @@
 			: null
 	);
 
+	let notarizationScheduledPendingDetails = $derived(
+		t.status === 'notarization-scheduled' && !t.notarizationStartTime
+	);
+
 	async function handleLogout() {
 		await authClient.signOut();
 		window.location.href = '/';
@@ -369,9 +373,25 @@
 									<span class="text-navy/40"> · {notarization.timeZone}</span>
 								</p>
 								<p class="text-[12px] text-navy/45 leading-relaxed mt-3">
-									Calendly will email you a confirmation with the meeting link and a reminder before the appointment. 
+									Calendly will email you a confirmation with the meeting link and a reminder before the appointment.
+								</p>
 							</div>
 						</div>
+					</div>
+				{:else if notarizationScheduledPendingDetails}
+					<div class="rounded-2xl border border-emerald-accent/20 bg-white/70 backdrop-blur-sm p-6 md:p-7 shadow-sm">
+						<div class="flex flex-wrap items-center gap-2 mb-2">
+							<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-emerald-accent/12 text-emerald-accent border border-emerald-accent/30">
+								<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+								Notarization scheduled
+							</span>
+						</div>
+						<p class="text-[17px] md:text-[18px] font-semibold text-navy tracking-tight leading-snug">
+							Your notarization appointment is booked.
+						</p>
+						<p class="text-[13px] text-navy/55 mt-2 leading-relaxed">
+							Check your email for the Calendly confirmation with the meeting date, time, and link.
+						</p>
 					</div>
 				{/if}
 
@@ -560,7 +580,11 @@
 									{/if}
 								</div>
 							</div>
-						{:else}
+						{:else if notarizationScheduledPendingDetails}
+							<p class="text-[13px] text-navy/50 leading-relaxed">
+								Your notarization is booked. Check your email for the Calendly confirmation with date and time.
+							</p>
+						{:else if t.status !== 'notarization-scheduled'}
 							<p class="text-[13px] text-navy/50 leading-relaxed mb-4">
 								Your trust has been approved. Schedule a notarization appointment to finalize your documents.
 							</p>

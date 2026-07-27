@@ -8,7 +8,7 @@ import type { UserFile } from '$lib/server/db/schema';
 import { documentsApprovedEmail } from '$lib/server/emails/documentsApproved';
 import { closingLetterEmail } from '$lib/server/emails/closingLetter';
 import { fundingActionNeededEmail } from '$lib/server/emails/funding/actionNeeded';
-import { createSingleUseSchedulingLink, isCalendlyConfigured } from '$lib/server/calendly';
+import { ensureNotarizationSchedulingLink } from '$lib/server/notarization';
 import {
 	seedFundingDashboardOnApprove,
 	unlockFundingComplete,
@@ -217,19 +217,14 @@ export const actions: Actions = {
 		if (!row) return fail(404, { message: 'Trust not found' });
 		if (row.userId !== params.id) return fail(400, { message: 'Trust does not belong to this user' });
 
-		// Provision a per-trust single-use Calendly link if we don't already have one and Calendly
-		// is configured. Failure here is non-fatal: the user can fall back to the generic link.
-		let bookingUrl = row.notarizationLinkUrl;
-		let bookingToken = row.notarizationLinkToken;
-		if (!bookingUrl && isCalendlyConfigured()) {
-			try {
-				const link = await createSingleUseSchedulingLink();
-				bookingUrl = link.bookingUrl;
-				bookingToken = link.token;
-			} catch (err) {
-				console.error('[approveDocuments] Failed to create Calendly scheduling link:', err);
-			}
-		}
+		// Provision a per-trust single-use Calendly link if missing. Failure is non-fatal.
+		const ensured = await ensureNotarizationSchedulingLink({
+			trustId,
+			notarizationLinkUrl: row.notarizationLinkUrl,
+			notarizationLinkToken: row.notarizationLinkToken,
+		});
+		const bookingUrl = ensured.notarizationLinkUrl;
+		const bookingToken = ensured.notarizationLinkToken;
 
 		await db
 			.update(trust)

@@ -4,6 +4,7 @@ import type { RequestHandler } from './$types';
 import { processDueEmails, enrollAppAbandoners } from '$lib/server/drip/processDue';
 import { processFundingReminders } from '$lib/server/fundingReminders';
 import { processFundingFlags } from '$lib/server/fundingFlags';
+import { syncPendingNotarizationBookings } from '$lib/server/notarization';
 
 /**
  * Secured Vercel Cron endpoint. Vercel calls this every 15 minutes.
@@ -27,13 +28,15 @@ export const GET: RequestHandler = async ({ request }) => {
 	let enrolled = 0;
 	let fundingSent = 0;
 	let fundingFlagged = 0;
+	let notarizationSynced = 0;
 
 	try {
-		[sent, enrolled, fundingSent, fundingFlagged] = await Promise.all([
+		[sent, enrolled, fundingSent, fundingFlagged, notarizationSynced] = await Promise.all([
 			processDueEmails(),
 			enrollAppAbandoners(),
 			processFundingReminders(),
 			processFundingFlags(),
+			syncPendingNotarizationBookings(),
 		]);
 	} catch (err) {
 		console.error('[cron/drip] Error:', err);
@@ -42,7 +45,7 @@ export const GET: RequestHandler = async ({ request }) => {
 
 	const elapsed = Date.now() - start;
 	console.log(
-		`[cron/drip] sent=${sent} enrolled=${enrolled} fundingSent=${fundingSent} fundingFlagged=${fundingFlagged} elapsed=${elapsed}ms`,
+		`[cron/drip] sent=${sent} enrolled=${enrolled} fundingSent=${fundingSent} fundingFlagged=${fundingFlagged} notarizationSynced=${notarizationSynced} elapsed=${elapsed}ms`,
 	);
-	return json({ ok: true, sent, enrolled, fundingSent, fundingFlagged, elapsedMs: elapsed });
+	return json({ ok: true, sent, enrolled, fundingSent, fundingFlagged, notarizationSynced, elapsedMs: elapsed });
 };

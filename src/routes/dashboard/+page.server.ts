@@ -11,6 +11,7 @@ import { env } from '$env/dynamic/private';
 import { isFundingAccessible, computeFundingProgress, getNextUp } from '$lib/funding/logic';
 import { flagsFromDashboard } from '$lib/server/funding';
 import { getModuleContent } from '$lib/funding/content';
+import { ensureNotarizationSchedulingLink } from '$lib/server/notarization';
 import type { Actions, PageServerLoad } from './$types';
 
 const utapi = new UTApi({ token: env.UPLOADTHING_TOKEN });
@@ -112,6 +113,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	}
 
+	let notarizationLinkUrl = existing.notarizationLinkUrl ?? null;
+	if (
+		existing.approved &&
+		existing.status === TrustStatus.NotarizationPending &&
+		(!notarizationLinkUrl || !existing.notarizationLinkToken)
+	) {
+		const ensured = await ensureNotarizationSchedulingLink({
+			trustId: existing.id,
+			notarizationLinkUrl,
+			notarizationLinkToken: existing.notarizationLinkToken,
+		});
+		notarizationLinkUrl = ensured.notarizationLinkUrl;
+	}
+
 	return {
 		userId: locals.user.id,
 		userName: locals.user.name,
@@ -135,7 +150,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			intakeUnderReview,
 			userFiles: (existing.user_files ?? []) as UserFile[],
 			generatedFiles: existing.generated_files ?? [],
-			notarizationLinkUrl: existing.notarizationLinkUrl ?? null,
+			notarizationLinkUrl,
 			notarizationBookedAt: existing.notarizationBookedAt?.toISOString() ?? null,
 			notarizationStartTime: existing.notarizationStartTime?.toISOString() ?? null,
 			notarizationEndTime: existing.notarizationEndTime?.toISOString() ?? null,

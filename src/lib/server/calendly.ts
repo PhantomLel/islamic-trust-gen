@@ -20,6 +20,31 @@ export type CalendlySchedulingLink = {
 	token: string;
 };
 
+export type CalendlyInviteeResource = {
+	uri?: string;
+	email?: string;
+	name?: string;
+	status?: string;
+	event?: string;
+	created_at?: string;
+	tracking?: {
+		utm_content?: string | null;
+		utm_source?: string | null;
+	};
+};
+
+type CalendlyCollection<T> = {
+	collection?: T[];
+	pagination?: { next_page?: string | null };
+};
+
+type CalendlyScheduledEvent = {
+	uri?: string;
+	start_time?: string;
+	end_time?: string;
+	status?: string;
+};
+
 export function isCalendlyConfigured(): boolean {
 	return Boolean(env.CALENDLY_API_TOKEN?.trim() && env.CALENDLY_EVENT_TYPE_URI?.trim());
 }
@@ -73,6 +98,104 @@ export async function createSingleUseSchedulingLink(): Promise<CalendlySchedulin
  * Calendly sends a header `Calendly-Webhook-Signature: t=<unix_ts>,v1=<hex_hmac>` where the
  * HMAC-SHA256 is computed over `"<unix_ts>.<raw body>"` with the signing key.
  */
+async function calendlyGet<T>(path: string): Promise<T> {
+	const apiToken = env.CALENDLY_API_TOKEN?.trim();
+	if (!apiToken) throw new Error('Calendly is not configured (CALENDLY_API_TOKEN).');
+
+	const res = await fetch(`${CALENDLY_API_BASE}${path}`, {
+		headers: {
+			Authorization: `Bearer ${apiToken}`,
+			Accept: 'application/json',
+		},
+	});
+
+	if (!res.ok) {
+		const body = await res.text().catch(() => '');
+		throw new Error(`Calendly GET ${path} failed (${res.status}): ${body || res.statusText}`);
+	}
+
+	return (await res.json()) as T;
+}
+
+/** Resolve the Calendly user URI that owns our configured event type. */
+async function getEventTypeOwnerUserUri(): Promise<string | null> {
+	const eventTypeUri = env.CALENDLY_EVENT_TYPE_URI?.trim();
+	if (!eventTypeUri) return null;
+
+	const data = await calendlyGet<{ resource?: { profile?: { owner?: string; type?: string } } }>(
+		eventTypeUri.replace(CALENDLY_API_BASE, '')
+	);
+	const owner = data.resource?.profile?.owner?.trim();
+	return owner || null;
+}
+
+export async function fetchScheduledEvent(
+	eventUri: string
+): Promise<CalendlyScheduledEvent | null> {
+	const path = eventUri.startsWith(CALENDLY_API_BASE)
+		? eventUri.replace(CALENDLY_API_BASE, '')
+		: eventUri;
+	try {
+		const data = await calendlyGet<{ resource?: CalendlyScheduledEvent }>(path);
+		return data.resource ?? null;
+	} catch (err) {
+		console.error('[Calendly] fetchScheduledEvent failed:', err);
+		return null;
+	}
+}
+
+async function listAllPages<T>(firstPath: string): Promise<T[]> {
+	const items: T[] = [];
+	let nextPath: string | null = firstPath;
+
+	while (nextPath) {
+		const page: CalendlyCollection<T> = await calendlyGet<CalendlyCollection<T>>(nextPath);
+		if (page.collection?.length) items.push(...page.collection);
+		const nextPage: string | null | undefined = page.pagination?.next_page;
+		nextPath = nextPage ? nextPage.replace(CALENDLY_API_BASE, '') : null;
+	}
+
+	return items;
+}
+
+async function listEventInvitees(eventUri: string): Promise<CalendlyInviteeResource[]> {
+	const eventUuid = eventUri.split('/').filter(Boolean).at(-1);
+	if (!eventUuid) return [];
+	return listAllPages<CalendlyInviteeResource>(
+		`/scheduled_events/${eventUuid}/invitees?status=active&count=100`
+	);
+}
+
+/** List active invitees for recent scheduled events (used by cron sync). */
+export async function listActiveInviteesSince(minCreatedAtIso: string): Promise<CalendlyInviteeResource[]> {
+	const userUri = await getEventTypeOwnerUserUri();
+	if (!userUri) return [];
+
+	const params = new URLSearchParams({
+		user: userUri,
+		status: 'active',
+		min_start_time: minCreatedAtIso,
+		count: '100',
+	});
+
+	const events = await listAllPages<CalendlyScheduledEvent>(
+		`/scheduled_events?${params.toString()}`
+	);
+
+	const invitees: CalendlyInviteeResource[] = [];
+	for (const event of events) {
+		if (!event.uri || event.status === 'canceled') continue;
+		const eventInvitees = await listEventInvitees(event.uri);
+		for (const invitee of eventInvitees) {
+			if (invitee.status === 'active') {
+				invitees.push({ ...invitee, event: invitee.event ?? event.uri });
+			}
+		}
+	}
+
+	return invitees;
+}
+
 export function verifyCalendlyWebhookSignature(opts: {
 	signatureHeader: string | null;
 	rawBody: string;

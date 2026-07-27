@@ -744,7 +744,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		warning:
 			'Keep this practical. The goal is not to share every financial detail; it is to prevent avoidable confusion later.',
 		checklist: [
-			{ id: 'spouse', label: 'Discussed the plan with my spouse, if applicable' },
+			{ id: 'spouse', label: 'Discussed the plan with my spouse' },
 			{ id: 'willing', label: 'Confirmed trustees and guardians are still willing to serve' },
 			{ id: 'contacts', label: 'Updated contact information in my records' },
 		],
