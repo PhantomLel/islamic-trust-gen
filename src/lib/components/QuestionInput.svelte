@@ -362,7 +362,8 @@
 	<TrusteeSelectionInput {value} {onresponse} />
 
 {:else if question.type === 'successor-trustees'}
-	<SuccessorTrusteesInput {value} {onresponse} />
+	{@const copySourceId = question.id === 'wife-successor-trustees' ? 'husband-successor-trustees' : undefined}
+	<SuccessorTrusteesInput {value} {onresponse} {allResponses} {copySourceId} />
 
 {:else if question.type === 'pour-over-representatives'}
 	{@const role = question.id.endsWith('-guardians') ? 'guardian' : 'personal-representative'}

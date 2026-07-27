@@ -5,9 +5,16 @@
 	let {
 		value,
 		onresponse,
+		allResponses = {},
+		copySourceId,
+		copyButtonLabel = "Make my Trustees the Same as my Husband's (Most Common)",
 	}: {
 		value: QuestionResponseValue;
 		onresponse: (val: QuestionResponseValue) => void;
+		allResponses?: Record<string, QuestionResponseValue>;
+		/** When set, offer a one-click copy from the other spouse's successor-trustee list. */
+		copySourceId?: 'husband-successor-trustees' | 'wife-successor-trustees';
+		copyButtonLabel?: string;
 	} = $props();
 
 	function getTrustees(): SuccessorTrusteeEntry[] {
@@ -35,7 +42,33 @@
 		onresponse(updated.length > 0 ? updated : [{ fullName: '', relationship: '', contact: '' }]);
 	}
 
+	function getSourceTrustees(): SuccessorTrusteeEntry[] {
+		if (!copySourceId) return [];
+		const v = allResponses[copySourceId];
+		if (
+			Array.isArray(v) &&
+			v.length > 0 &&
+			typeof (v[0] as SuccessorTrusteeEntry)?.fullName === 'string'
+		) {
+			return v as SuccessorTrusteeEntry[];
+		}
+		return [];
+	}
+
+	function copyFromSpouse() {
+		if (!canCopyFromSpouse) return;
+		const copied: SuccessorTrusteeEntry[] = namedSourceTrustees.map((t) => ({
+			fullName: t.fullName,
+			relationship: t.relationship,
+			contact: t.contact ?? '',
+		}));
+		onresponse(copied);
+	}
+
 	let trustees = $derived(getTrustees());
+	let sourceTrustees = $derived(getSourceTrustees());
+	let namedSourceTrustees = $derived(sourceTrustees.filter((t) => t.fullName.trim() !== ''));
+	let canCopyFromSpouse = $derived(copySourceId != null && namedSourceTrustees.length > 0);
 	let orderPopout = $state(false);
 
 	const ordinals = ['1st', '2nd', '3rd', '4th'];
@@ -56,6 +89,27 @@
 			Choose people who are trustworthy, organized, and willing to take on this responsibility. It is a good idea to ask them before naming them here.
 		</p>
 	</div>
+
+	{#if copySourceId}
+		<button
+			type="button"
+			onclick={copyFromSpouse}
+			disabled={!canCopyFromSpouse}
+			class="w-full px-4 py-3 rounded-xl border text-[13px] font-medium transition-all cursor-pointer
+				{canCopyFromSpouse
+					? 'border-emerald-accent/30 text-emerald-accent bg-emerald-accent/5 hover:bg-emerald-accent/10'
+					: 'border-navy/10 text-navy/30 bg-navy/2 cursor-not-allowed'}
+				flex items-center justify-center gap-2"
+		>
+			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+			</svg>
+			{copyButtonLabel}
+			{#if !canCopyFromSpouse}
+				<span class="text-navy/35 font-normal">(no successor trustees named yet)</span>
+			{/if}
+		</button>
+	{/if}
 
 	<div class="space-y-3">
 		{#each trustees as trustee, i}
