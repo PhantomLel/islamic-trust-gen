@@ -5,8 +5,10 @@ import {
 	isFundingAccessible,
 	isMilestoneApplicable,
 	shouldShowConsult,
+	shouldWarnScheduleAMissing,
 	statusRank,
 } from './logic';
+import type { ListedAsset } from './assets';
 import { getMilestoneContent } from './content';
 import type { FindYourStuffFlags, MilestoneRow } from './logic';
 import { TrustStatus } from '$lib/server/db/schema';
@@ -73,6 +75,51 @@ describe('consult CTA gating', () => {
 	it('offers no consult on cards that do not route to one', () => {
 		expect(consultFor('bank_brokerage', baseFlags)).toBe(false);
 		expect(consultFor('storage', baseFlags)).toBe(false);
+	});
+});
+
+describe('Schedule A missing warning', () => {
+	const assets: ListedAsset[] = [
+		{ name: 'Chase checking', accountId: null, owner: null, categories: ['bank'] },
+	];
+
+	it('warns when the user claimed a category that is not on Schedule A', () => {
+		expect(
+			shouldWarnScheduleAMissing(['ira'], { ...baseFlags, hasIra: 'yes' }, assets),
+		).toBe(true);
+	});
+
+	it('does not warn when a matching asset is listed', () => {
+		expect(
+			shouldWarnScheduleAMissing(
+				['bank'],
+				{ ...baseFlags, hasBankAccounts: 'yes' },
+				assets,
+			),
+		).toBe(false);
+	});
+
+	it('does not warn when the user said they do not have the category', () => {
+		expect(
+			shouldWarnScheduleAMissing(['ira'], { ...baseFlags, hasIra: 'no' }, assets),
+		).toBe(false);
+	});
+
+	it('checks each category on multi-category cards', () => {
+		expect(
+			shouldWarnScheduleAMissing(
+				['bank', 'brokerage'],
+				{ ...baseFlags, hasBankAccounts: 'yes', hasBrokerage: 'yes' },
+				assets,
+			),
+		).toBe(true);
+		expect(
+			shouldWarnScheduleAMissing(
+				['bank', 'brokerage'],
+				{ ...baseFlags, hasBankAccounts: 'yes', hasBrokerage: 'no' },
+				assets,
+			),
+		).toBe(false);
 	});
 });
 

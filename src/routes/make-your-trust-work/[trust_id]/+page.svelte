@@ -750,6 +750,13 @@
 													<p class="text-[12px] text-amber-900/75 leading-relaxed">{m.riskNote}</p>
 												</div>
 											{/if}
+											{#if m.scheduleAWarning}
+												<div class="mb-3 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5">
+													<p class="text-[12px] text-amber-900/75 leading-relaxed">
+														{data.copy.scheduleAWarning}
+													</p>
+												</div>
+											{/if}
 											{#if m.videoUrl}
 												<div class="mb-4">
 													<VideoPlayer src={m.videoUrl} title={m.title} />
@@ -837,9 +844,6 @@
 																</li>
 															{/each}
 														</ul>
-														<p class="mt-2.5 text-[11px] text-navy/35 leading-relaxed">
-															{data.copy.assetReferenceNote}
-														</p>
 													{/if}
 													{#if data.listedAssets.length > m.matchedAssets.length}
 														<button

@@ -231,15 +231,14 @@ export const RETIREMENT_BENEFICIARY_QUESTION: {
 
 export const ASSET_REFERENCE_TITLE = 'Assets you listed';
 
-/** Reinforces the core message: the trust schedule is not the institution's record. */
-export const ASSET_REFERENCE_NOTE =
-	'You listed these when you set up your trust. Naming an asset there does not change the institution’s own records — that is what this step is for.';
-
 export const ASSET_REFERENCE_MATCH_HINT =
 	'These look like they belong to this step, based on how you described them. You know your accounts best, so use your own judgment.';
 
 export const ASSET_REFERENCE_NO_MATCH_HINT =
 	'Nothing you listed clearly belongs to this step. Your full list is here in case it helps.';
+
+export const SCHEDULE_A_MISSING_WARNING =
+	'We noticed you did not list this asset in your trust schedule. If you have not already, you should physically add this asset down onto your trust in Schedule A.';
 
 export const ASSET_REFERENCE_SHOW_ALL = 'Show everything I listed';
 export const ASSET_REFERENCE_HIDE_ALL = 'Hide the full list';
@@ -717,7 +716,6 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		checklist: [
 			{ id: 'stored', label: 'Stored my signed originals in a safe, known place' },
 			{ id: 'digital', label: 'Made digital copies' },
-			{ id: 'confirmations', label: 'Stored written confirmations with my trust records' },
 			{ id: 'trustee_access', label: 'Confirmed my successor trustee will be able to access the storage location' },
 		],
 	},
@@ -732,7 +730,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		checklist: [
 			{ id: 'told', label: 'Told my successor trustee they are named' },
 			{ id: 'location', label: 'Told them where the documents are stored and how to access them' },
-			{ id: 'contact', label: 'Saved my trustee’s current contact information with my records' },
+			{ id: 'contact', label: 'Placed my trustee’s current contact information with my trust documents' },
 		],
 	},
 	{

@@ -9,6 +9,7 @@ import type {
 	FundingRetirementBeneficiary,
 	FundingTriState,
 } from '$lib/server/db/schema';
+import type { ListedAsset } from './assets';
 import {
 	FUNDING_MILESTONES,
 	FUNDING_MODULES,
@@ -16,6 +17,7 @@ import {
 	webinarReplayUrl,
 	willSigningEnabled,
 	fundingExplainerVideoUrl,
+	type FundingAssetCategory,
 	type FundingMilestoneKey,
 	type FundingModuleId,
 	type FundingPhaseId,
@@ -112,6 +114,47 @@ export type MilestoneRow = {
 
 function showsForTriState(v: FundingTriState | null): boolean {
 	return v === 'yes' || v === 'not_sure';
+}
+
+const CATEGORY_FYS_FLAG: Record<
+	FundingAssetCategory,
+	keyof Pick<
+		FindYourStuffFlags,
+		| 'ownsHome'
+		| 'hasBankAccounts'
+		| 'hasBrokerage'
+		| 'hasEmployerPlan'
+		| 'hasIra'
+		| 'hasLifeInsurance'
+		| 'hasVehicle'
+		| 'hasCrypto'
+	>
+> = {
+	bank: 'hasBankAccounts',
+	brokerage: 'hasBrokerage',
+	employer_plan: 'hasEmployerPlan',
+	ira: 'hasIra',
+	life_insurance: 'hasLifeInsurance',
+	vehicle: 'hasVehicle',
+	crypto: 'hasCrypto',
+	real_property: 'ownsHome',
+};
+
+/** User said they have a category in Find Your Stuff but nothing on Schedule A matches it. */
+export function shouldWarnScheduleAMissing(
+	assetCategories: FundingAssetCategory[] | undefined,
+	flags: FindYourStuffFlags,
+	listedAssets: ListedAsset[],
+): boolean {
+	if (!assetCategories?.length) return false;
+
+	for (const category of assetCategories) {
+		const flagKey = CATEGORY_FYS_FLAG[category];
+		if (!showsForTriState(flags[flagKey])) continue;
+		const hasMatch = listedAssets.some((a) => a.categories.includes(category));
+		if (!hasMatch) return true;
+	}
+	return false;
 }
 
 function findYourStuffDone(flags: FindYourStuffFlags): boolean {
