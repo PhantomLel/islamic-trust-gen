@@ -464,7 +464,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		warning:
 			'Do not treat the will as complete merely because your trust or deed was handled through an online process.',
 		checklist: [
-			{ id: 'read_will_instructions', label: 'Read the pour-over will signing instructions' },
+			{ id: 'read_will_instructions', label: 'Read the pour-over will signing instructions in the closing email' },
 			{ id: 'arranged_will_witnesses', label: 'Arranged required witnesses' },
 			{ id: 'arranged_in_person_notary', label: 'Arranged an in-person notary' },
 		],
@@ -549,14 +549,11 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		key: 'will_signing',
 		moduleId: 'finish_signing',
 		phase: 'complete',
-		title: 'Sign Your Pour-Over Will Correctly',
-		body: 'Your pour-over will may require in-person signing formalities, witnesses, and/or an in-person notary. Do not treat the will as complete merely because your trust was notarized online.',
+		title: 'Confirm Pour-Over Will Signing',
+		body: 'Confirm that your pour-over will was signed with the required formalities — witnesses and in-person notary if required — and that the original is stored with your trust documents. Do not treat the will as complete merely because your trust was notarized online.',
 		warning:
 			'An unsigned or incorrectly signed will may not work. Shortcuts on will signing can create serious problems later.',
 		checklist: [
-			{ id: 'read_instructions', label: 'Read the pour-over will signing instructions' },
-			{ id: 'witnesses', label: 'Arranged required witnesses' },
-			{ id: 'notary', label: 'Arranged an in-person notary' },
 			{ id: 'signed', label: 'Signed the will using the required formalities' },
 			{ id: 'stored', label: 'Stored the original signed will with my trust documents' },
 		],
