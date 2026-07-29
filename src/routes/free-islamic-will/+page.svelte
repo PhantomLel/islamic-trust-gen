@@ -29,6 +29,7 @@
 		legalModeDisclaimers,
 		computeLeadTags,
 		recommendPlan,
+		freeWillOfferLadder,
 		getNamedHeirs,
 		heirsQuestionId,
 		heirsCalculatorAllResponses,
@@ -37,6 +38,7 @@
 		willLimitationWarningIntro,
 		willLimitationWarningOutro,
 		willLimitationReasonLabels,
+		toWillResponses,
 		type PlanKey
 	} from '$lib/free-will/logic';
 	import HeirsCalculatorInput from '$lib/components/HeirsCalculatorInput.svelte';
@@ -44,11 +46,24 @@
 	import GuardiansInput from '$lib/components/GuardiansInput.svelte';
 	import WillCountySelector from '$lib/components/WillCountySelector.svelte';
 	import WillWasiyyahInput from '$lib/components/WillWasiyyahInput.svelte';
+	import WillWaitlistCapture from '$lib/components/WillWaitlistCapture.svelte';
 	import type { WillWasiyyahResponse } from '$lib/free-will/config';
+	import {
+		ACKNOWLEDGMENT_VERSION,
+		SHOW_HEBA_MENTION,
+		communityPropertyBodyParagraphs,
+		communityPropertyCheckboxCopy,
+		communityPropertyHeading,
+		communityPropertyHebaMention,
+		requiresCommunityPropertyAcknowledgment,
+		selfHelpDisclaimerCopy,
+		type AcknowledgmentData
+	} from '$lib/free-will/acknowledgment';
+	import { getFirstTouchUtm } from '$lib/utm';
 
 	let { data } = $props();
 
-	type Phase = 'welcome' | 'questions' | 'community' | 'limitations' | 'preview' | 'account' | 'complete';
+	type Phase = 'welcome' | 'returning' | 'questions' | 'acknowledge' | 'limitations' | 'preview' | 'account' | 'complete';
 
 	const STORAGE_KEY = 'free-will:v1';
 
@@ -58,6 +73,15 @@
 	let hydrated = $state(false);
 	let savedToAccount = $state(false);
 	let willDownload = $state<{ url: string; filename: string } | null>(null);
+	// A4 — the free_will row this browser is currently associated with. Null
+	// means "start a new will" (the next save inserts a fresh row); set means
+	// "editing/viewing that specific will" (the next save updates it in place).
+	let activeWillId = $state<number | null>(null);
+
+	// A6/B6 — acknowledgment gate checkboxes
+	let acknowledgeSelfHelp = $state(false);
+	let acknowledgeCommunityProperty = $state(false);
+	let acknowledgmentData = $state<AcknowledgmentData | null>(null);
 
 	// ── dev-only question navigator (localhost only) ──
 	let isDev = $state(false);
@@ -86,6 +110,10 @@
 	let recommendation = $derived(recommendPlan(responses));
 	let communityProperty = $derived(isCommunityPropertySituation(responses));
 	let includeClauses = $derived(appliesCommunityPropertyClauses(responses));
+	let requiresCommunityAck = $derived(requiresCommunityPropertyAcknowledgment(responses));
+	let canContinueAcknowledge = $derived(
+		acknowledgeSelfHelp && (!requiresCommunityAck || acknowledgeCommunityProperty)
+	);
 	let willLimitationReasons = $derived(getWillLimitationReasons(responses));
 	let showWillLimitationWarning = $derived(needsWillLimitationWarning(responses));
 
@@ -117,6 +145,10 @@
 	let recommendedCard = $derived(
 		recommendation.plan ? planCards[recommendation.plan] : null
 	);
+	// Ordered upsell ladder (ticket A2): GoodTree Trust App first when app-recommended,
+	// Legacy Plan always present — one source of truth shared with the delivery email.
+	let offerLadder = $derived(freeWillOfferLadder(responses));
+	let offerCards = $derived(offerLadder.map((key) => ({ key, ...planCards[key] })));
 
 	// ── persistence (localStorage) ──
 	function persist() {
@@ -127,7 +159,11 @@
 			currentIndex,
 			savedToAccount,
 			accountName,
-			accountEmail
+			accountEmail,
+			acknowledgeSelfHelp,
+			acknowledgeCommunityProperty,
+			acknowledgmentData,
+			activeWillId
 		};
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -144,6 +180,10 @@
 		void JSON.stringify(responses);
 		void accountName;
 		void accountEmail;
+		void acknowledgeSelfHelp;
+		void acknowledgeCommunityProperty;
+		void acknowledgmentData;
+		void activeWillId;
 		persist();
 	});
 
@@ -167,10 +207,16 @@
 					const p = JSON.parse(raw);
 					if (p.responses) responses = p.responses;
 					if (typeof p.currentIndex === 'number') currentIndex = p.currentIndex;
-					if (typeof p.phase === 'string') phase = p.phase;
+					// legacy sessions may still have the old 'community' phase name stored
+					if (typeof p.phase === 'string') phase = p.phase === 'community' ? 'acknowledge' : p.phase;
 					if (typeof p.savedToAccount === 'boolean') savedToAccount = p.savedToAccount;
 					if (typeof p.accountName === 'string') accountName = p.accountName;
 					if (typeof p.accountEmail === 'string') accountEmail = p.accountEmail;
+					if (typeof p.acknowledgeSelfHelp === 'boolean') acknowledgeSelfHelp = p.acknowledgeSelfHelp;
+					if (typeof p.acknowledgeCommunityProperty === 'boolean')
+						acknowledgeCommunityProperty = p.acknowledgeCommunityProperty;
+					if (p.acknowledgmentData) acknowledgmentData = p.acknowledgmentData;
+					if (typeof p.activeWillId === 'number') activeWillId = p.activeWillId;
 				} catch {
 					// ignore corrupt state
 				}
@@ -188,17 +234,76 @@
 
 		hydrated = true;
 
-		// If the user returned authenticated with a finished will that hasn't been
-		// attached to the account yet, save it now and show the completion screen.
-		if (data.user && !savedToAccount && isWillComplete(responses) && !data.savedWill?.complete) {
+		if (data.user && data.savedWill?.complete) {
+			if (activeWillId === data.savedWill.id) {
+				// We already know about this exact will from earlier in this browser
+				// session — either we just saved it directly, or we're returning from
+				// a magic-link/Google redirect right after submitting it. Show it
+				// immediately instead of a choice screen.
+				savedToAccount = true;
+				if (data.willDownload) willDownload = data.willDownload;
+				phase = 'complete';
+			} else {
+				// A4 — the flow is no longer locked to a single will: a genuinely
+				// returning user who already has a finished will on file gets a
+				// choice instead of being force-jumped to the completion screen.
+				phase = 'returning';
+			}
+		} else if (data.user && !savedToAccount && isWillComplete(responses)) {
+			// Signed-in user whose local answers are complete but not yet
+			// persisted (e.g. the page reloaded mid-save) — save now.
 			void persistToAccount();
-		} else if (data.user && data.savedWill?.complete) {
-			// Claimed pending submission, prior save, or magic-link return while
-			// localStorage still holds the completed questionnaire.
-			savedToAccount = true;
-			phase = 'complete';
 		}
 	});
+
+	/** A4 — "View my finished will" from the returning-user choice screen. */
+	function viewFinishedWill() {
+		if (data.savedWill) activeWillId = data.savedWill.id;
+		savedToAccount = true;
+		phase = 'complete';
+	}
+
+	/**
+	 * A4 — "Edit my answers", available both from the returning-user choice
+	 * screen and from the completion page right after finishing. Prefers
+	 * whatever's already in memory (the "I just finished this session" case,
+	 * where the server's `load()` snapshot may be stale or nonexistent since
+	 * `persistToAccount()` saves via a raw `fetch` rather than `enhance`) and
+	 * only falls back to the server-stored answers when the local ones aren't
+	 * complete (a genuinely returning user on a fresh device/session).
+	 */
+	function editFinishedWill() {
+		if (!isWillComplete(responses) && data.savedWill?.responses?.length) {
+			responses = toWillResponses(data.savedWill.responses);
+			acknowledgmentData = data.savedWill.acknowledgmentData;
+			acknowledgeSelfHelp = data.savedWill.acknowledgmentData?.checkboxes.selfHelp ?? false;
+			acknowledgeCommunityProperty = data.savedWill.acknowledgmentData?.checkboxes.communityProperty ?? false;
+		}
+		if (activeWillId == null && data.savedWill) activeWillId = data.savedWill.id;
+		savedToAccount = true;
+		willDownload = null;
+		phase = 'preview';
+	}
+
+	/** A4 — "Start a new will": clears local state so the next save inserts a fresh row. */
+	function startNewWill() {
+		if (typeof localStorage !== 'undefined') {
+			try {
+				localStorage.removeItem(STORAGE_KEY);
+			} catch {
+				// ignore
+			}
+		}
+		responses = {};
+		currentIndex = 0;
+		acknowledgeSelfHelp = false;
+		acknowledgeCommunityProperty = false;
+		acknowledgmentData = null;
+		activeWillId = null;
+		savedToAccount = false;
+		willDownload = null;
+		phase = 'welcome';
+	}
 
 	// ── responses helpers ──
 	function setResponse(value: WillResponseValue) {
@@ -244,29 +349,46 @@
 			currentIndex += 1;
 			return;
 		}
-		// finished questions
-		if (communityProperty) {
-			phase = 'community';
-		} else if (showWillLimitationWarning) {
-			phase = 'limitations';
-		} else {
-			phase = 'preview';
-		}
+		// finished questions — the acknowledgment gate always runs next (B6's
+		// self-help checkbox applies to every user).
+		phase = 'acknowledge';
+	}
+
+	function continueFromAcknowledge() {
+		if (!canContinueAcknowledge) return;
+		acknowledgmentData = {
+			version: ACKNOWLEDGMENT_VERSION,
+			clientTimestamp: new Date().toISOString(),
+			checkboxes: {
+				selfHelp: acknowledgeSelfHelp,
+				communityProperty: acknowledgeCommunityProperty
+			}
+		};
+		phase = showWillLimitationWarning ? 'limitations' : 'preview';
 	}
 
 	function goBack() {
 		if (phase === 'questions') {
 			if (currentIndex > 0) currentIndex -= 1;
 			else phase = 'welcome';
-		} else if (phase === 'community') {
+		} else if (phase === 'acknowledge') {
 			phase = 'questions';
 		} else if (phase === 'limitations') {
-			phase = communityProperty ? 'community' : 'questions';
+			phase = 'acknowledge';
 		} else if (phase === 'preview') {
-			phase = showWillLimitationWarning ? 'limitations' : communityProperty ? 'community' : 'questions';
+			phase = showWillLimitationWarning ? 'limitations' : 'acknowledge';
 		} else if (phase === 'account') {
 			phase = 'preview';
 		}
+	}
+
+	/** Pulls a human-readable message out of a `deserialize()`d failed form action result. */
+	function extractActionErrorMessage(result: { type: string; error?: unknown; data?: unknown }): string {
+		const fromError = (result.error as { message?: string } | undefined)?.message;
+		if (fromError) return fromError;
+		const fromData = (result.data as { message?: string } | undefined)?.message;
+		if (fromData) return fromData;
+		return 'Something went wrong saving your answers. Please try again.';
 	}
 
 	function buildResponseArray() {
@@ -280,6 +402,13 @@
 		form.set('state', typeof responses['state'] === 'string' ? responses['state'] : '');
 		form.set('legalMode', mode);
 		form.set('recommendedPlan', recommendation.plan ?? '');
+		form.set('acknowledgmentData', acknowledgmentData ? JSON.stringify(acknowledgmentData) : '');
+		// A4 — set means "update this specific will", unset means "insert a new one".
+		form.set('willId', activeWillId != null ? String(activeWillId) : '');
+		const utm = getFirstTouchUtm();
+		form.set('utmSource', utm.utmSource ?? '');
+		form.set('utmMedium', utm.utmMedium ?? '');
+		form.set('utmCampaign', utm.utmCampaign ?? '');
 		if (action === 'savePending') {
 			form.set('name', accountName.trim());
 			form.set('email', accountEmail.trim());
@@ -294,6 +423,7 @@
 			phase = 'account';
 			return;
 		}
+		accountError = '';
 		savingWill = true;
 		try {
 			await persistToAccount();
@@ -305,13 +435,18 @@
 	async function persistToAccount() {
 		const res = await fetch('?/saveAuthed', { method: 'POST', body: saveFormData('saveAuthed') });
 		const result = deserialize(await res.text());
-		if (result.type === 'success') {
-			savedToAccount = true;
-			const download = (result.data as { willDownload?: { url: string; filename: string } | null })
-				?.willDownload;
-			if (download) willDownload = download;
-			phase = 'complete';
+		if (result.type !== 'success') {
+			accountError = extractActionErrorMessage(result);
+			return;
 		}
+		savedToAccount = true;
+		const resultData = result.data as {
+			willId?: number;
+			willDownload?: { url: string; filename: string } | null;
+		};
+		if (typeof resultData?.willId === 'number') activeWillId = resultData.willId;
+		if (resultData?.willDownload) willDownload = resultData.willDownload;
+		phase = 'complete';
 	}
 
 	async function handleCreateAccount() {
@@ -331,7 +466,22 @@
 				return;
 			}
 			// Anonymous: stash a pending submission, then start passwordless sign-in.
-			await fetch('?/savePending', { method: 'POST', body: saveFormData('savePending') });
+			// Captures the row id (A4) so the magic-link return recognizes this as
+			// "the will I just submitted" rather than treating it as an old one.
+			// Bail out (rather than sending the magic link anyway) if this fails —
+			// otherwise the user lands back on the app after verifying their email
+			// with nothing actually saved and no indication why.
+			const pendingRes = await fetch('?/savePending', { method: 'POST', body: saveFormData('savePending') });
+			const pendingResult = deserialize(await pendingRes.text());
+			if (pendingResult.type !== 'success') {
+				accountError = extractActionErrorMessage(pendingResult);
+				return;
+			}
+			const pendingId = (pendingResult.data as { willId?: number })?.willId;
+			if (typeof pendingId === 'number') {
+				activeWillId = pendingId;
+				persist();
+			}
 			const { error: err } = await authClient.signIn.magicLink({
 				email: accountEmail.trim(),
 				name: accountName.trim(),
@@ -350,8 +500,19 @@
 	async function handleGoogle() {
 		if (!data.user) {
 			// Persist pending first so a Google account with a different email still
-			// gets the data via the authenticated auto-save on return.
-			await fetch('?/savePending', { method: 'POST', body: saveFormData('savePending') });
+			// gets the data via the authenticated auto-save on return. Bail out on
+			// failure rather than redirecting to Google with nothing saved.
+			const pendingRes = await fetch('?/savePending', { method: 'POST', body: saveFormData('savePending') });
+			const pendingResult = deserialize(await pendingRes.text());
+			if (pendingResult.type !== 'success') {
+				accountError = extractActionErrorMessage(pendingResult);
+				return;
+			}
+			const pendingId = (pendingResult.data as { willId?: number })?.willId;
+			if (typeof pendingId === 'number') {
+				activeWillId = pendingId;
+				persist();
+			}
 		}
 		await authClient.signIn.social({ provider: 'google', callbackURL: '/free-islamic-will' });
 	}
@@ -405,7 +566,7 @@
 				{siteName}
 			</span>
 		</a>
-		{#if phase === 'questions' || phase === 'community' || phase === 'limitations' || phase === 'preview'}
+		{#if phase === 'questions' || phase === 'acknowledge' || phase === 'limitations' || phase === 'preview'}
 			<span class="text-[11px] text-navy/40 tracking-[0.18em] uppercase">Free Islamic Will</span>
 		{:else}
 			<a href="/plans" class="text-sm text-navy/50 hover:text-navy transition-colors">All plans</a>
@@ -413,7 +574,7 @@
 	</nav>
 
 	<!-- PROGRESS BAR (no numbers, per brief) -->
-	{#if phase === 'questions' || phase === 'community' || phase === 'limitations' || phase === 'preview'}
+	{#if phase === 'questions' || phase === 'acknowledge' || phase === 'limitations' || phase === 'preview'}
 		<div class="relative z-10 shrink-0 h-1 w-full bg-navy/[0.06]">
 			<div
 				class="h-full bg-emerald-accent transition-all duration-500 ease-out"
@@ -474,6 +635,55 @@
 				</div>
 			</div>
 
+		{:else if phase === 'returning'}
+			<!-- ═══ RETURNING USER — A4: no longer locked to a single will ═══ -->
+			<div class="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center">
+				<div class="max-w-lg w-full">
+					<div class="w-14 h-14 rounded-full bg-emerald-accent/10 flex items-center justify-center mx-auto mb-6">
+						<svg class="w-7 h-7 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+					</div>
+					<h1 class="text-2xl md:text-4xl text-navy tracking-tight leading-tight text-balance mb-3">
+						Welcome back{accountName ? `, ${accountName.split(' ')[0]}` : ''}
+					</h1>
+					<p class="text-navy/55 text-base leading-relaxed max-w-md mx-auto mb-10">
+						You already have a finished Islamic will on file. What would you like to do?
+					</p>
+
+					<div class="flex flex-col gap-3 text-left">
+						<button
+							onclick={viewFinishedWill}
+							class="flex items-center justify-between gap-4 px-6 py-4 rounded-xl bg-emerald-accent text-cream transition-all duration-200 hover:bg-emerald-light hover:-translate-y-px hover:shadow-lg hover:shadow-emerald-accent/20 cursor-pointer"
+						>
+							<span>
+								<span class="block font-medium text-[15px]">View my finished will</span>
+								<span class="block text-cream/70 text-xs mt-0.5">Download your document and see next steps</span>
+							</span>
+							<svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+						</button>
+						<button
+							onclick={editFinishedWill}
+							class="flex items-center justify-between gap-4 px-6 py-4 rounded-xl border border-navy/10 bg-white/70 text-navy transition-all duration-200 hover:border-emerald-accent/40 hover:-translate-y-px cursor-pointer"
+						>
+							<span>
+								<span class="block font-medium text-[15px]">Edit my answers</span>
+								<span class="block text-navy/50 text-xs mt-0.5">Update your will with new information</span>
+							</span>
+							<svg class="w-4 h-4 shrink-0 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+						</button>
+						<button
+							onclick={startNewWill}
+							class="flex items-center justify-between gap-4 px-6 py-4 rounded-xl border border-navy/10 bg-white/70 text-navy transition-all duration-200 hover:border-emerald-accent/40 hover:-translate-y-px cursor-pointer"
+						>
+							<span>
+								<span class="block font-medium text-[15px]">Start a new will</span>
+								<span class="block text-navy/50 text-xs mt-0.5">e.g. for a spouse, on the same account</span>
+							</span>
+							<svg class="w-4 h-4 shrink-0 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+						</button>
+					</div>
+				</div>
+			</div>
+
 		{:else if phase === 'questions' && currentStep}
 			<!-- ═══ QUESTION ═══ -->
 			<div class="flex-1 flex flex-col">
@@ -496,7 +706,7 @@
 							{@const selectedState = (responses[currentStep.id] as string) ?? ''}
 							<div class="relative">
 								<select
-									value={isWillAvailableState(selectedState) ? selectedState : ''}
+									value={selectedState}
 									onchange={(e) => setResponse((e.currentTarget as HTMLSelectElement).value)}
 									class="w-full appearance-none px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px]
 										outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 cursor-pointer"
@@ -507,7 +717,7 @@
 									{/each}
 									<optgroup label="Coming soon">
 										{#each usStates.filter((s) => !willAvailableStates.has(s.code)) as s}
-											<option value={s.code} disabled>{s.name}</option>
+											<option value={s.code}>{s.name}</option>
 										{/each}
 									</optgroup>
 								</select>
@@ -515,9 +725,19 @@
 									<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
 								</svg>
 							</div>
-							<p class="text-navy/45 text-xs leading-relaxed mt-3 px-1">
-								Only California and Texas are available right now. Other states are listed below as coming soon.
-							</p>
+							{#if selectedState && !isWillAvailableState(selectedState)}
+								<!-- A1: out-of-state email capture, works on both state screens -->
+								<WillWaitlistCapture
+									stateCode={selectedState}
+									stateLabel={stateName(selectedState)}
+									stepId={currentStep.id}
+									name={accountName}
+								/>
+							{:else}
+								<p class="text-navy/45 text-xs leading-relaxed mt-3 px-1">
+									Only California and Texas are available right now. Other states are listed below as coming soon.
+								</p>
+							{/if}
 
 						{:else if currentStep.type === 'county'}
 							{@const selectedState = responses['state'] as string}
@@ -658,29 +878,78 @@
 				</div>
 			</div>
 
-		{:else if phase === 'community'}
-			<!-- ═══ COMMUNITY PROPERTY WARNING ═══ -->
-			<div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
-				<div class="max-w-xl w-full">
-					<div class="rounded-2xl border border-amber-300/70 bg-amber-50 p-7 md:p-8">
-						<div class="flex items-center gap-3 mb-4">
-							<span class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-								<svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-								</svg>
-							</span>
-							<h2 class="text-xl md:text-2xl text-navy tracking-tight">A special note for {stateName(responses['state'] as string)}</h2>
+		{:else if phase === 'acknowledge'}
+			<!-- ═══ ACKNOWLEDGMENT GATE (A6 + B6) ═══ -->
+			<div class="flex-1 overflow-y-auto px-6 py-12">
+				<div class="max-w-xl w-full mx-auto">
+					{#if requiresCommunityAck}
+						<div class="rounded-2xl border border-amber-300/70 bg-amber-50 p-7 md:p-8 mb-5">
+							<div class="flex items-center gap-3 mb-4">
+								<span class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+									<svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+									</svg>
+								</span>
+								<h2 class="text-xl md:text-2xl text-navy tracking-tight">{communityPropertyHeading}</h2>
+							</div>
+							{#each communityPropertyBodyParagraphs as paragraph}
+								<p class="text-navy/65 text-[15px] leading-relaxed mb-3">{paragraph}</p>
+							{/each}
+							<div class="flex flex-col gap-2 my-4">
+								<a href="/trust" target="_blank" rel="noopener" class="text-emerald-accent text-sm font-medium hover:underline">
+									Learn about a living trust →
+								</a>
+								<a href={consultationBookingUrl} target="_blank" rel="noopener" class="text-emerald-accent text-sm font-medium hover:underline">
+									Book a consultation →
+								</a>
+							</div>
+							{#if SHOW_HEBA_MENTION}
+								<p class="text-navy/50 text-xs leading-relaxed mb-4">{communityPropertyHebaMention}</p>
+							{/if}
+							<label class="flex items-start gap-3 mt-2 cursor-pointer">
+								<input
+									type="checkbox"
+									bind:checked={acknowledgeCommunityProperty}
+									class="mt-1 w-4 h-4 accent-emerald-accent cursor-pointer shrink-0"
+								/>
+								<span class="text-navy/75 text-sm leading-relaxed">{communityPropertyCheckboxCopy}</span>
+							</label>
 						</div>
-						<p class="text-navy/65 text-[15px] leading-relaxed">{communityPropertyWarning}</p>
+					{:else if communityProperty}
+						<div class="rounded-2xl border border-amber-300/70 bg-amber-50 p-7 md:p-8 mb-5">
+							<div class="flex items-center gap-3 mb-4">
+								<span class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+									<svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+									</svg>
+								</span>
+								<h2 class="text-xl md:text-2xl text-navy tracking-tight">A special note for {stateName(responses['state'] as string)}</h2>
+							</div>
+							<p class="text-navy/65 text-[15px] leading-relaxed">{communityPropertyWarning}</p>
+						</div>
+					{/if}
+
+					<div class="rounded-2xl border border-navy/10 bg-white/70 p-6 md:p-7">
+						<h3 class="text-navy font-medium text-[15px] mb-3">Before you continue</h3>
+						<label class="flex items-start gap-3 cursor-pointer">
+							<input
+								type="checkbox"
+								bind:checked={acknowledgeSelfHelp}
+								class="mt-1 w-4 h-4 accent-emerald-accent cursor-pointer shrink-0"
+							/>
+							<span class="text-navy/70 text-sm leading-relaxed">{selfHelpDisclaimerCopy}</span>
+						</label>
 					</div>
+
 					<div class="flex items-center justify-between mt-8">
 						<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
 							Back
 						</button>
 						<button
-							onclick={() => (phase = showWillLimitationWarning ? 'limitations' : 'preview')}
-							class="flex items-center gap-2 px-7 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10 cursor-pointer"
+							onclick={continueFromAcknowledge}
+							disabled={!canContinueAcknowledge}
+							class="flex items-center gap-2 px-7 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy transition-all duration-200 hover:bg-navy-light hover:shadow-lg hover:shadow-navy/10 disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer"
 						>
 							I understand, continue
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -803,22 +1072,25 @@
 						<p class="text-navy/55 text-xs leading-relaxed">{legalModeDisclaimers[mode]}</p>
 					</div>
 
-					<div class="flex items-center justify-between">
-						<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
-							Back
-						</button>
-						<button
-							onclick={handleSaveMyWill}
-							disabled={savingWill}
-							class="flex items-center gap-2 px-7 py-3 rounded-lg text-sm font-medium text-cream bg-emerald-accent transition-all duration-200 hover:bg-emerald-light hover:-translate-y-px hover:shadow-lg hover:shadow-emerald-accent/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-						>
-							{savingWill ? 'Preparing your will…' : data.user ? 'Get my will' : 'Save my will'}
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-						</button>
-					</div>
+				{#if accountError}
+					<p class="text-red-600 text-xs mb-3 text-right">{accountError}</p>
+				{/if}
+				<div class="flex items-center justify-between">
+					<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+						Back
+					</button>
+					<button
+						onclick={handleSaveMyWill}
+						disabled={savingWill}
+						class="flex items-center gap-2 px-7 py-3 rounded-lg text-sm font-medium text-cream bg-emerald-accent transition-all duration-200 hover:bg-emerald-light hover:-translate-y-px hover:shadow-lg hover:shadow-emerald-accent/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+					>
+						{savingWill ? 'Preparing your will…' : data.user ? 'Get my will' : 'Save my will'}
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+					</button>
 				</div>
 			</div>
+		</div>
 
 		{:else if phase === 'account'}
 			<!-- ═══ ACCOUNT / EMAIL CAPTURE ═══ -->
@@ -997,30 +1269,62 @@
 						</div>
 					{/if}
 
-					<!-- Recommended plan upsell -->
-					{#if recommendedCard}
-						<div class="rounded-2xl bg-navy overflow-hidden mb-5">
-							<div class="p-7">
-								<span class="text-emerald-light/70 text-[10px] tracking-[0.28em] uppercase font-medium">Recommended for your situation</span>
-								<h3 class="text-cream text-xl md:text-2xl tracking-tight mt-2 mb-2">{recommendedCard.title}</h3>
-								<p class="text-cream/60 text-sm leading-relaxed mb-3">{recommendedCard.tagline}</p>
-								{#if recommendation.attorneyReviewNote}
-									<p class="text-cream/45 text-xs leading-relaxed mb-5">Given the size of your estate, we recommend attorney review to make sure nothing is missed.</p>
-								{/if}
-								<div class="flex items-center justify-between gap-4 mt-5">
-									<span class="text-cream/50 text-sm">{recommendedCard.price}</span>
-									<a href={recommendedCard.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cream text-navy text-sm font-medium transition-all duration-200 hover:bg-white">
-										Learn more
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-									</a>
+					<!-- Upsell ladder (ticket A2): GoodTree card above Legacy Plan when app-recommended -->
+					{#each offerCards as card, i}
+						{#if i === 0}
+							<div class="rounded-2xl bg-navy overflow-hidden mb-5">
+								<div class="p-7">
+									<span class="text-emerald-light/70 text-[10px] tracking-[0.28em] uppercase font-medium">Recommended for your situation</span>
+									<h3 class="text-cream text-xl md:text-2xl tracking-tight mt-2 mb-2">{card.title}</h3>
+									<p class="text-cream/60 text-sm leading-relaxed mb-3">{card.tagline}</p>
+									{#if recommendation.attorneyReviewNote}
+										<p class="text-cream/45 text-xs leading-relaxed mb-5">Given the size of your estate, we recommend attorney review to make sure nothing is missed.</p>
+									{/if}
+									<div class="flex items-center justify-between gap-4 mt-5">
+										<span class="text-cream/50 text-sm">{card.price}</span>
+										<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cream text-navy text-sm font-medium transition-all duration-200 hover:bg-white">
+											Learn more
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+										</a>
+									</div>
 								</div>
 							</div>
-						</div>
-					{/if}
+						{:else}
+							<div class="rounded-2xl border border-navy/10 bg-white/70 overflow-hidden mb-5">
+								<div class="p-7">
+									<span class="text-navy/40 text-[10px] tracking-[0.28em] uppercase font-medium">Premium option</span>
+									<h3 class="text-navy text-xl md:text-2xl tracking-tight mt-2 mb-2">{card.title}</h3>
+									<p class="text-navy/60 text-sm leading-relaxed mb-5">{card.tagline}</p>
+									<div class="flex items-center justify-between gap-4">
+										<span class="text-navy/45 text-sm">{card.price}</span>
+										<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy text-cream text-sm font-medium transition-all duration-200 hover:bg-navy-light">
+											Learn more
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+										</a>
+									</div>
+								</div>
+							</div>
+						{/if}
+					{/each}
 
 					<div class="text-center">
 						<a href="/plans" class="text-navy/45 text-sm hover:text-navy/70 transition-colors">Explore all plans →</a>
 					</div>
+
+					<!-- A4 — the flow isn't locked to a single will: let a signed-in user
+					     tweak their answers or start a second will (e.g. for a spouse)
+					     right from the completion page, not only on a later visit. -->
+					{#if data.user}
+						<div class="flex items-center justify-center gap-5 mt-6 pt-6 border-t border-navy/8">
+							<button onclick={editFinishedWill} class="text-navy/45 text-sm hover:text-navy/70 transition-colors cursor-pointer">
+								Edit my answers
+							</button>
+							<span class="text-navy/15">·</span>
+							<button onclick={startNewWill} class="text-navy/45 text-sm hover:text-navy/70 transition-colors cursor-pointer">
+								Start a new will
+							</button>
+						</div>
+					{/if}
 				</div>
 			</div>
 		{/if}
@@ -1052,7 +1356,7 @@
 						</button>
 					{/if}
 					<div class="flex flex-wrap gap-1">
-						{#each ['welcome', 'questions', 'community', 'limitations', 'preview', 'account', 'complete'] as p}
+						{#each ['welcome', 'returning', 'questions', 'acknowledge', 'limitations', 'preview', 'account', 'complete'] as p}
 							<button
 								type="button"
 								onclick={() => devGoToPhase(p as Phase)}
@@ -1113,4 +1417,10 @@
 			</div>
 		{/if}
 	{/if}
+
+	<footer class="relative z-10 shrink-0 border-t border-navy/[0.06] px-6 py-4 text-center">
+		<p class="text-navy/35 text-xs leading-relaxed">
+			© 2026 McDaniel Estate Planning, PLLC. Licensed in Texas and California.
+		</p>
+	</footer>
 </div>

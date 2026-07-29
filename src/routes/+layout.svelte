@@ -4,11 +4,14 @@
 	import { page } from '$app/state';
 	import { siteName } from '$lib/config';
 	import { env } from '$env/dynamic/public';
+	import { captureFirstTouchUtm } from '$lib/utm';
 	import '../app.css';
 
 	let { children } = $props();
 	const origin = browser ? window.location.origin : (env.PUBLIC_ORIGIN ?? '');
 	const isLocalOrigin = origin.toLowerCase().includes('localhost');
+
+	if (browser) captureFirstTouchUtm();
 
 	afterNavigate(({ from, to, type }) => {
 		if (!browser || type === 'popstate') return;

@@ -121,6 +121,8 @@ export type HeirsCalculatorResponse = {
 	dhawulArhamNeeded: boolean;
 	notes: string[];
 	verified: boolean;
+	/** B1: user explicitly confirmed excluding spouse despite being married in intake. */
+	spouseExclusionConfirmed?: boolean;
 };
 
 export type PersonalDataResponse = {

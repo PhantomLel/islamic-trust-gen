@@ -85,3 +85,68 @@ export function formatParentsList(opts: {
 	if (entries.length === 2) return `${entries[0]} and ${entries[1]}`;
 	return `${entries.slice(0, -1).join(', ')}, and ${entries[entries.length - 1]}`;
 }
+
+/**
+ * A single parent's name with a status suffix, for the v2 will template's
+ * "My parents are: {{FATHER_NAME_AND_STATUS}} and {{MOTHER_NAME_AND_STATUS}}."
+ * sentence. Unlike `formatParentsList`, silence means alive — the suffix only
+ * ever appears for a confirmed-deceased parent, matching the master's
+ * `{{(deceased) if applicable}}` instruction. Returns '' when there is no name.
+ */
+export function formatParentNameAndStatus(
+	name: string | undefined,
+	alive: boolean | undefined,
+): string {
+	const trimmed = name?.trim();
+	if (!trimmed) return '';
+	return alive === false ? `${trimmed} (deceased)` : trimmed;
+}
+
+function fractionOnly(f: { numerator: number; denominator: number } | unknown): string {
+	if (f && typeof f === 'object' && 'numerator' in f && 'denominator' in f) {
+		const { numerator, denominator } = f as { numerator: number; denominator: number };
+		return denominator === 1 ? `${numerator}` : `${numerator}/${denominator}`;
+	}
+	return '';
+}
+
+function percentOnly(f: { numerator: number; denominator: number } | unknown): string {
+	if (f && typeof f === 'object' && 'numerator' in f && 'denominator' in f) {
+		const { numerator, denominator } = f as { numerator: number; denominator: number };
+		const pct = Math.round((numerator / denominator) * 100 * 100) / 100;
+		return `${pct}%`;
+	}
+	return '';
+}
+
+/** One row per named heir, with fraction and percentage as separate columns. */
+export type HeirTableRowV2 = {
+	name: string;
+	relationship: string;
+	fraction: string;
+	percent: string;
+};
+
+/**
+ * Same source as `flattenNamedHeirs`, but for the v2 Islamic Inheritance
+ * Schedule table: `FRACTION` and `PERCENT` are separate columns (rather than
+ * one combined "1/8 (~12.5%)" string) and rows with no name are dropped
+ * instead of printing a blank row (ticket C6's document half).
+ */
+export function flattenNamedHeirsV2(named: NamedHeir[] | undefined): HeirTableRowV2[] {
+	if (!named) return [];
+	const rows: HeirTableRowV2[] = [];
+	for (const h of named) {
+		for (const name of h.names ?? []) {
+			const trimmed = name.trim();
+			if (!trimmed) continue;
+			rows.push({
+				name: trimmed,
+				relationship: h.label,
+				fraction: fractionOnly(h.perPersonShare),
+				percent: percentOnly(h.perPersonShare),
+			});
+		}
+	}
+	return rows;
+}

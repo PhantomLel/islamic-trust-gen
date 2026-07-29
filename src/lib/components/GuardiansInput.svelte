@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { GuardianEntry } from '$lib/free-will/config';
+	import { isFullLegalName, fullLegalNameHint } from '$lib/free-will/validation';
 
 	let {
 		value,
@@ -56,6 +57,9 @@
 							oninput={(e) => update(i, { fullName: (e.target as HTMLInputElement).value })}
 							class="w-full rounded-xl border border-navy/8 bg-navy/2 px-3.5 py-2.5 text-sm text-navy placeholder:text-navy/30 focus:outline-none focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
 						/>
+						{#if guardian.fullName.trim() && !isFullLegalName(guardian.fullName)}
+							<p class="text-xs text-amber-700 mt-1.5">{fullLegalNameHint}</p>
+						{/if}
 					</div>
 					<div class="flex-1 min-w-0">
 						<!-- svelte-ignore a11y_label_has_associated_control -->

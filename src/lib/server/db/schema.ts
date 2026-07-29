@@ -5,7 +5,7 @@ import { defaultPrepFee } from '../../config';
 
 // ── Marketing / drip ──────────────────────────────────────────────────────────
 
-export type LeadType = 'free_will' | 'quiz' | 'app_started';
+export type LeadType = 'free_will' | 'quiz' | 'app_started' | 'waitlist';
 export type SequenceStatus =
 	| 'active'
 	| 'paused'
@@ -48,6 +48,13 @@ export const marketingLead = pgTable('marketing_lead', {
 	// Attribution
 	firstTouchSource: text('first_touch_source'),
 	lastTouchSource: text('last_touch_source'),
+	/** USPS state code — set for out-of-state waitlist leads (ticket A1). */
+	state: text('state'),
+	utmSource: text('utm_source'),
+	utmMedium: text('utm_medium'),
+	utmCampaign: text('utm_campaign'),
+	/** Free-will step id the visitor was on when they left an email (e.g. 'state', 'home_state'). */
+	lastStep: text('last_step'),
 
 	// Classification
 	leadType: text('lead_type').$type<LeadType>(),
@@ -126,6 +133,8 @@ export type TrustScreeningAnswers = Record<string, boolean>;
 export type { LoeAgreementData, LoeCheckboxes, WarningAgreementData, WarningCheckboxes } from '../../loe';
 export { LOE_AGREEMENT_VERSION, WARNING_AGREEMENT_VERSION } from '../../loe';
 import type { LoeAgreementData, WarningAgreementData } from '../../loe';
+export type { AcknowledgmentData, AcknowledgmentCheckboxes } from '../../free-will/acknowledgment';
+import type { AcknowledgmentData } from '../../free-will/acknowledgment';
 
 enum Charities {
 	IslamicSocietyOfNorthAmerica = 'islamic-society-of-north-america',
@@ -248,12 +257,21 @@ export const freeWill = pgTable('free_will', {
 	tags: text('tags').array(),
 	/** Recommended upsell plan key, e.g. 'goodtree-trust'. */
 	recommendedPlan: text('recommended_plan'),
+	// ── First-touch attribution (A7 groundwork) ────────────────────────
+	utmSource: text('utm_source'),
+	utmMedium: text('utm_medium'),
+	utmCampaign: text('utm_campaign'),
 	/** "Send me reminders every 6 months" (pre-checked). */
 	reviewReminders: boolean('review_reminders').notNull().default(true),
 	/** True once the questionnaire is finished and submitted. */
 	complete: boolean('complete').notNull().default(false),
 	/** Generated will documents (uploadthing), keyed by `kind` e.g. 'free-will'. */
 	generated_files: jsonb('generated_files').$type<GeneratedFile[]>(),
+	// ── Acknowledgment gate (A6/B6) ────────────────────────────────────
+	/** Server-side timestamp recorded when the user accepted the acknowledgment gate. */
+	acknowledgmentAcceptedAt: timestamp('acknowledgment_accepted_at'),
+	/** Full acknowledgment record (version, per-checkbox state, client timestamp). */
+	acknowledgmentData: jsonb('acknowledgment_data').$type<AcknowledgmentData | null>(),
 });
 
 export const invoice = pgTable('invoice', {

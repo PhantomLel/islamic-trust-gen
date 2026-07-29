@@ -117,6 +117,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 			nextEmailAt: l.nextEmailAt?.toISOString() ?? null,
 			unsubscribed: l.unsubscribed,
 			enrolledAt: l.enrolledAt?.toISOString() ?? null,
+			// A1 — out-of-state waitlist attribution.
+			state: l.state,
+			utmSource: l.utmSource,
+			utmMedium: l.utmMedium,
+			utmCampaign: l.utmCampaign,
+			lastStep: l.lastStep,
 		})),
 		wills: wills
 			.filter((w) => w.user?.role !== 'admin')

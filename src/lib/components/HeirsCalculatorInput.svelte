@@ -5,6 +5,7 @@
 		QuestionResponseValue,
 	} from "$lib/config";
 	import { isPersonalDataShape } from "$lib/question-response-helpers";
+	import { isMarriedSpouseExcluded } from "$lib/free-will/logic";
 	import type { CalculationResultJSON } from "$lib/inheritance/types";
 
 	let {
@@ -125,6 +126,30 @@
 	let spouse = $state(getInitialSpouse());
 	let fatherAlive = $state(getInitialParentAlive('father-alive'));
 	let motherAlive = $state(getInitialParentAlive('mother-alive'));
+
+	/** B2: parents marked deceased earlier are hidden and forced off in the calculator. */
+	const fatherKnownDeceased = $derived(
+		'father-alive' in allResponses && allResponses['father-alive'] === false,
+	);
+	const motherKnownDeceased = $derived(
+		'mother-alive' in allResponses && allResponses['mother-alive'] === false,
+	);
+
+	$effect(() => {
+		if (fatherKnownDeceased) fatherAlive = false;
+		if (motherKnownDeceased) motherAlive = false;
+	});
+
+	/** B1: married in intake but spouse unchecked — requires explicit confirmation. */
+	let spouseExclusionConfirmed = $state(existing?.spouseExclusionConfirmed ?? false);
+	let showSpouseExclusionDialog = $state(false);
+	let pendingAction = $state<'calculate' | 'confirm' | null>(null);
+
+	const spouseExcluded = $derived(isMarriedSpouseExcluded(allResponses, spouse));
+
+	$effect(() => {
+		if (!spouseExcluded) spouseExclusionConfirmed = false;
+	});
 	let sons = $state(existing?.estateInput?.sons ?? 0);
 	let daughters = $state(existing?.estateInput?.daughters ?? 0);
 	let sonsOfSons = $state(existing?.estateInput?.sonsOfSons ?? 0);
@@ -231,6 +256,29 @@
 
 	// ── Calculate ─────────────────────────────────────────────────────────────
 
+	function requestCalculate() {
+		if (spouseExcluded && !spouseExclusionConfirmed) {
+			pendingAction = 'calculate';
+			showSpouseExclusionDialog = true;
+			return;
+		}
+		void calculate();
+	}
+
+	function confirmSpouseExclusion() {
+		spouseExclusionConfirmed = true;
+		showSpouseExclusionDialog = false;
+		const action = pendingAction;
+		pendingAction = null;
+		if (action === 'calculate') void calculate();
+		else if (action === 'confirm') confirmShares();
+	}
+
+	function cancelSpouseExclusion() {
+		showSpouseExclusionDialog = false;
+		pendingAction = null;
+	}
+
 	async function calculate() {
 		loading = true;
 		apiError = "";
@@ -274,6 +322,12 @@
 	function confirmShares() {
 		if (!calcResult || !allNamesFilled) return;
 
+		if (spouseExcluded && !spouseExclusionConfirmed) {
+			pendingAction = 'confirm';
+			showSpouseExclusionDialog = true;
+			return;
+		}
+
 		const response: HeirsCalculatorResponse = {
 			estateInput: getEstateInput(),
 			namedHeirs: calcResult.heirs.map((h) => ({
@@ -292,6 +346,7 @@
 			dhawulArhamNeeded: calcResult.dhawulArhamNeeded,
 			notes: calcResult.notes,
 			verified: true,
+			...(spouseExcluded ? { spouseExclusionConfirmed: true } : {}),
 		};
 
 		onresponse(response);
@@ -526,6 +581,28 @@
 							spouse)</span
 						>
 					</label>
+					{#if spouseExcluded && !spouseExclusionConfirmed}
+						<div
+							class="mt-3 flex items-start gap-2.5 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200/70"
+						>
+							<svg
+								class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+								/>
+							</svg>
+							<p class="text-xs text-amber-800 leading-relaxed">
+								You told us you're married. Your spouse is not included in this calculation — you'll need to confirm that before continuing.
+							</p>
+						</div>
+					{/if}
 				</div>
 			</div>
 
@@ -577,6 +654,7 @@
 			</div>
 
 			<!-- Parents -->
+			{#if !fatherKnownDeceased || !motherKnownDeceased}
 			<div
 				class="rounded-xl border border-navy/[0.07] bg-white/50 overflow-hidden"
 			>
@@ -590,46 +668,77 @@
 					</p>
 				</div>
 				<div class="px-4 py-3 space-y-2.5">
-					{#each [{ label: "Father", state: "fatherAlive" }, { label: "Mother", state: "motherAlive" }] as row}
-						<label class="flex items-center gap-3 cursor-pointer">
-							<button
-								role="checkbox"
-								aria-checked={row.state === "fatherAlive"
-									? fatherAlive
-									: motherAlive}
-								onclick={() => {
-									if (row.state === "fatherAlive")
-										fatherAlive = !fatherAlive;
-									else motherAlive = !motherAlive;
-								}}
-								class="w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors cursor-pointer
-									{(row.state === 'fatherAlive' ? fatherAlive : motherAlive)
-									? 'border-emerald-accent bg-emerald-accent'
-									: 'border-navy/25 bg-white hover:border-navy/40'}"
-							>
-								{#if row.state === "fatherAlive" ? fatherAlive : motherAlive}
-									<svg
-										class="w-3 h-3 text-white"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										stroke-width="3"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											d="M5 13l4 4L19 7"
-										/>
-									</svg>
-								{/if}
-							</button>
-							<span class="text-sm text-navy"
-								>{row.label} (alive)</span
-							>
-						</label>
-					{/each}
+					{#if !fatherKnownDeceased}
+					<label class="flex items-center gap-3 cursor-pointer">
+						<button
+							role="checkbox"
+							aria-checked={fatherAlive}
+							onclick={() => {
+								fatherAlive = !fatherAlive;
+							}}
+							class="w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors cursor-pointer
+								{fatherAlive
+								? 'border-emerald-accent bg-emerald-accent'
+								: 'border-navy/25 bg-white hover:border-navy/40'}"
+						>
+							{#if fatherAlive}
+								<svg
+									class="w-3 h-3 text-white"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="3"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M5 13l4 4L19 7"
+									/>
+								</svg>
+							{/if}
+						</button>
+						<span class="text-sm text-navy"
+							>Father (alive)</span
+						>
+					</label>
+					{/if}
+					{#if !motherKnownDeceased}
+					<label class="flex items-center gap-3 cursor-pointer">
+						<button
+							role="checkbox"
+							aria-checked={motherAlive}
+							onclick={() => {
+								motherAlive = !motherAlive;
+							}}
+							class="w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors cursor-pointer
+								{motherAlive
+								? 'border-emerald-accent bg-emerald-accent'
+								: 'border-navy/25 bg-white hover:border-navy/40'}"
+						>
+							{#if motherAlive}
+								<svg
+									class="w-3 h-3 text-white"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="3"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M5 13l4 4L19 7"
+									/>
+								</svg>
+							{/if}
+						</button>
+						<span class="text-sm text-navy"
+							>Mother (alive)</span
+						>
+					</label>
+					{/if}
 				</div>
 			</div>
+			{/if}
 
 			<!-- Grandparents -->
 			<div
@@ -824,7 +933,7 @@
 
 		<!-- Calculate button -->
 		<button
-			onclick={calculate}
+			onclick={requestCalculate}
 			disabled={loading}
 			class="w-full py-3 rounded-xl text-sm font-medium text-white bg-navy transition-all hover:bg-navy-light disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
 		>
@@ -1039,4 +1148,38 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if showSpouseExclusionDialog}
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/40"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="spouse-exclusion-title"
+		>
+			<div class="w-full max-w-md rounded-2xl bg-white border border-navy/10 shadow-xl p-6 space-y-4">
+				<h3 id="spouse-exclusion-title" class="text-lg font-medium text-navy">
+					Exclude your spouse from this calculation?
+				</h3>
+				<p class="text-sm text-navy/65 leading-relaxed">
+					You told us you're married. Your spouse is not included in this calculation — are you sure you want to continue without them?
+				</p>
+				<div class="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+					<button
+						type="button"
+						onclick={cancelSpouseExclusion}
+						class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-navy border border-navy/12 hover:bg-navy/[0.03] transition-colors cursor-pointer"
+					>
+						Go back
+					</button>
+					<button
+						type="button"
+						onclick={confirmSpouseExclusion}
+						class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-navy hover:bg-navy-light transition-colors cursor-pointer"
+					>
+						Yes, continue without spouse
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 {/if}

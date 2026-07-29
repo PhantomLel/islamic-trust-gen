@@ -107,6 +107,14 @@ export const communityPropertyWarningStates = new Set(['TX', 'CA', 'WI']);
  */
 export const communityPropertyClauseStates = new Set(['TX', 'CA']);
 
+/**
+ * States where married users must tick the A6 community-property/shariah
+ * acknowledgment checkbox before a document can be generated (dev packet
+ * §3.3). Texas only for now — add a state code here once Leonard signs off
+ * on extending the same gate elsewhere (e.g. California).
+ */
+export const communityPropertyAckStates = new Set(['TX']);
+
 export type AssetRange = {
 	id: string;
 	label: string;
@@ -382,8 +390,9 @@ export const willSteps: WillStep[] = [
 	{
 		id: 'home_state',
 		stage: 'assets',
-		type: 'state',
-		question: 'Which state is your home in?',
+		type: 'yes-no',
+		question: 'Is your home in a different state than where you live?',
+		help: 'If yes, we\u2019ll note this for attorney review \u2014 it won\u2019t stop you from completing your will.',
 		depends: { field: 'own_home', eq: true },
 	},
 	{

@@ -3,6 +3,7 @@ import { freeWill } from '$lib/server/db/schema';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { WillResponse, WillResponses } from '$lib/free-will/config';
 import { getHeirsResponse, heirsQuestionId, isWillComplete, toWillResponses } from '$lib/free-will/logic';
+import { isAcknowledgmentComplete, type AcknowledgmentData } from '$lib/free-will/acknowledgment';
 
 export class IncompleteWillError extends Error {
 	constructor() {
@@ -11,10 +12,27 @@ export class IncompleteWillError extends Error {
 	}
 }
 
+export class AcknowledgmentRequiredError extends Error {
+	constructor() {
+		super('Required acknowledgment checkboxes are missing');
+		this.name = 'AcknowledgmentRequiredError';
+	}
+}
+
 /** Throws when any active step is missing or invalid. */
 export function assertWillComplete(responses: WillResponse[]): void {
 	if (!isWillComplete(toWillResponses(responses))) {
 		throw new IncompleteWillError();
+	}
+}
+
+/** Throws when this user's situation requires an acknowledgment checkbox that isn't checked. */
+export function assertAcknowledgmentComplete(
+	responses: WillResponse[],
+	acknowledgmentData: AcknowledgmentData | null | undefined,
+): void {
+	if (!isAcknowledgmentComplete(toWillResponses(responses), acknowledgmentData)) {
+		throw new AcknowledgmentRequiredError();
 	}
 }
 
@@ -53,22 +71,41 @@ export type SaveFreeWillInput = {
 	tags: string[];
 	recommendedPlan: string | null;
 	reviewReminders: boolean;
+	acknowledgmentData: AcknowledgmentData | null;
+	/** First-touch UTM attribution (A7 groundwork), captured client-side on first page load. */
+	utmSource?: string | null;
+	utmMedium?: string | null;
+	utmCampaign?: string | null;
 };
 
-/** Persist a free will for an authenticated user (upsert their latest open row). */
+/**
+ * Persist a free will for an authenticated user.
+ *
+ * A4 — the flow is no longer locked to a single row per user: passing the id
+ * of a will the user already owns updates that row in place (the "edit my
+ * answers" path); omitting it (or passing an id that doesn't resolve to one
+ * of their rows) always inserts a new one (the "start a new will" path, and
+ * every first-time save). This is what lets a user hold several finished
+ * wills — e.g. a second spouse completing one on the same account.
+ */
 export async function saveFreeWillForUser(
 	userId: string,
 	name: string,
 	email: string,
 	input: SaveFreeWillInput,
+	willId?: number | null,
 ): Promise<{ id: number }> {
 	assertWillComplete(input.responses);
+	assertAcknowledgmentComplete(input.responses, input.acknowledgmentData);
 
-	const existing = await db.query.freeWill.findFirst({
-		where: eq(freeWill.userId, userId),
-		orderBy: [desc(freeWill.createdAt)],
-	});
+	const existing = willId
+		? await db.query.freeWill.findFirst({
+				where: and(eq(freeWill.id, willId), eq(freeWill.userId, userId)),
+			})
+		: null;
 
+	// Preserve the row's original first-touch attribution across edits — only
+	// fill it in if this is the first time we've captured a UTM for this will.
 	const values = {
 		userId,
 		name,
@@ -81,6 +118,11 @@ export async function saveFreeWillForUser(
 		reviewReminders: input.reviewReminders,
 		complete: true,
 		updatedAt: new Date(),
+		acknowledgmentAcceptedAt: new Date(),
+		acknowledgmentData: input.acknowledgmentData,
+		utmSource: existing?.utmSource ?? input.utmSource ?? null,
+		utmMedium: existing?.utmMedium ?? input.utmMedium ?? null,
+		utmCampaign: existing?.utmCampaign ?? input.utmCampaign ?? null,
 	};
 
 	if (existing) {
@@ -101,8 +143,9 @@ export async function savePendingFreeWill(
 	name: string,
 	email: string,
 	input: SaveFreeWillInput,
-): Promise<void> {
+): Promise<{ id: number }> {
 	assertWillComplete(input.responses);
+	assertAcknowledgmentComplete(input.responses, input.acknowledgmentData);
 
 	const claimEmail = email.trim().toLowerCase();
 
@@ -110,18 +153,28 @@ export async function savePendingFreeWill(
 		.delete(freeWill)
 		.where(and(isNull(freeWill.userId), eq(freeWill.claimEmail, claimEmail)));
 
-	await db.insert(freeWill).values({
-		userId: null,
-		name,
-		claimEmail,
-		state: input.state,
-		legalMode: input.legalMode,
-		responses: input.responses,
-		tags: input.tags,
-		recommendedPlan: input.recommendedPlan,
-		reviewReminders: input.reviewReminders,
-		complete: true,
-	});
+	const [inserted] = await db
+		.insert(freeWill)
+		.values({
+			userId: null,
+			name,
+			claimEmail,
+			state: input.state,
+			legalMode: input.legalMode,
+			responses: input.responses,
+			tags: input.tags,
+			recommendedPlan: input.recommendedPlan,
+			reviewReminders: input.reviewReminders,
+			complete: true,
+			acknowledgmentAcceptedAt: new Date(),
+			acknowledgmentData: input.acknowledgmentData,
+			utmSource: input.utmSource ?? null,
+			utmMedium: input.utmMedium ?? null,
+			utmCampaign: input.utmCampaign ?? null,
+		})
+		.returning({ id: freeWill.id });
+
+	return { id: inserted.id };
 }
 
 /**

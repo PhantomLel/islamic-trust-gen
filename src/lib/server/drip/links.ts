@@ -1,16 +1,20 @@
 import { consultationBookingUrl } from '$lib/config';
 import type { SequenceName } from './sequences';
 
-/** Build a tracked URL with UTM params for drip emails. */
+/**
+ * Build a tracked URL with UTM params. `campaign` accepts any drip
+ * `SequenceName` plus one-off transactional campaigns (e.g. `will_delivery`,
+ * ticket A2) so masjid/lead-source attribution survives into email clicks.
+ */
 export function trackUrl(
 	base: string,
-	opts: { campaign: SequenceName; content: string; source?: string; medium?: string },
+	opts: { campaign: SequenceName | 'will_delivery'; content?: string; source?: string; medium?: string },
 ): string {
 	const url = new URL(base);
 	url.searchParams.set('utm_source', opts.source ?? 'drip');
 	url.searchParams.set('utm_medium', opts.medium ?? 'email');
 	url.searchParams.set('utm_campaign', opts.campaign);
-	url.searchParams.set('utm_content', opts.content);
+	if (opts.content) url.searchParams.set('utm_content', opts.content);
 	return url.toString();
 }
 

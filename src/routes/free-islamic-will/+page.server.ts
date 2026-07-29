@@ -3,6 +3,8 @@ import { Resend } from 'resend';
 import { env } from '$env/dynamic/private';
 import type { PageServerLoad, Actions } from './$types';
 import {
+	AcknowledgmentRequiredError,
+	assertAcknowledgmentComplete,
 	assertWillComplete,
 	claimPendingFreeWills,
 	getLatestFreeWill,
@@ -11,14 +13,20 @@ import {
 	saveFreeWillForUser,
 	type SaveFreeWillInput,
 } from '$lib/server/freeWill';
-import { isWillComplete, toWillResponses } from '$lib/free-will/logic';
+import {
+	getEmailFlags,
+	emailFlagLabels,
+	freeWillOfferLadder,
+	isWillComplete,
+	requiresCommunityPropertyAcknowledgment,
+	toWillResponses,
+} from '$lib/free-will/logic';
+import { isAcknowledgmentComplete, type AcknowledgmentData } from '$lib/free-will/acknowledgment';
 import { renderFreeWill } from '$lib/server/documents/renderWill';
 import { saveGeneratedWillDocx } from '$lib/server/documents/storage';
-import {
-	freeWillReadyEmail,
-	type FreeWillRecommendedPlan,
-} from '$lib/server/emails/freeWillReady';
-import { siteName, consultationBookingUrl } from '$lib/config';
+import { freeWillReadyEmailV2, type FreeWillReadyV2Offer } from '$lib/server/emails/freeWillReadyV2';
+import { trackUrl } from '$lib/server/drip/links';
+import { consultationBookingUrl } from '$lib/config';
 import { stateName, type WillResponse } from '$lib/free-will/config';
 import { enrollLead } from '$lib/server/drip/enroll';
 
@@ -26,32 +34,38 @@ const WILL_DOC_KIND = 'free-will';
 
 type WillDownload = { url: string; filename: string };
 
-/** Resolve the recommended-plan card for the will-ready email, with absolute URLs. */
-function recommendedPlanForEmail(planKey: string | null): FreeWillRecommendedPlan | null {
+const OFFER_CARD_META: Record<'goodtree-trust' | 'legacy-plan', Omit<FreeWillReadyV2Offer, 'href'>> = {
+	'goodtree-trust': {
+		title: 'GoodTree Trust',
+		tagline: 'Build an attorney-backed Islamic living trust online \u2014 designed to implement the Islamic shares more completely, keep your family out of probate court, and guide you through signing and funding.',
+		priceLine: 'Flat fee.',
+		variant: 'app',
+	},
+	'legacy-plan': {
+		title: 'Legacy Plan',
+		tagline: 'Full-service estate planning designed personally by your attorney.',
+		priceLine: 'From $3,500.',
+		variant: 'premium',
+	},
+};
+
+/**
+ * Resolve the A2 upsell ladder into absolute, UTM-tracked offer cards.
+ * `utmSource` is the visitor's first-touch source once the A7 groundwork
+ * ticket lands (marketing_lead/free_will UTM columns); until then it falls
+ * back to a generic transactional source so links remain trackable.
+ */
+function resolveOffersForEmail(
+	offerKeys: ('goodtree-trust' | 'legacy-plan')[],
+	utmSource: string,
+): FreeWillReadyV2Offer[] {
 	const origin = (env.ORIGIN ?? '').replace(/\/$/, '');
-	switch (planKey) {
-		case 'goodtree-trust':
-			return {
-				title: 'GoodTree Trust',
-				tagline:
-					'Avoid probate with an attorney-supervised Islamic revocable living trust.',
-				href: origin ? `${origin}/trust` : consultationBookingUrl,
-			};
-		case 'legacy-plan':
-			return {
-				title: 'Legacy Plan',
-				tagline: 'Full-service estate planning designed personally by your attorney.',
-				href: consultationBookingUrl,
-			};
-		case 'family-waqf':
-			return {
-				title: 'Family Waqf Plan',
-				tagline: 'Protect your estate and build a lasting family endowment.',
-				href: consultationBookingUrl,
-			};
-		default:
-			return null;
-	}
+	const tag = { campaign: 'will_delivery' as const, source: utmSource };
+	return offerKeys.map((key) => {
+		const meta = OFFER_CARD_META[key];
+		const base = key === 'goodtree-trust' ? (origin ? `${origin}/trust` : '/trust') : (origin ? `${origin}/plans` : '/plans');
+		return { ...meta, href: trackUrl(base, tag) };
+	});
 }
 
 /** Email the finished will to the user with the document attached. Never throws. */
@@ -64,16 +78,28 @@ async function emailWill(opts: {
 }): Promise<void> {
 	if (!env.RESEND_API_KEY || !env.FROM_EMAIL || !opts.to) return;
 	try {
+		const responses = toWillResponses(opts.input.responses);
+		const firstName = opts.name.split(' ')[0] ?? opts.name;
+		const flagLines = getEmailFlags(responses).map((f) => emailFlagLabels[f]);
+		// Original masjid/campaign attribution (A7 groundwork), falling back to a
+		// generic transactional source when no first touch was ever captured.
+		const utmSource = opts.input.utmSource ?? 'transactional';
+		const offers = resolveOffersForEmail(freeWillOfferLadder(responses), utmSource);
+
 		const resend = new Resend(env.RESEND_API_KEY);
 		await resend.emails.send({
 			from: env.FROM_EMAIL,
 			to: opts.to,
-			subject: `Your free Islamic will is ready — ${siteName}`,
-			html: freeWillReadyEmail({
-				name: opts.name,
+			subject: `Your free Islamic will is ready, ${firstName}`,
+			html: freeWillReadyEmailV2({
+				firstName,
 				stateName: stateName(opts.input.state),
+				stateCode: opts.input.state,
 				filename: opts.filename,
-				recommendedPlan: recommendedPlanForEmail(opts.input.recommendedPlan),
+				marriedCommunityPropertyState: requiresCommunityPropertyAcknowledgment(responses),
+				flagLines,
+				offers,
+				consultUrl: trackUrl(consultationBookingUrl, { campaign: 'will_delivery', source: utmSource }),
 			}),
 			attachments: [{ filename: opts.filename, content: opts.buffer }],
 		});
@@ -100,6 +126,14 @@ async function generateWillDownload(
 		return null;
 	}
 
+	// A6: server-side gate — generation refuses to run for a situation that
+	// requires an acknowledgment checkbox (e.g. married-TX) without one stored,
+	// so the gate cannot be bypassed by posting the save action directly.
+	if (!isAcknowledgmentComplete(toWillResponses(input.responses), input.acknowledgmentData)) {
+		console.error('Skipped free will generation: acknowledgment missing', { willId });
+		return null;
+	}
+
 	try {
 		const { buffer, filename } = await renderFreeWill({
 			id: willId,
@@ -120,7 +154,7 @@ async function generateWillDownload(
 			firstName: name.split(' ')[0] ?? name,
 			sequence: 'free_will_lead',
 			leadType: 'free_will',
-			source: 'free_will',
+			source: input.utmSource ?? 'free_will',
 		}).catch((err) => console.error('[drip] Free will enroll failed:', err));
 
 		return { url: file.url, filename: file.filename };
@@ -158,6 +192,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 				tags: latest.tags ?? [],
 				recommendedPlan: latest.recommendedPlan,
 				reviewReminders: latest.reviewReminders,
+				acknowledgmentData: latest.acknowledgmentData,
+				utmSource: latest.utmSource,
+				utmMedium: latest.utmMedium,
+				utmCampaign: latest.utmCampaign,
 			},
 		);
 	}
@@ -168,14 +206,33 @@ export const load: PageServerLoad = async ({ locals }) => {
 			name: locals.user.name,
 			email: locals.user.email,
 		},
+		// A4 — includes the full answer set so "Edit my answers" can restore
+		// state on a device where localStorage doesn't already have it (e.g. a
+		// different browser, or after a magic-link/OAuth return).
 		savedWill: latest
-			? { id: latest.id, complete: latest.complete, recommendedPlan: latest.recommendedPlan }
+			? {
+					id: latest.id,
+					complete: latest.complete,
+					recommendedPlan: latest.recommendedPlan,
+					responses: (latest.responses as WillResponse[]) ?? [],
+					state: latest.state,
+					legalMode: latest.legalMode ?? 'self-help',
+					tags: latest.tags ?? [],
+					reviewReminders: latest.reviewReminders,
+					acknowledgmentData: latest.acknowledgmentData,
+				}
 			: null,
 		willDownload,
 	};
 };
 
-function parseSaveInput(form: FormData): { name: string; email: string; input: SaveFreeWillInput } {
+function parseSaveInput(form: FormData): {
+	name: string;
+	email: string;
+	input: SaveFreeWillInput;
+	/** A4 — id of the will being edited, or null to save as a new one. */
+	willId: number | null;
+} {
 	const responsesRaw = form.get('responses');
 	const tagsRaw = form.get('tags');
 	if (typeof responsesRaw !== 'string') throw error(400, 'Missing responses');
@@ -199,6 +256,25 @@ function parseSaveInput(form: FormData): { name: string; email: string; input: S
 		throw e;
 	}
 
+	const acknowledgmentDataRaw = form.get('acknowledgmentData');
+	let acknowledgmentData: AcknowledgmentData | null = null;
+	if (typeof acknowledgmentDataRaw === 'string' && acknowledgmentDataRaw) {
+		try {
+			acknowledgmentData = JSON.parse(acknowledgmentDataRaw) as AcknowledgmentData;
+		} catch {
+			throw error(400, 'Invalid acknowledgment payload');
+		}
+	}
+
+	try {
+		assertAcknowledgmentComplete(responses, acknowledgmentData);
+	} catch (e) {
+		if (e instanceof AcknowledgmentRequiredError) {
+			throw error(400, 'Please accept the required acknowledgments before continuing');
+		}
+		throw e;
+	}
+
 	const state = typeof form.get('state') === 'string' ? (form.get('state') as string) : null;
 	const legalMode = typeof form.get('legalMode') === 'string' ? (form.get('legalMode') as string) : 'self-help';
 	const recommendedPlan =
@@ -206,9 +282,16 @@ function parseSaveInput(form: FormData): { name: string; email: string; input: S
 			? (form.get('recommendedPlan') as string)
 			: null;
 
+	const willIdRaw = form.get('willId');
+	const willId =
+		typeof willIdRaw === 'string' && willIdRaw && Number.isFinite(Number(willIdRaw))
+			? Number(willIdRaw)
+			: null;
+
 	return {
 		name: typeof form.get('name') === 'string' ? (form.get('name') as string).trim() : '',
 		email: typeof form.get('email') === 'string' ? (form.get('email') as string).trim() : '',
+		willId,
 		input: {
 			responses,
 			state,
@@ -216,6 +299,10 @@ function parseSaveInput(form: FormData): { name: string; email: string; input: S
 			tags: Array.isArray(tags) ? tags : [],
 			recommendedPlan,
 			reviewReminders: form.get('reviewReminders') === 'true',
+			acknowledgmentData,
+			utmSource: typeof form.get('utmSource') === 'string' ? (form.get('utmSource') as string) || null : null,
+			utmMedium: typeof form.get('utmMedium') === 'string' ? (form.get('utmMedium') as string) || null : null,
+			utmCampaign: typeof form.get('utmCampaign') === 'string' ? (form.get('utmCampaign') as string) || null : null,
 		},
 	};
 }
@@ -224,15 +311,16 @@ export const actions: Actions = {
 	/** Persist directly to the signed-in user's account, then generate the will. */
 	saveAuthed: async ({ request, locals }) => {
 		if (!locals.user) throw error(401, 'Not authenticated');
-		const { input } = parseSaveInput(await request.formData());
+		const { input, willId } = parseSaveInput(await request.formData());
 		const { id } = await saveFreeWillForUser(
 			locals.user.id,
 			locals.user.name,
 			locals.user.email,
 			input,
+			willId,
 		);
 		const download = await generateWillDownload(id, locals.user.name, locals.user.email, input);
-		return { saved: true, willDownload: download };
+		return { saved: true, willId: id, willDownload: download };
 	},
 
 	/** Persist a pending submission keyed by email; claimed after the user signs in. */
@@ -240,7 +328,7 @@ export const actions: Actions = {
 		const { name, email, input } = parseSaveInput(await request.formData());
 		if (!email || !email.includes('@')) throw error(400, 'A valid email is required');
 		if (!name) throw error(400, 'A name is required');
-		await savePendingFreeWill(name, email, input);
-		return { saved: true };
+		const { id } = await savePendingFreeWill(name, email, input);
+		return { saved: true, willId: id };
 	},
 };

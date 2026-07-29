@@ -110,6 +110,15 @@ describe('Fraction', () => {
 // ─── Basic cases ──────────────────────────────────────────────────────
 
 describe('Basic inheritance cases', () => {
+	it('wife + 1 son + 1 daughter (free-will v11 regression — packet QA)', () => {
+		const r = calc({ spouse: true, sons: 1, daughters: 1 });
+
+		expectFrac(share(r, 'wife'), 1, 8);
+		expectFrac(perPerson(r, 'son'), 7, 12);
+		expectFrac(perPerson(r, 'daughter'), 7, 24);
+		expect(totalSumEqualsOne(r)).toBe(true);
+	});
+
 	it('wife + 2 sons + 1 daughter + both parents', () => {
 		const r = calc({
 			spouse: true,

@@ -1081,8 +1081,18 @@
 												{#if l.firstName}
 													<span class="font-medium text-navy">{l.firstName}</span>
 												{/if}
+												{#if l.leadType === 'waitlist'}
+													<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide bg-amber-50 text-amber-700 border border-amber-200/70">
+														Waitlist{l.state ? ` \u00b7 ${stateName(l.state) || l.state}` : ''}
+													</span>
+												{/if}
 											</div>
 											<div class="text-[11px] text-navy/40 break-all">{l.email}</div>
+											{#if l.leadType === 'waitlist' && (l.utmSource || l.lastStep)}
+												<div class="text-[10px] text-navy/30 mt-0.5">
+													{[l.utmSource ? `utm: ${l.utmSource}` : null, l.lastStep ? `step: ${l.lastStep}` : null].filter(Boolean).join(' · ')}
+												</div>
+											{/if}
 										</td>
 										<td class="px-4 py-3 text-[12px] text-navy/65">
 											{dripSequenceLabel(l.currentSequence)}

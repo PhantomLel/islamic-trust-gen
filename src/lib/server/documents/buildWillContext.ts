@@ -15,6 +15,7 @@ import {
 	communityPropertyWarning,
 	computeLeadTags,
 	formatAddress,
+	getAddress,
 	getHeirsResponse,
 	getNamedHeirs,
 	isCommunityPropertySituation,
@@ -26,10 +27,13 @@ import {
 } from '$lib/free-will/logic';
 import {
 	flattenNamedHeirs,
+	flattenNamedHeirsV2,
 	formatChildrenList,
+	formatParentNameAndStatus,
 	formatParentsList,
 	formatToday,
 	type HeirTableRow,
+	type HeirTableRowV2,
 } from './documentFormatters';
 
 /**
@@ -44,6 +48,10 @@ import {
 export type WillDocumentContext = {
 	testatorName: string;
 	testatorAddress: string;
+	/** Discrete address parts for the v2 template's `{{STREET_ADDRESS}}, {{CITY}}, Texas, {{ZIP}}` sentence. */
+	streetAddress: string;
+	city: string;
+	zip: string;
 	stateName: string;
 	stateCode: string;
 	county: string;
@@ -56,14 +64,23 @@ export type WillDocumentContext = {
 	children: string;
 	/** Parents with living status, e.g. "John Smith (living) and Jane Smith (deceased)". */
 	parents: string;
+	/** Single parent name + status, e.g. "John Smith (deceased)" or just "John Smith" if alive. */
+	fatherNameAndStatus: string;
+	motherNameAndStatus: string;
 
 	/** Personal representatives (executors) - 3 required */
 	executors: ExecutorEntry[];
 	/** Guardians for minor children - 2 required, only present if minor_children is true */
 	guardians: GuardianEntry[];
+	/** True when the user answered "yes" to having minor children (gates the v2 template's Section 8). */
+	hasMinorChildren: boolean;
+	/** True when a second guardian was named (guardians[1] has a name). */
+	guardian2Present: boolean;
 
 	/** One row per named heir — same shape as `husbandHeirs` / `wifeHeirs` in the joint trust template. */
 	heirsTable: HeirTableRow[];
+	/** Same heirs, split into separate fraction/percent columns with empty-name rows dropped (v2 template, ticket C6). */
+	heirsTableV2: HeirTableRowV2[];
 	distributionNotes: string[];
 
 	/** Legal mode + the exact disclaimer paragraph to print (dev brief §9). */
@@ -84,6 +101,8 @@ export type WillDocumentContext = {
 	/** Wasiyyah bequests, if any. */
 	hasWasiyyah: boolean;
 	wasiyyah: { name: string; ein: string; percentage: number }[];
+	/** Same bequests shaped for the v2 template's wasiyyah table row loop. */
+	wasiyyahV2: { orgName: string; ein: string; percent: string; notes: string }[];
 
 	/** CRM + routing metadata (not printed, but produced alongside the document). */
 	leadTags: LeadTag[];
@@ -131,7 +150,7 @@ export function buildWillDocumentContext(will: FreeWillLike): WillDocumentContex
 
 	const stateCode = typeof responses['state'] === 'string' ? responses['state'] : '';
 	const county = typeof responses['county'] === 'string' ? responses['county'] : '';
-	const homeStateCode = typeof responses['home_state'] === 'string' ? responses['home_state'] : '';
+	const homeInDifferentState = responses['home_state'] === true;
 	const mode = legalMode(responses);
 	const rec = recommendPlan(responses);
 	const rangeId = assetRanges.find((r) => r.label === responses['asset_range'])?.id;
@@ -165,10 +184,21 @@ export function buildWillDocumentContext(will: FreeWillLike): WillDocumentContex
 			? (wasiyyahRaw as WillWasiyyahResponse)
 			: null;
 
+	const address = getAddress(responses);
+	const fatherName = typeof responses['father_name'] === 'string' ? responses['father_name'] : '';
+	const fatherAlive =
+		typeof responses['father_alive'] === 'boolean' ? responses['father_alive'] : undefined;
+	const motherName = typeof responses['mother_name'] === 'string' ? responses['mother_name'] : '';
+	const motherAlive =
+		typeof responses['mother_alive'] === 'boolean' ? responses['mother_alive'] : undefined;
+
 	return {
 		testatorName:
 			typeof responses['full_legal_name'] === 'string' ? responses['full_legal_name'].trim() : '',
 		testatorAddress: formatAddress(responses),
+		streetAddress: [address?.street, address?.unit].filter((p) => p && p.trim()).join(', '),
+		city: address?.city?.trim() ?? '',
+		zip: address?.zip?.trim() ?? '',
 		stateName: stateName(stateCode),
 		stateCode,
 		county,
@@ -179,19 +209,17 @@ export function buildWillDocumentContext(will: FreeWillLike): WillDocumentContex
 			typeof responses['spouse_name'] === 'string' ? responses['spouse_name'].trim() : '',
 		gender: responses['gender'] === 'Female' ? 'female' : 'male',
 		children: formatChildrenList(namedHeirs),
-		parents: formatParentsList({
-			fatherName: typeof responses['father_name'] === 'string' ? responses['father_name'] : '',
-			fatherAlive:
-				typeof responses['father_alive'] === 'boolean' ? responses['father_alive'] : undefined,
-			motherName: typeof responses['mother_name'] === 'string' ? responses['mother_name'] : '',
-			motherAlive:
-				typeof responses['mother_alive'] === 'boolean' ? responses['mother_alive'] : undefined,
-		}),
+		parents: formatParentsList({ fatherName, fatherAlive, motherName, motherAlive }),
+		fatherNameAndStatus: formatParentNameAndStatus(fatherName, fatherAlive),
+		motherNameAndStatus: formatParentNameAndStatus(motherName, motherAlive),
 
 		executors,
 		guardians,
+		hasMinorChildren: responses['minor_children'] === true,
+		guardian2Present: guardians[1].fullName.trim().length > 0,
 
 		heirsTable,
+		heirsTableV2: flattenNamedHeirsV2(namedHeirs),
 		distributionNotes: heirsResponse?.notes ?? [],
 
 		legalMode: mode,
@@ -206,10 +234,16 @@ export function buildWillDocumentContext(will: FreeWillLike): WillDocumentContex
 
 		assetRange: assetRangeLabel(rangeId),
 		ownsHome: responses['own_home'] === true,
-		homeStateName: stateName(homeStateCode),
+		homeStateName: homeInDifferentState ? 'another state' : '',
 
 		hasWasiyyah: !!(wasiyyah?.interested && wasiyyah.bequests.some((b) => b.percentage > 0)),
 		wasiyyah: buildWasiyyahList(wasiyyah),
+		wasiyyahV2: buildWasiyyahList(wasiyyah).map((w) => ({
+			orgName: w.name,
+			ein: w.ein,
+			percent: `${w.percentage}%`,
+			notes: '',
+		})),
 
 		leadTags: computeLeadTags(responses),
 		recommendedPlan: rec.plan,

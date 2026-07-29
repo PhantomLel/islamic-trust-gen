@@ -57,7 +57,7 @@ export function amanaMarketingEmailDocument(
           <tr>
             <td style="padding:32px 24px 24px 24px;border-top:1px solid #d4cdc4;text-align:center;">
               <p style="margin:0 0 4px 0;font-size:13px;color:#5a7a70;font-weight:500;">McDaniel Estate Planning, PLLC</p>
-              <p style="margin:0;font-size:12px;color:#8a9a94;line-height:1.6;">${escapeHtmlText(siteName)} is a service of McDaniel Estate Planning, PLLC. Licensed in the State of Texas.</p>
+              <p style="margin:0;font-size:12px;color:#8a9a94;line-height:1.6;">${escapeHtmlText(siteName)} is a service of McDaniel Estate Planning, PLLC. Licensed in Texas and California.</p>
               <p style="margin:12px 0 0 0;font-size:11px;color:#a0aea8;line-height:1.5;">This is a marketing email. It does not replace individualized legal advice.</p>
               <p style="margin:8px 0 0 0;font-size:11px;color:#a0aea8;line-height:1.5;">${safeAddress}</p>
               <p style="margin:10px 0 0 0;font-size:11px;line-height:1.5;">
@@ -108,7 +108,7 @@ export function amanaEmailDocument(title: string, mainRowsHtml: string): string 
           <tr>
             <td style="padding:32px 24px 0 24px;border-top:1px solid #d4cdc4;text-align:center;">
               <p style="margin:0 0 4px 0;font-size:13px;color:#5a7a70;font-weight:500;">McDaniel Estate Planning, PLLC</p>
-              <p style="margin:0;font-size:12px;color:#8a9a94;line-height:1.6;">${escapeHtmlText(siteName)} is a service of McDaniel Estate Planning, PLLC. Licensed in the State of Texas.</p>
+              <p style="margin:0;font-size:12px;color:#8a9a94;line-height:1.6;">${escapeHtmlText(siteName)} is a service of McDaniel Estate Planning, PLLC. Licensed in Texas and California.</p>
               <p style="margin:12px 0 0 0;font-size:11px;color:#a0aea8;line-height:1.5;">This message is transactional. It does not replace individualized legal advice.</p>
             </td>
           </tr>

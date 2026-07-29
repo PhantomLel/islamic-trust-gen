@@ -19,6 +19,7 @@ import {
 	assetRangeFloor,
 	assetRanges,
 	attorneyServiceStates,
+	communityPropertyAckStates,
 	communityPropertyClauseStates,
 	communityPropertyWarningStates,
 	isWillAvailableState,
@@ -34,6 +35,7 @@ import {
 	type WillWasiyyahResponse,
 	type YesNoUnsure,
 } from './config';
+import { isFullLegalName } from './validation';
 
 /** Flat `{ id, response }[]` storage rows → keyed `WillResponses` for logic functions. */
 export function toWillResponses(
@@ -64,11 +66,25 @@ export function isStepAnswered(step: WillStep, responses: WillResponses): boolea
 	}
 	if (step.type === 'executors') {
 		if (!Array.isArray(v) || v.length !== 3) return false;
-		return v.every((e: any) => e && typeof e.fullName === 'string' && e.fullName.trim().length > 0 && typeof e.relationship === 'string' && e.relationship.trim().length > 0);
+		return v.every(
+			(e: any) =>
+				e &&
+				typeof e.fullName === 'string' &&
+				isFullLegalName(e.fullName) &&
+				typeof e.relationship === 'string' &&
+				e.relationship.trim().length > 0,
+		);
 	}
 	if (step.type === 'guardians') {
 		if (!Array.isArray(v) || v.length !== 2) return false;
-		return v.every((g: any) => g && typeof g.fullName === 'string' && g.fullName.trim().length > 0 && typeof g.relationship === 'string' && g.relationship.trim().length > 0);
+		return v.every(
+			(g: any) =>
+				g &&
+				typeof g.fullName === 'string' &&
+				isFullLegalName(g.fullName) &&
+				typeof g.relationship === 'string' &&
+				g.relationship.trim().length > 0,
+		);
 	}
 	if (step.type === 'address') {
 		const a = v as AddressValue;
@@ -176,6 +192,12 @@ export function appliesCommunityPropertyClauses(responses: WillResponses): boole
 	return isMarried(responses) && typeof state === 'string' && communityPropertyClauseStates.has(state);
 }
 
+/** Married + in a state requiring the A6 community-property acknowledgment checkbox (Texas only for now). */
+export function requiresCommunityPropertyAcknowledgment(responses: WillResponses): boolean {
+	const state = responses['state'];
+	return isMarried(responses) && typeof state === 'string' && communityPropertyAckStates.has(state);
+}
+
 export const communityPropertyWarning =
 	'Because you are married and live in a community property state, some property may already belong to your spouse under state law and may not be controlled by your will. This free will applies Islamic inheritance to the property your will can control and includes language designed to reduce conflicts with your spouse\u2019s community property rights. For stricter planning \u2014 especially if you own a home, retirement accounts, or significant assets \u2014 attorney review is recommended.';
 
@@ -185,6 +207,7 @@ export const communityPropertyWarning =
 export type WillLimitationReason =
 	| 'married'
 	| 'homeowner'
+	| 'out_of_state_home'
 	| 'retirement_accounts'
 	| 'life_insurance'
 	| 'strict_faraid';
@@ -197,6 +220,8 @@ export const willLimitationReasonLabels: Record<WillLimitationReason, string> = 
 		'Married couples may have property rights between spouses that pass outside a will.',
 	homeowner:
 		'Homes can pass outside your will depending on how title is held and state law.',
+	out_of_state_home:
+		'Your home is in a different state than where you live — that may require ancillary probate or extra review.',
 	retirement_accounts:
 		'Retirement accounts such as 401(k)s and IRAs typically pass by beneficiary designation, not your will.',
 	life_insurance:
@@ -213,6 +238,7 @@ export function getWillLimitationReasons(responses: WillResponses): WillLimitati
 	const reasons: WillLimitationReason[] = [];
 	if (isMarried(responses)) reasons.push('married');
 	if (responses['own_home'] === true) reasons.push('homeowner');
+	if (responses['home_state'] === true) reasons.push('out_of_state_home');
 	if (responses['retirement_accounts'] === true) reasons.push('retirement_accounts');
 	if (responses['life_insurance'] === true) reasons.push('life_insurance');
 	if (responses['strict_faraid'] === true) reasons.push('strict_faraid');
@@ -280,6 +306,7 @@ export type LeadTag =
 	| 'charitable_intent'
 	| 'waqf_interest'
 	| 'attorney_interest'
+	| 'out_of_state_home'
 	| 'strict_faraid_intent'
 	| 'will_limitation_flag';
 
@@ -295,6 +322,7 @@ export function computeLeadTags(responses: WillResponses): LeadTag[] {
 	if (communityProperty) tags.add('community_property_state');
 	if (homeowner) tags.add('homeowner');
 	if (homeowner && communityProperty) tags.add('homeowner_review');
+	if (responses['home_state'] === true) tags.add('out_of_state_home');
 	if (responses['minor_children'] === true) tags.add('minor_children');
 	if (responses['special_needs'] === true) tags.add('special_needs_heir');
 	if (responses['blended_family'] === true) tags.add('blended_family');
@@ -347,6 +375,81 @@ export function recommendPlan(responses: WillResponses): PlanRecommendation {
 		return { plan: 'goodtree-trust', attorneyReviewNote };
 	}
 	return { plan: null, attorneyReviewNote };
+}
+
+// ─── Will-delivery email flags & upsell ladder (ticket A2) ────────────────────
+
+/** Attorney-review flags surfaced as bullets in the will-delivery email's "Recommended next steps" block. */
+export type EmailFlag =
+	| 'homeowner'
+	| 'retirement_accounts'
+	| 'life_insurance'
+	| 'business_owner'
+	| 'blended_family'
+	| 'special_needs'
+	| 'strict_faraid'
+	| 'avoid_probate'
+	| 'out_of_state_home';
+
+export const emailFlagLabels: Record<EmailFlag, string> = {
+	homeowner: 'Your home may pass outside your will depending on how title is held.',
+	retirement_accounts:
+		'Retirement accounts such as 401(k)s and IRAs pass by beneficiary designation, not your will \u2014 review yours.',
+	life_insurance:
+		'Life insurance proceeds pass by beneficiary designation, not your will \u2014 review yours.',
+	business_owner: 'Business ownership often needs succession planning beyond a will.',
+	blended_family:
+		'Blended families benefit from extra planning to reduce disputes between children from different relationships.',
+	special_needs:
+		'A child with special needs may need a supplemental needs trust to protect their eligibility for benefits.',
+	strict_faraid: 'You told us strict faraid compliance matters to you \u2014 a will alone may not fully achieve this.',
+	avoid_probate:
+		'You told us you want to keep your family out of probate court \u2014 a will alone does not avoid probate.',
+	out_of_state_home:
+		'Your home is in a different state than where you live \u2014 an attorney can review whether ancillary probate applies.',
+};
+
+/** Active email flags for this user's answers, in a fixed display order. */
+export function getEmailFlags(responses: WillResponses): EmailFlag[] {
+	const flags: EmailFlag[] = [];
+	if (responses['own_home'] === true) flags.push('homeowner');
+	if (responses['retirement_accounts'] === true) flags.push('retirement_accounts');
+	if (responses['life_insurance'] === true) flags.push('life_insurance');
+	if (responses['business_ownership'] === true) flags.push('business_owner');
+	if (responses['blended_family'] === true) flags.push('blended_family');
+	if (responses['special_needs'] === true) flags.push('special_needs');
+	if (responses['strict_faraid'] === true) flags.push('strict_faraid');
+	if (yesNoUnsureTruthy(responses['avoid_probate'])) flags.push('avoid_probate');
+	if (responses['home_state'] === true) flags.push('out_of_state_home');
+	return flags;
+}
+
+/**
+ * APP_RECOMMENDED (ticket A2): true when flags include probate avoidance,
+ * homeowner, strict faraid, retirement accounts, or life insurance. Drives
+ * whether the GoodTree Trust App card renders above the always-present
+ * Legacy Plan card in both the will-delivery email and the completion page.
+ */
+export function isAppRecommended(responses: WillResponses): boolean {
+	const flags = new Set(getEmailFlags(responses));
+	return (
+		flags.has('avoid_probate') ||
+		flags.has('homeowner') ||
+		flags.has('strict_faraid') ||
+		flags.has('retirement_accounts') ||
+		flags.has('life_insurance')
+	);
+}
+
+export type OfferKey = 'goodtree-trust' | 'legacy-plan';
+
+/**
+ * Ordered upsell ladder for the will-delivery email and completion screen
+ * (ticket A2) — one source of truth so both surfaces render the same order:
+ * GoodTree Trust App first when `isAppRecommended`, Legacy Plan always present.
+ */
+export function freeWillOfferLadder(responses: WillResponses): OfferKey[] {
+	return isAppRecommended(responses) ? ['goodtree-trust', 'legacy-plan'] : ['legacy-plan'];
 }
 
 // ─── Inheritance calculator mapping ───────────────────────────────────────────
@@ -418,6 +521,14 @@ export function heirsCalculatorAllResponses(
 	}
 
 	return mapped;
+}
+
+/** B1: married in intake but the faraid calculator has the spouse unchecked. */
+export function isMarriedSpouseExcluded(
+	allResponses: Record<string, QuestionResponseValue>,
+	spouseIncluded: boolean,
+): boolean {
+	return allResponses['spouse-present'] === true && !spouseIncluded;
 }
 
 export type { YesNoUnsure };

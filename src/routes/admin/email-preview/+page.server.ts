@@ -1,7 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { Resend } from 'resend';
 import { env } from '$env/dynamic/private';
-import { siteName, replyToEmail } from '$lib/config';
+import { siteName } from '$lib/config';
+import { replyToEmail } from '$lib/server/config';
 import { listPreviewableEmails, renderPreviewEmail, findPreviewableEmail } from '$lib/server/drip/preview';
 import type { QuizResult } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
