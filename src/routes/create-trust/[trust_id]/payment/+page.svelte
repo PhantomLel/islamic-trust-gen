@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName, consultationBookingUrl } from '$lib/config';
+	import { siteName, consultationBookingUrl, wasiyyahDiscount } from '$lib/config';
 	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 	import { authClient } from '$lib/auth-client';
 	import { page } from '$app/stores';
@@ -9,8 +9,6 @@
 	import { WARNING_AGREEMENT_VERSION } from '$lib/loe';
 
 	let { data } = $props();
-
-	const CHARITY_DISCOUNT = 200;
 	const DEED_RETRIEVAL_FEE = 35;
 
 	type PlanId = 'full' | 'discounted';
@@ -19,7 +17,7 @@
 	let submitting = $state(false);
 
 	let fullPrice = $derived(data.amountUsd);
-	let discountedPrice = $derived(Math.max(0, data.amountUsd - CHARITY_DISCOUNT));
+	let discountedPrice = $derived(Math.max(0, data.amountUsd - wasiyyahDiscount));
 	let baseDue = $derived(selectedPlan === 'discounted' ? discountedPrice : fullPrice);
 	let amountDue = $derived(baseDue + (addDeedRetrieval ? DEED_RETRIEVAL_FEE : 0));
 
@@ -306,7 +304,7 @@
 			/>
 			<p class="text-[13px] text-navy/50 font-light leading-relaxed">
 				Before any money is distributed to your heirs, you can bequest up to 1/3 of your wealth to almost any cause. We are
-				offering to give you a ${CHARITY_DISCOUNT} discount if you pledge even 1% of your wealth to any charity of your
+				offering to give you a ${wasiyyahDiscount} discount if you pledge even 1% of your wealth to any charity of your
 				choosing. You will select where to donate later.
 			</p>
 		</div>
@@ -338,7 +336,7 @@
 						</div>
 						<p class="text-[13px] text-navy/50 leading-relaxed">
 							Pay the full fee now. If you make a charitable bequest election later in this process, we will refund you
-							<span class="font-medium text-emerald-accent">${CHARITY_DISCOUNT}</span>.
+							<span class="font-medium text-emerald-accent">${wasiyyahDiscount}</span>.
 						</p>
 					</div>
 				</div>
@@ -355,7 +353,7 @@
 			>
 				<div class="absolute top-3 right-4">
 					<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-accent/10 text-emerald-accent">
-						Save ${CHARITY_DISCOUNT}
+						Save ${wasiyyahDiscount}
 					</span>
 				</div>
 				<div class="flex items-start gap-4">
@@ -373,7 +371,7 @@
 						<p class="text-[13px] text-navy/50 leading-relaxed">
 							Pay the discounted rate now. This price is confirmed when you complete your charitable bequest election later.
 							If you do not make the election, the remaining
-							<span class="font-medium text-navy/70">${CHARITY_DISCOUNT}</span> is charged before your document is generated.
+							<span class="font-medium text-navy/70">${wasiyyahDiscount}</span> is charged before your document is generated.
 						</p>
 					</div>
 				</div>
@@ -425,7 +423,7 @@
 				{#if selectedPlan === 'discounted'}
 					<div class="flex items-baseline justify-between text-emerald-accent">
 						<span>Wasiyyah pledge discount</span>
-						<span class="tabular-nums">-${CHARITY_DISCOUNT}.00</span>
+						<span class="tabular-nums">-${wasiyyahDiscount}.00</span>
 					</div>
 				{/if}
 				{#if addDeedRetrieval}

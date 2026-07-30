@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { siteName, defaultPrepFee, formatUsd } from '$lib/config';
+	import { siteName, defaultPrepFee, formatUsd, wasiyyahDiscount } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { slide } from 'svelte/transition';
 
-	const CHARITY_DISCOUNT = 200;
-	const discountedPrepFee = defaultPrepFee - CHARITY_DISCOUNT;
+	const discountedPrepFee = defaultPrepFee - wasiyyahDiscount;
 
 	let { data } = $props();
 	let mobileMenuOpen = $state(false);
@@ -267,7 +266,7 @@
 							<div class="flex items-baseline gap-2 flex-wrap">
 								<span class="text-sm font-semibold text-navy">Pay {formatUsd(discountedPrepFee)}</span>
 								<span class="text-navy/35 text-xs line-through tabular-nums">{formatUsd(defaultPrepFee)}</span>
-								<span class="text-[10px] font-semibold tracking-wide uppercase text-emerald-accent">Save {formatUsd(CHARITY_DISCOUNT)}</span>
+								<span class="text-[10px] font-semibold tracking-wide uppercase text-emerald-accent">Save {formatUsd(wasiyyahDiscount)}</span>
 							</div>
 							<p class="text-[11px] text-navy/50 leading-relaxed mt-0.5">
 								Pledge a charitable gift to a masjid or Islamic institution of your choice.

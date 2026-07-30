@@ -8,9 +8,7 @@ import { and, eq } from 'drizzle-orm';
 import { stripe } from '$lib/server/stripe';
 import { promoteTrustAfterPayment } from '$lib/server/fulfillCheckout';
 import type { PageServerLoad, Actions } from './$types';
-import { defaultPrepFee, postPaymentEntryQuestionId } from '$lib/config';
-
-const CHARITY_DISCOUNT = 200;
+import { defaultPrepFee, postPaymentEntryQuestionId, wasiyyahDiscount } from '$lib/config';
 const DEED_RETRIEVAL_FEE = 35;
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -84,11 +82,11 @@ export const actions: Actions = {
 		// Stripe caps a fixed-amount coupon at the order subtotal, so the effective total
 		// can only bottom out at $0 (never negative) even for a large discount on a low price.
 		const discountApplied = selectedPlan === 'discounted'
-			? Math.min(CHARITY_DISCOUNT, baseAmount + deedAmount)
+			? Math.min(wasiyyahDiscount, baseAmount + deedAmount)
 			: 0;
 		const effectiveTotal = baseAmount + deedAmount - discountApplied;
 		const trustFeeAmount = selectedPlan === 'discounted'
-			? Math.max(0, baseAmount - CHARITY_DISCOUNT)
+			? Math.max(0, baseAmount - wasiyyahDiscount)
 			: baseAmount;
 
 		const successUrl = `${env.ORIGIN}/create-trust/${trustId}?payment=success&session_id={CHECKOUT_SESSION_ID}#${postPaymentEntryQuestionId}`;
@@ -170,7 +168,7 @@ export const actions: Actions = {
 		let discounts: { coupon: string }[] | undefined;
 		if (selectedPlan === 'discounted') {
 			const coupon = await stripe.coupons.create({
-				amount_off: CHARITY_DISCOUNT * 100,
+				amount_off: wasiyyahDiscount * 100,
 				currency: 'usd',
 				name: 'Wasiyyah Pledge Discount',
 				duration: 'once',

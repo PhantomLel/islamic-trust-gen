@@ -26,7 +26,7 @@ import { renderFreeWill } from '$lib/server/documents/renderWill';
 import { saveGeneratedWillDocx } from '$lib/server/documents/storage';
 import { freeWillReadyEmailV2, type FreeWillReadyV2Offer } from '$lib/server/emails/freeWillReadyV2';
 import { trackUrl } from '$lib/server/drip/links';
-import { consultationBookingUrl } from '$lib/config';
+import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
 import { stateName, type WillResponse } from '$lib/free-will/config';
 import { enrollLead } from '$lib/server/drip/enroll';
 
@@ -38,7 +38,7 @@ const OFFER_CARD_META: Record<'goodtree-trust' | 'legacy-plan', Omit<FreeWillRea
 	'goodtree-trust': {
 		title: 'GoodTree Trust',
 		tagline: 'Build an attorney-backed Islamic living trust online \u2014 designed to implement the Islamic shares more completely, keep your family out of probate court, and guide you through signing and funding.',
-		priceLine: 'Flat fee.',
+		priceLine: `${formatUsd(defaultPrepFee)} flat fee.`,
 		variant: 'app',
 	},
 	'legacy-plan': {

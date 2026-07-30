@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { authClient } from '$lib/auth-client';
-	import { siteName, consultationBookingUrl } from '$lib/config';
+	import { siteName, consultationBookingUrl, defaultPrepFee, formatUsd, wasiyyahDiscount } from '$lib/config';
 	import type { HeirsCalculatorResponse } from '$lib/config';
 	import {
 		usStates,
@@ -126,7 +126,7 @@
 		'goodtree-trust': {
 			title: 'GoodTree Trust',
 			tagline: 'Avoid probate with an attorney-supervised Islamic revocable living trust.',
-			price: 'Flat fee',
+			price: formatUsd(defaultPrepFee),
 			href: '/trust'
 		},
 		'legacy-plan': {
