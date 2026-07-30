@@ -5,10 +5,10 @@ export const siteName = 'Muslim Legacy Planning';
 export const siteTagline = 'Islamic Estate Planning';
 export const consultationBookingUrl = 'https://mcdaniel.cliogrow.com/book/504611575cd41f17542e14c8c9c0dbde';
 export const notarizationBookingUrl = 'https://calendly.com/sumayya-mcdanielestateplanning/30min';
-/** Default trust preparation fee in whole USD (e.g. 1500 → $1,500.00). */
-export const defaultPrepFee = 1500;
+/** Default trust preparation fee in whole USD (e.g. 1499 → $1,499.00). */
+export const defaultPrepFee = 1499;
 
-/** Wasiyyah pledge discount in whole USD (1500 − 200 = $1,300 discounted rate). */
+/** Wasiyyah pledge discount in whole USD (1499 − 200 = $1,299 discounted rate). */
 export const wasiyyahDiscount = 200;
 
 /** CAN-SPAM physical mailing address required in all marketing emails. */
@@ -16,7 +16,7 @@ export const firmMailingAddress = 'McDaniel Estate Planning, PLLC · 3800 N Lama
 /** Reply-to address for marketing emails (a real inbox, not no-reply). */
 export const replyToEmail = 'info@mcdanielestateplanning.com';
 
-/** Format a whole-dollar USD amount for display (e.g. 1500 → "$1,500.00"). */
+/** Format a whole-dollar USD amount for display (e.g. 1499 → "$1,499.00"). */
 export function formatUsd(amountUsd: number): string {
 	return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amountUsd);
 }

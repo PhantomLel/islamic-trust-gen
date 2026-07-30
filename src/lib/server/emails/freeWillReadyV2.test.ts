@@ -12,7 +12,7 @@ const legacyOffer = {
 const goodTreeOffer = {
 	title: 'GoodTree Trust',
 	tagline: 'Build an attorney-backed Islamic living trust online.',
-	priceLine: '$1,500.00 flat fee.',
+	priceLine: '$1,499.00 flat fee.',
 	href: 'https://example.com/trust?utm_source=transactional&utm_medium=email&utm_campaign=will_delivery',
 	variant: 'app' as const,
 };
