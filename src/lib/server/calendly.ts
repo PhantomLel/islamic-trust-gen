@@ -158,42 +158,63 @@ async function listAllPages<T>(firstPath: string): Promise<T[]> {
 	return items;
 }
 
-async function listEventInvitees(eventUri: string): Promise<CalendlyInviteeResource[]> {
+async function listEventInvitees(
+	eventUri: string,
+	opts?: { status?: 'active' | 'canceled' }
+): Promise<CalendlyInviteeResource[]> {
 	const eventUuid = eventUri.split('/').filter(Boolean).at(-1);
 	if (!eventUuid) return [];
+	const params = new URLSearchParams({ count: '100' });
+	if (opts?.status) params.set('status', opts.status);
 	return listAllPages<CalendlyInviteeResource>(
-		`/scheduled_events/${eventUuid}/invitees?status=active&count=100`
+		`/scheduled_events/${eventUuid}/invitees?${params.toString()}`
 	);
 }
 
-/** List active invitees for recent scheduled events (used by cron sync). */
-export async function listActiveInviteesSince(minCreatedAtIso: string): Promise<CalendlyInviteeResource[]> {
+async function listScheduledEventsSince(
+	minStartTimeIso: string,
+	eventStatus: 'active' | 'canceled'
+): Promise<CalendlyScheduledEvent[]> {
 	const userUri = await getEventTypeOwnerUserUri();
 	if (!userUri) return [];
 
 	const params = new URLSearchParams({
 		user: userUri,
-		status: 'active',
-		min_start_time: minCreatedAtIso,
+		status: eventStatus,
+		min_start_time: minStartTimeIso,
 		count: '100',
 	});
 
-	const events = await listAllPages<CalendlyScheduledEvent>(
-		`/scheduled_events?${params.toString()}`
-	);
+	return listAllPages<CalendlyScheduledEvent>(`/scheduled_events?${params.toString()}`);
+}
 
+/** List invitees (any status) on recent scheduled events — used to reconcile bookings by utm token. */
+export async function listInviteesSince(minStartTimeIso: string): Promise<CalendlyInviteeResource[]> {
+	const [activeEvents, canceledEvents] = await Promise.all([
+		listScheduledEventsSince(minStartTimeIso, 'active'),
+		listScheduledEventsSince(minStartTimeIso, 'canceled'),
+	]);
+
+	const seen = new Set<string>();
 	const invitees: CalendlyInviteeResource[] = [];
-	for (const event of events) {
-		if (!event.uri || event.status === 'canceled') continue;
+
+	for (const event of [...activeEvents, ...canceledEvents]) {
+		if (!event.uri) continue;
 		const eventInvitees = await listEventInvitees(event.uri);
 		for (const invitee of eventInvitees) {
-			if (invitee.status === 'active') {
-				invitees.push({ ...invitee, event: invitee.event ?? event.uri });
-			}
+			if (!invitee.uri || seen.has(invitee.uri)) continue;
+			seen.add(invitee.uri);
+			invitees.push({ ...invitee, event: invitee.event ?? event.uri });
 		}
 	}
 
 	return invitees;
+}
+
+/** List active invitees for recent scheduled events (used by cron sync). */
+export async function listActiveInviteesSince(minStartTimeIso: string): Promise<CalendlyInviteeResource[]> {
+	const invitees = await listInviteesSince(minStartTimeIso);
+	return invitees.filter((invitee) => invitee.status === 'active');
 }
 
 export function verifyCalendlyWebhookSignature(opts: {

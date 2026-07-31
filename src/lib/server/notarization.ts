@@ -8,11 +8,11 @@ import {
 	createSingleUseSchedulingLink,
 	fetchScheduledEvent,
 	isCalendlyConfigured,
-	listActiveInviteesSince,
+	listInviteesSince,
 	type CalendlyInviteeResource,
 } from '$lib/server/calendly';
 import { adminUserUrl, notifyAdmins } from '$lib/server/notifyAdmins';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 
 export type NotarizationInviteePayload = {
 	uri?: string;
@@ -207,6 +207,44 @@ export async function revertNotarizationBooking(opts: {
 	);
 }
 
+function inviteeMatchesToken(invitee: CalendlyInviteeResource, token: string): boolean {
+	return invitee.tracking?.utm_content?.trim() === token.trim();
+}
+
+/** Mint a fresh single-use link (e.g. after cancel or when the previous link was consumed). */
+export async function regenerateNotarizationSchedulingLink(trustId: number): Promise<{
+	notarizationLinkUrl: string | null;
+	notarizationLinkToken: string | null;
+}> {
+	if (!isCalendlyConfigured()) {
+		return { notarizationLinkUrl: null, notarizationLinkToken: null };
+	}
+
+	try {
+		const link = await createSingleUseSchedulingLink();
+		await db
+			.update(trust)
+			.set({
+				notarizationLinkUrl: link.bookingUrl,
+				notarizationLinkToken: link.token,
+				updatedAt: new Date(),
+			})
+			.where(eq(trust.id, trustId));
+		console.log(`[notarization] Regenerated scheduling link for trust #${trustId}`);
+		return { notarizationLinkUrl: link.bookingUrl, notarizationLinkToken: link.token };
+	} catch (err) {
+		console.error(`[notarization] Failed to regenerate scheduling link for trust #${trustId}:`, err);
+		const row = await db.query.trust.findFirst({
+			where: eq(trust.id, trustId),
+			columns: { notarizationLinkUrl: true, notarizationLinkToken: true },
+		});
+		return {
+			notarizationLinkUrl: row?.notarizationLinkUrl ?? null,
+			notarizationLinkToken: row?.notarizationLinkToken ?? null,
+		};
+	}
+}
+
 /** Mint and persist a per-trust single-use Calendly link when missing. */
 export async function ensureNotarizationSchedulingLink(opts: {
 	trustId: number;
@@ -220,31 +258,130 @@ export async function ensureNotarizationSchedulingLink(opts: {
 		};
 	}
 
-	if (!isCalendlyConfigured()) {
+	return regenerateNotarizationSchedulingLink(opts.trustId);
+}
+
+export type NotarizationReconcileResult = {
+	status: TrustStatus;
+	notarizationLinkUrl: string | null;
+	notarizationBookedAt: Date | null;
+	notarizationStartTime: Date | null;
+	notarizationEndTime: Date | null;
+};
+
+/**
+ * Align trust notarization state with Calendly when webhooks were missed.
+ * - Applies active bookings found by link token (email on Calendly does not matter).
+ * - Mints a new link when the old single-use link was consumed then canceled.
+ */
+export async function reconcileNotarizationForTrust(
+	trustId: number
+): Promise<NotarizationReconcileResult | null> {
+	const row = await db.query.trust.findFirst({
+		where: eq(trust.id, trustId),
+		with: { user: { columns: { id: true, name: true, email: true } } },
+	});
+	if (!row?.approved || !row.user) return null;
+
+	const isPending = row.status === TrustStatus.NotarizationPending;
+	const isScheduled = row.status === TrustStatus.NotarizationScheduled;
+	if (!isPending && !isScheduled) {
 		return {
-			notarizationLinkUrl: opts.notarizationLinkUrl,
-			notarizationLinkToken: opts.notarizationLinkToken,
+			status: row.status as TrustStatus,
+			notarizationLinkUrl: row.notarizationLinkUrl,
+			notarizationBookedAt: row.notarizationBookedAt,
+			notarizationStartTime: row.notarizationStartTime,
+			notarizationEndTime: row.notarizationEndTime,
 		};
 	}
 
-	try {
-		const link = await createSingleUseSchedulingLink();
-		await db
-			.update(trust)
-			.set({
-				notarizationLinkUrl: link.bookingUrl,
-				notarizationLinkToken: link.token,
-				updatedAt: new Date(),
-			})
-			.where(eq(trust.id, opts.trustId));
-		return { notarizationLinkUrl: link.bookingUrl, notarizationLinkToken: link.token };
-	} catch (err) {
-		console.error(`[notarization] Failed to create scheduling link for trust #${opts.trustId}:`, err);
+	if (!isCalendlyConfigured()) {
+		const ensured = await ensureNotarizationSchedulingLink({
+			trustId,
+			notarizationLinkUrl: row.notarizationLinkUrl,
+			notarizationLinkToken: row.notarizationLinkToken,
+		});
 		return {
-			notarizationLinkUrl: opts.notarizationLinkUrl,
-			notarizationLinkToken: opts.notarizationLinkToken,
+			status: row.status as TrustStatus,
+			notarizationLinkUrl: ensured.notarizationLinkUrl,
+			notarizationBookedAt: row.notarizationBookedAt,
+			notarizationStartTime: row.notarizationStartTime,
+			notarizationEndTime: row.notarizationEndTime,
 		};
 	}
+
+	const token = row.notarizationLinkToken?.trim();
+	if (!token) {
+		const ensured = await ensureNotarizationSchedulingLink({
+			trustId,
+			notarizationLinkUrl: row.notarizationLinkUrl,
+			notarizationLinkToken: row.notarizationLinkToken,
+		});
+		return {
+			status: row.status as TrustStatus,
+			notarizationLinkUrl: ensured.notarizationLinkUrl,
+			notarizationBookedAt: row.notarizationBookedAt,
+			notarizationStartTime: row.notarizationStartTime,
+			notarizationEndTime: row.notarizationEndTime,
+		};
+	}
+
+	const lookbackDays = 90;
+	const minStart = new Date(Date.now() - lookbackDays * 86_400_000).toISOString();
+	let invitees: CalendlyInviteeResource[] = [];
+	try {
+		invitees = await listInviteesSince(minStart);
+	} catch (err) {
+		console.error(`[notarization] reconcile trust #${trustId}: Calendly lookup failed`, err);
+		return {
+			status: row.status as TrustStatus,
+			notarizationLinkUrl: row.notarizationLinkUrl,
+			notarizationBookedAt: row.notarizationBookedAt,
+			notarizationStartTime: row.notarizationStartTime,
+			notarizationEndTime: row.notarizationEndTime,
+		};
+	}
+
+	const forToken = invitees.filter((invitee) => inviteeMatchesToken(invitee, token));
+	const activeInvitee = forToken.find((invitee) => invitee.status === 'active') ?? null;
+	const hadCanceledOnly = forToken.length > 0 && !activeInvitee;
+
+	if (activeInvitee && isPending) {
+		await applyNotarizationBooking({
+			trustId,
+			user: row.user,
+			payload: inviteeToPayload(activeInvitee),
+			via: 'sync',
+		});
+	} else if (hadCanceledOnly && isPending) {
+		await regenerateNotarizationSchedulingLink(trustId);
+	} else if (isScheduled && !activeInvitee) {
+		await revertNotarizationBooking({
+			trustId,
+			user: row.user,
+			payload: {},
+		});
+	}
+
+	const updated = await db.query.trust.findFirst({
+		where: eq(trust.id, trustId),
+		columns: {
+			status: true,
+			notarizationLinkUrl: true,
+			notarizationBookedAt: true,
+			notarizationStartTime: true,
+			notarizationEndTime: true,
+		},
+	});
+	if (!updated) return null;
+
+	return {
+		status: updated.status as TrustStatus,
+		notarizationLinkUrl: updated.notarizationLinkUrl,
+		notarizationBookedAt: updated.notarizationBookedAt,
+		notarizationStartTime: updated.notarizationStartTime,
+		notarizationEndTime: updated.notarizationEndTime,
+	};
 }
 
 function inviteeToPayload(invitee: CalendlyInviteeResource): NotarizationInviteePayload {
@@ -258,50 +395,42 @@ function inviteeToPayload(invitee: CalendlyInviteeResource): NotarizationInvitee
 	};
 }
 
-/** Poll Calendly for bookings that webhooks may have missed. Returns trusts updated. */
+/** Poll Calendly and reconcile trusts whose webhooks were missed. Returns trusts updated. */
 export async function syncPendingNotarizationBookings(): Promise<number> {
 	if (!isCalendlyConfigured()) return 0;
 
-	const pendingTrusts = await db.query.trust.findMany({
-		where: and(eq(trust.approved, true), eq(trust.status, TrustStatus.NotarizationPending)),
-		columns: { id: true },
+	const rows = await db.query.trust.findMany({
+		where: and(
+			eq(trust.approved, true),
+			or(
+				eq(trust.status, TrustStatus.NotarizationPending),
+				eq(trust.status, TrustStatus.NotarizationScheduled)
+			)
+		),
+		columns: { id: true, status: true, notarizationLinkUrl: true },
 	});
-	if (pendingTrusts.length === 0) return 0;
+	if (rows.length === 0) return 0;
 
-	const pendingIds = new Set(pendingTrusts.map((t) => t.id));
-	const lookbackDays = 90;
-	const minCreated = new Date(Date.now() - lookbackDays * 86_400_000).toISOString();
-
-	let invitees: CalendlyInviteeResource[];
-	try {
-		invitees = await listActiveInviteesSince(minCreated);
-	} catch (err) {
-		console.error('[notarization] Calendly sync failed to list invitees:', err);
-		return 0;
-	}
-
-	let synced = 0;
-	for (const invitee of invitees) {
-		const matched = await findTrustForNotarizationBooking(inviteeToPayload(invitee));
-		if (!matched || !pendingIds.has(matched.id)) continue;
-
+	let updated = 0;
+	for (const row of rows) {
+		const beforeStatus = row.status;
+		const beforeLink = row.notarizationLinkUrl;
 		try {
-			await applyNotarizationBooking({
-				trustId: matched.id,
-				user: matched.user,
-				payload: inviteeToPayload(invitee),
-				via: 'sync',
-			});
-			pendingIds.delete(matched.id);
-			synced++;
+			const result = await reconcileNotarizationForTrust(row.id);
+			if (
+				result &&
+				(result.status !== beforeStatus || result.notarizationLinkUrl !== beforeLink)
+			) {
+				updated++;
+			}
 		} catch (err) {
-			console.error(`[notarization] Failed to apply sync booking for trust #${matched.id}:`, err);
+			console.error(`[notarization] reconcile failed for trust #${row.id}:`, err);
 		}
 	}
 
-	if (synced > 0) {
-		console.log(`[notarization] Synced ${synced} pending booking(s) from Calendly`);
+	if (updated > 0) {
+		console.log(`[notarization] Reconciled ${updated} trust(s) from Calendly`);
 	}
 
-	return synced;
+	return updated;
 }

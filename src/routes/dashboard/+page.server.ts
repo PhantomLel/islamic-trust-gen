@@ -11,7 +11,7 @@ import { env } from '$env/dynamic/private';
 import { isFundingAccessible, computeFundingProgress, getNextUp } from '$lib/funding/logic';
 import { flagsFromDashboard } from '$lib/server/funding';
 import { getModuleContent } from '$lib/funding/content';
-import { ensureNotarizationSchedulingLink } from '$lib/server/notarization';
+import { reconcileNotarizationForTrust } from '$lib/server/notarization';
 import type { Actions, PageServerLoad } from './$types';
 
 const utapi = new UTApi({ token: env.UPLOADTHING_TOKEN });
@@ -114,17 +114,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	let notarizationLinkUrl = existing.notarizationLinkUrl ?? null;
+	let trustStatus = existing.status;
+	let notarizationBookedAt = existing.notarizationBookedAt;
+	let notarizationStartTime = existing.notarizationStartTime;
+	let notarizationEndTime = existing.notarizationEndTime;
+
 	if (
 		existing.approved &&
-		existing.status === TrustStatus.NotarizationPending &&
-		(!notarizationLinkUrl || !existing.notarizationLinkToken)
+		(trustStatus === TrustStatus.NotarizationPending ||
+			trustStatus === TrustStatus.NotarizationScheduled)
 	) {
-		const ensured = await ensureNotarizationSchedulingLink({
-			trustId: existing.id,
-			notarizationLinkUrl,
-			notarizationLinkToken: existing.notarizationLinkToken,
-		});
-		notarizationLinkUrl = ensured.notarizationLinkUrl;
+		const reconciled = await reconcileNotarizationForTrust(existing.id);
+		if (reconciled) {
+			trustStatus = reconciled.status;
+			notarizationLinkUrl = reconciled.notarizationLinkUrl;
+			notarizationBookedAt = reconciled.notarizationBookedAt;
+			notarizationStartTime = reconciled.notarizationStartTime;
+			notarizationEndTime = reconciled.notarizationEndTime;
+		}
 	}
 
 	return {
@@ -140,7 +147,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			isEligible: existing.isEligible,
 			joint: existing.joint,
 			complete: existing.complete,
-			status: existing.status,
+			status: trustStatus,
 			approved: existing.approved,
 			fileUrls: existing.file_urls ?? [],
 			houseDeedUrl: existing.house_deed_url,
@@ -151,9 +158,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			userFiles: (existing.user_files ?? []) as UserFile[],
 			generatedFiles: existing.generated_files ?? [],
 			notarizationLinkUrl,
-			notarizationBookedAt: existing.notarizationBookedAt?.toISOString() ?? null,
-			notarizationStartTime: existing.notarizationStartTime?.toISOString() ?? null,
-			notarizationEndTime: existing.notarizationEndTime?.toISOString() ?? null,
+			notarizationBookedAt: notarizationBookedAt?.toISOString() ?? null,
+			notarizationStartTime: notarizationStartTime?.toISOString() ?? null,
+			notarizationEndTime: notarizationEndTime?.toISOString() ?? null,
 		},
 	};
 };

@@ -66,7 +66,7 @@ export function documentsApprovedEmail(input: DocumentsApprovedEmailInput): stri
           <tr>
             <td style="padding:0 24px 32px 24px;text-align:center;">
               <p style="margin:0;max-width:540px;margin-left:auto;margin-right:auto;color:#4a5e58;font-size:15px;line-height:1.7;">
-                Assalamu Alaikum. We have reviewed and approved your estate planning documents. ${trustRef} is ready for the final step before your trust takes effect.
+                Assalamu Alaikum. We have reviewed and approved your estate planning documents. Your trust is now ready for the final step before your trust takes effect.
               </p>
             </td>
           </tr>
