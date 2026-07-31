@@ -129,6 +129,7 @@ export const assetRanges: AssetRange[] = [
 	{ id: '500k-1m', label: '$500,000 – $1 million', floor: 500_000 },
 	{ id: '1m-2m', label: '$1 million – $2 million', floor: 1_000_000 },
 	{ id: '2m-plus', label: '$2 million or more', floor: 2_000_000 },
+	{ id: 'prefer-not-to-say', label: 'Prefer not to say', floor: 0 },
 ];
 
 export function assetRangeFloor(id: string | undefined | null): number {
@@ -161,8 +162,8 @@ export type WillFieldType =
 	| 'yes-no-unsure' // 'yes' | 'no' | 'unsure'
 	| 'address' // street / unit / city / zip (state comes from the `state` step)
 	| 'heirs-calculator' // reuses the Islamic inheritance calculator + heir names
-	| 'executors' // executor selection (3 required)
-	| 'guardians' // guardian selection (2 required)
+	| 'executors' // executor selection (1 required, 2 backups optional — C1)
+	| 'guardians' // guardian selection (1 required, 1 backup optional — C1)
 	| 'wasiyyah'; // wasiyyah bequests — preset charities + custom, capped at 1/3
 
 /** Islamic wasiyyah cap: one-third of the estate. */
@@ -175,6 +176,8 @@ export type WillWasiyyahEntry = {
 	/** When present this is a user-added charity (charityId is an opaque UUID). */
 	customName?: string;
 	customEin?: string;
+	/** C3 — user will supply EIN later; still allows proceeding. */
+	einDeferred?: boolean;
 };
 
 export type WillWasiyyahResponse = {
@@ -385,7 +388,7 @@ export const willSteps: WillStep[] = [
 		stage: 'assets',
 		type: 'yes-no',
 		question: 'Do you own a home?',
-		help: 'A home is often the most important asset to plan around.',
+		help: 'Homes often pass outside your will depending on how title is held. This helps us flag whether extra review may be useful.',
 	},
 	{
 		id: 'home_state',
@@ -399,7 +402,7 @@ export const willSteps: WillStep[] = [
 		id: 'other_real_estate',
 		stage: 'assets',
 		type: 'yes-no',
-		question: 'Do you own any other real estate, including property overseas?',
+		question: 'Do you own any other real estate in the U.S. besides your primary home?',
 	},
 	{
 		id: 'retirement_accounts',
@@ -419,6 +422,7 @@ export const willSteps: WillStep[] = [
 		stage: 'assets',
 		type: 'yes-no',
 		question: 'Do you have any business ownership, including a small LLC or partnership?',
+		help: 'Business interests often need succession planning beyond a basic will.',
 	},
 	{
 		id: 'asset_range',
@@ -437,19 +441,12 @@ export const willSteps: WillStep[] = [
 		question: 'Who will serve as your personal representatives?',
 	},
 	{
-		id: 'charity_interest',
-		stage: 'goals',
-		type: 'yes-no-unsure',
-		question:
-			'Would you like to leave a portion of your estate to charity, a masjid, or an Islamic institution?',
-		help: 'Up to one-third of your estate may be given as wasiyyah.',
-	},
-	{
 		id: 'wasiyyah',
 		stage: 'goals',
 		type: 'wasiyyah',
-		question: 'Set up your wasiyyah',
-		depends: { field: 'charity_interest', eq: 'yes' },
+		question:
+			'Would you like to leave a portion of your estate to charity, a masjid, or another recipient?',
+		help: 'Up to one-third of your estate may be given as wasiyyah. This is optional.',
 	},
 	{
 		id: 'avoid_probate',

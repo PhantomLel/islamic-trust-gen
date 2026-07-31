@@ -6,6 +6,7 @@
 	} from "$lib/config";
 	import { isPersonalDataShape } from "$lib/question-response-helpers";
 	import { isMarriedSpouseExcluded } from "$lib/free-will/logic";
+	import { normalizePersonName } from "$lib/free-will/validation";
 	import type { CalculationResultJSON } from "$lib/inheritance/types";
 
 	let {
@@ -509,28 +510,23 @@
 	<!-- ── CONFIGURE + RESULTS ────────────────────────────────────────────────── -->
 {:else}
 	<div class="space-y-5">
-		<!-- Info notice -->
-		<div
-			class="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-amber-50 border border-amber-200/70"
-		>
-			<svg
-				class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-				/>
-			</svg>
-			<p class="text-xs text-amber-700 leading-relaxed">
-				Only include heirs who are Muslim, of legitimate lineage, and
-				alive at time of death. Non-Muslims, adopted relatives, and
-				those of illegitimate lineage are not eligible.
+		<!-- Info notice (C4) -->
+		<div class="rounded-2xl bg-white border border-navy/10 p-6 space-y-3 text-[14px] text-navy/70 leading-relaxed">
+			<p class="font-medium text-navy/85">Tell us who is in your family</p>
+			<p>
+				Islamic inheritance follows specific eligibility rules. Include the relatives requested below, and we will calculate which relatives may inherit based on the information you provide.
 			</p>
+			<p>
+				Some family situations — such as adoption, stepchildren, conversion, interfaith marriage, or uncertainty about parentage — require individualized review.
+			</p>
+			<a
+				href="/islamic-heirs-explained"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="inline-flex items-center gap-1 text-[12px] font-medium text-navy/50 hover:text-navy/70 underline decoration-navy/20 hover:decoration-navy/40 transition-colors"
+			>
+				See who counts as an Islamic heir and why
+			</a>
 		</div>
 
 		<!-- ── CONFIGURE SECTION ──────────────────────────────────────────── -->
@@ -1089,6 +1085,18 @@
 													];
 													arr[nIdx] =
 														e.currentTarget.value;
+													names = {
+														...names,
+														[heir.heirType]: arr,
+													};
+												}}
+												onblur={(e) => {
+													const normalized = normalizePersonName(e.currentTarget.value);
+													if (normalized === e.currentTarget.value) return;
+													const arr = [
+														...(names[heir.heirType] ?? []),
+													];
+													arr[nIdx] = normalized;
 													names = {
 														...names,
 														[heir.heirType]: arr,

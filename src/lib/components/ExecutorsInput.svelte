@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ExecutorEntry } from '$lib/free-will/config';
-	import { isFullLegalName, fullLegalNameHint } from '$lib/free-will/validation';
+	import { isFullLegalName, fullLegalNameHint, normalizePersonName } from '$lib/free-will/validation';
 
 	let {
 		value,
@@ -34,7 +34,7 @@
 <div class="space-y-6">
 	<div class="rounded-2xl bg-white border border-navy/10 p-6 space-y-3">
 		<p class="text-[14px] text-navy/70 leading-relaxed">
-			Your personal representatives (also called executors) are responsible for carrying out your wishes after your death. You must name three individuals in order of preference. Only one will serve at a time — if the first is unable or unwilling, the second steps in, and so on.
+			Your personal representatives (also called executors) carry out your wishes after your death. You must name a first choice. Backups are strongly recommended — you can add one later.
 		</p>
 		<p class="text-[14px] text-navy/50 leading-relaxed">
 			Choose people who are trustworthy, organized, and willing to take on this responsibility. It is a good idea to ask them before naming them here.
@@ -46,6 +46,9 @@
 			<div class="rounded-2xl border border-navy/8 bg-white p-4">
 				<div class="flex items-center justify-between mb-3">
 					<span class="text-[11px] font-semibold text-navy/35 tracking-wider uppercase">{ordinals[i]} Personal Representative</span>
+					{#if i > 0}
+						<span class="text-[10px] text-navy/35 uppercase tracking-wide">Optional backup</span>
+					{/if}
 				</div>
 				<div class="flex items-end gap-2">
 					<div class="flex-1 min-w-0">
@@ -56,6 +59,10 @@
 							placeholder="Full legal name"
 							value={executor.fullName}
 							oninput={(e) => update(i, { fullName: (e.target as HTMLInputElement).value })}
+							onblur={(e) => {
+								const normalized = normalizePersonName((e.target as HTMLInputElement).value);
+								if (normalized !== executor.fullName) update(i, { fullName: normalized });
+							}}
 							class="w-full rounded-xl border border-navy/8 bg-navy/2 px-3.5 py-2.5 text-sm text-navy placeholder:text-navy/30 focus:outline-none focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
 						/>
 						{#if executor.fullName.trim() && !isFullLegalName(executor.fullName)}

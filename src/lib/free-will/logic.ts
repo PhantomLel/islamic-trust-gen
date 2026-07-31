@@ -35,7 +35,8 @@ import {
 	type WillWasiyyahResponse,
 	type YesNoUnsure,
 } from './config';
-import { isFullLegalName } from './validation';
+import { isFullLegalName, isCompleteRepEntry, normalizePersonName, type RepEntryLike } from './validation';
+import { getRepSlotValidationMessage, validateRepSlots } from './rep-validation';
 
 /** Flat `{ id, response }[]` storage rows → keyed `WillResponses` for logic functions. */
 export function toWillResponses(
@@ -51,6 +52,37 @@ export function toWillResponses(
 export function isStepActive(step: WillStep, responses: WillResponses): boolean {
 	if (step.depends && responses[step.depends.field] !== step.depends.eq) return false;
 	if (step.showIf && !step.showIf(responses)) return false;
+	if (step.stage === 'assets' && areAssetQuestionsSkipped(responses)) return false;
+	return true;
+}
+
+/** C5 — user chose to skip the assets section; suppress asset-based flags but never block the will. */
+export function areAssetQuestionsSkipped(responses: WillResponses): boolean {
+	return responses['assets_skipped'] === true;
+}
+
+function getWasiyyahResponse(responses: WillResponses): WillWasiyyahResponse | undefined {
+	const v = responses['wasiyyah'];
+	if (v && typeof v === 'object' && 'interested' in v) return v as WillWasiyyahResponse;
+	return undefined;
+}
+
+function hasCharitableWasiyyahIntent(responses: WillResponses): boolean {
+	const wasiyyah = getWasiyyahResponse(responses);
+	if (wasiyyah?.interested) return true;
+	return yesNoUnsureTruthy(responses['charity_interest']);
+}
+
+function isWasiyyahBequestComplete(
+	b: WillWasiyyahResponse['bequests'][number],
+	presetNames: Map<string, string>,
+): boolean {
+	if (b.percentage <= 0) return false;
+	if (!resolveWillWasiyyahRecipientName(b, presetNames).trim()) return false;
+	if (typeof b.customName === 'string') {
+		const hasEin = (b.customEin?.trim() ?? '').length > 0;
+		if (!hasEin && !b.einDeferred) return false;
+	}
 	return true;
 }
 
@@ -66,25 +98,11 @@ export function isStepAnswered(step: WillStep, responses: WillResponses): boolea
 	}
 	if (step.type === 'executors') {
 		if (!Array.isArray(v) || v.length !== 3) return false;
-		return v.every(
-			(e: any) =>
-				e &&
-				typeof e.fullName === 'string' &&
-				isFullLegalName(e.fullName) &&
-				typeof e.relationship === 'string' &&
-				e.relationship.trim().length > 0,
-		);
+		return validateRepSlots(v as RepEntryLike[], 1);
 	}
 	if (step.type === 'guardians') {
 		if (!Array.isArray(v) || v.length !== 2) return false;
-		return v.every(
-			(g: any) =>
-				g &&
-				typeof g.fullName === 'string' &&
-				isFullLegalName(g.fullName) &&
-				typeof g.relationship === 'string' &&
-				g.relationship.trim().length > 0,
-		);
+		return validateRepSlots(v as RepEntryLike[], 1);
 	}
 	if (step.type === 'address') {
 		const a = v as AddressValue;
@@ -99,16 +117,12 @@ export function isStepAnswered(step: WillStep, responses: WillResponses): boolea
 	if (step.type === 'wasiyyah') {
 		const w = v as WillWasiyyahResponse;
 		if (!w || typeof w !== 'object' || !('interested' in w)) return false;
-		// Not interested = valid, answered
 		if (!w.interested) return true;
-		// Interested: must have at least one bequest, all with valid percentages, total ≤ cap
 		if (!Array.isArray(w.bequests) || w.bequests.length === 0) return false;
 		const total = w.bequests.reduce((s, b) => s + (b.percentage || 0), 0);
 		if (total > WILL_WASIYYAH_CAP + 1e-6) return false;
 		const presetNames = new Map(presetCharities.map((c) => [c.id, c.name]));
-		return w.bequests.every(
-			(b) => b.percentage > 0 && resolveWillWasiyyahRecipientName(b, presetNames).length > 0,
-		);
+		return w.bequests.every((b) => isWasiyyahBequestComplete(b, presetNames));
 	}
 	if (typeof v === 'string') return v.trim().length > 0;
 	return true;
@@ -237,8 +251,10 @@ export const willLimitationWarningOutro =
 export function getWillLimitationReasons(responses: WillResponses): WillLimitationReason[] {
 	const reasons: WillLimitationReason[] = [];
 	if (isMarried(responses)) reasons.push('married');
-	if (responses['own_home'] === true) reasons.push('homeowner');
-	if (responses['home_state'] === true) reasons.push('out_of_state_home');
+	if (!areAssetQuestionsSkipped(responses)) {
+		if (responses['own_home'] === true) reasons.push('homeowner');
+		if (responses['home_state'] === true) reasons.push('out_of_state_home');
+	}
 	if (responses['retirement_accounts'] === true) reasons.push('retirement_accounts');
 	if (responses['life_insurance'] === true) reasons.push('life_insurance');
 	if (responses['strict_faraid'] === true) reasons.push('strict_faraid');
@@ -320,21 +336,23 @@ export function computeLeadTags(responses: WillResponses): LeadTag[] {
 	);
 
 	if (communityProperty) tags.add('community_property_state');
-	if (homeowner) tags.add('homeowner');
-	if (homeowner && communityProperty) tags.add('homeowner_review');
-	if (responses['home_state'] === true) tags.add('out_of_state_home');
 	if (responses['minor_children'] === true) tags.add('minor_children');
 	if (responses['special_needs'] === true) tags.add('special_needs_heir');
 	if (responses['blended_family'] === true) tags.add('blended_family');
-	if (responses['business_ownership'] === true) tags.add('business_owner');
-	if (responses['retirement_accounts'] === true || responses['life_insurance'] === true) {
-		tags.add('beneficiary_designation_review');
-	}
 	if (responses['non_muslim_heirs'] === true) tags.add('non_muslim_heir');
-	if (floor >= 500_000) tags.add('high_priority_review');
-	if (yesNoUnsureTruthy(responses['charity_interest'])) tags.add('charitable_intent');
-	// Charitable + institutional interest is treated as waqf interest for routing.
-	if (responses['charity_interest'] === 'yes') tags.add('waqf_interest');
+	if (!areAssetQuestionsSkipped(responses)) {
+		if (homeowner) tags.add('homeowner');
+		if (homeowner && communityProperty) tags.add('homeowner_review');
+		if (responses['home_state'] === true) tags.add('out_of_state_home');
+		if (responses['business_ownership'] === true) tags.add('business_owner');
+		if (responses['retirement_accounts'] === true || responses['life_insurance'] === true) {
+			tags.add('beneficiary_designation_review');
+		}
+		if (floor >= 500_000) tags.add('high_priority_review');
+	}
+	if (hasCharitableWasiyyahIntent(responses)) tags.add('charitable_intent');
+	const wasiyyah = getWasiyyahResponse(responses);
+	if (wasiyyah?.interested && wasiyyah.bequests.some((b) => b.percentage > 0)) tags.add('waqf_interest');
 	if (responses['attorney_review'] === true) tags.add('attorney_interest');
 	if (responses['strict_faraid'] === true) tags.add('strict_faraid_intent');
 	if (needsWillLimitationWarning(responses)) tags.add('will_limitation_flag');
@@ -412,15 +430,17 @@ export const emailFlagLabels: Record<EmailFlag, string> = {
 /** Active email flags for this user's answers, in a fixed display order. */
 export function getEmailFlags(responses: WillResponses): EmailFlag[] {
 	const flags: EmailFlag[] = [];
-	if (responses['own_home'] === true) flags.push('homeowner');
-	if (responses['retirement_accounts'] === true) flags.push('retirement_accounts');
-	if (responses['life_insurance'] === true) flags.push('life_insurance');
-	if (responses['business_ownership'] === true) flags.push('business_owner');
+	if (!areAssetQuestionsSkipped(responses)) {
+		if (responses['own_home'] === true) flags.push('homeowner');
+		if (responses['retirement_accounts'] === true) flags.push('retirement_accounts');
+		if (responses['life_insurance'] === true) flags.push('life_insurance');
+		if (responses['business_ownership'] === true) flags.push('business_owner');
+		if (responses['home_state'] === true) flags.push('out_of_state_home');
+	}
 	if (responses['blended_family'] === true) flags.push('blended_family');
 	if (responses['special_needs'] === true) flags.push('special_needs');
 	if (responses['strict_faraid'] === true) flags.push('strict_faraid');
 	if (yesNoUnsureTruthy(responses['avoid_probate'])) flags.push('avoid_probate');
-	if (responses['home_state'] === true) flags.push('out_of_state_home');
 	return flags;
 }
 
@@ -521,6 +541,85 @@ export function heirsCalculatorAllResponses(
 	}
 
 	return mapped;
+}
+
+/** C2 — human-readable reason Next is disabled for the current step. */
+export function getStepValidationMessage(step: WillStep, responses: WillResponses): string | null {
+	if (isStepAnswered(step, responses)) return null;
+
+	const v = responses[step.id];
+
+	if (step.type === 'text') {
+		return `Please enter ${step.question.replace(/\?$/, '').toLowerCase()}.`;
+	}
+	if (step.type === 'state') {
+		return 'Please select California or Texas to continue with a free will.';
+	}
+	if (step.type === 'county') {
+		return 'Please select your county.';
+	}
+	if (step.type === 'single-select') {
+		return 'Please choose one of the options above.';
+	}
+	if (step.type === 'yes-no' || step.type === 'yes-no-unsure') {
+		return 'Please choose Yes or No to continue.';
+	}
+	if (step.type === 'address') {
+		const a = v as AddressValue | undefined;
+		if (!a?.street?.trim()) return 'Please enter your street address.';
+		if (!a?.city?.trim()) return 'Please enter your city.';
+		if (!a?.zip?.trim()) return 'Please enter your ZIP code.';
+		return 'Please complete your home address.';
+	}
+	if (step.type === 'executors' && Array.isArray(v)) {
+		return (
+			getRepSlotValidationMessage(v as RepEntryLike[], {
+				role: 'personal representative',
+				ordinals: ['1st', '2nd', '3rd'],
+				requiredCount: 1,
+			}) ?? 'Please complete your personal representative details.'
+		);
+	}
+	if (step.type === 'guardians' && Array.isArray(v)) {
+		return (
+			getRepSlotValidationMessage(v as RepEntryLike[], {
+				role: 'guardian',
+				ordinals: ['1st', '2nd'],
+				requiredCount: 1,
+			}) ?? 'Please complete your guardian details.'
+		);
+	}
+	if (step.type === 'heirs-calculator') {
+		return 'Please calculate your inheritance shares and confirm all heir names.';
+	}
+	if (step.type === 'wasiyyah') {
+		const w = v as WillWasiyyahResponse | undefined;
+		if (!w || typeof w !== 'object' || !('interested' in w)) {
+			return 'Please choose whether you would like to include a wasiyyah.';
+		}
+		if (!w.interested) return null;
+		const total = w.bequests.reduce((s, b) => s + (b.percentage || 0), 0);
+		if (total > WILL_WASIYYAH_CAP + 1e-6) {
+			return 'Total wasiyyah exceeds one-third of your estate. Please reduce your allocations.';
+		}
+		const presetNames = new Map(presetCharities.map((c) => [c.id, c.name]));
+		for (const b of w.bequests) {
+			if (typeof b.customName === 'string' && b.customName.trim() && !b.customEin?.trim() && !b.einDeferred) {
+				return 'Custom recipients need an EIN or the “I’ll add it later” option.';
+			}
+		}
+		if (!w.bequests.some((b) => isWasiyyahBequestComplete(b, presetNames))) {
+			return 'Add at least one wasiyyah recipient with a percentage greater than zero.';
+		}
+		return 'Please complete your wasiyyah selections.';
+	}
+
+	return 'Please complete this step before continuing.';
+}
+
+/** C6 — normalize person-name fields before persisting or rendering. */
+export function normalizeWillPersonName(name: string): string {
+	return normalizePersonName(name);
 }
 
 /** B1: married in intake but the faraid calculator has the spouse unchecked. */

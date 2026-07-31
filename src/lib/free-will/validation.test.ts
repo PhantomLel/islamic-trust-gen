@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { isFullLegalName } from './validation';
+import { normalizePersonName } from './validation';
 
-describe('isFullLegalName', () => {
-	it('requires at least two name parts', () => {
-		expect(isFullLegalName('Ahmad')).toBe(false);
-		expect(isFullLegalName('Ahmad Khan')).toBe(true);
-		expect(isFullLegalName('  Mary   Jane  Watson  ')).toBe(true);
+describe('normalizePersonName (C6)', () => {
+	it('collapses extra whitespace', () => {
+		expect(normalizePersonName('  Ahmad   Khan  ')).toBe('Ahmad Khan');
+	});
+
+	it('dedupes doubled word pairs', () => {
+		expect(normalizePersonName('Mary Jane Mary Jane')).toBe('Mary Jane');
+	});
+
+	it('dedupes concatenated duplicate halves', () => {
+		expect(normalizePersonName('AhmadKhanAhmadKhan')).toBe('AhmadKhan');
 	});
 });

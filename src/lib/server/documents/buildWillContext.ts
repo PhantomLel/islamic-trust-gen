@@ -21,6 +21,7 @@ import {
 	isCommunityPropertySituation,
 	legalMode,
 	legalModeDisclaimers,
+	normalizeWillPersonName,
 	recommendPlan,
 	type LeadTag,
 	type PlanKey,
@@ -136,6 +137,13 @@ function toRecord(rows: ResponseEntry[] | null | undefined): Record<string, Will
 	return Object.fromEntries((rows ?? []).map((r) => [r.id, r.response as WillResponseValue]));
 }
 
+function normalizeRepEntries<T extends { fullName?: string }>(entries: T[]): T[] {
+	return entries.map((entry) => ({
+		...entry,
+		fullName: normalizeWillPersonName(entry.fullName ?? ''),
+	}));
+}
+
 /**
  * Build the will document context from a stored free-will submission. Analogous
  * to `buildJointTrustContext` — read responses, run the inheritance calculator,
@@ -157,22 +165,26 @@ export function buildWillDocumentContext(will: FreeWillLike): WillDocumentContex
 
 	// Extract executors (always 3)
 	const executorsRaw = responses['executors'];
-	const executors: ExecutorEntry[] = Array.isArray(executorsRaw) && executorsRaw.length === 3
-		? (executorsRaw as ExecutorEntry[])
-		: [
-			{ fullName: '', relationship: '', contact: '' },
-			{ fullName: '', relationship: '', contact: '' },
-			{ fullName: '', relationship: '', contact: '' },
-		];
+	const executors: ExecutorEntry[] = normalizeRepEntries(
+		Array.isArray(executorsRaw) && executorsRaw.length === 3
+			? (executorsRaw as ExecutorEntry[])
+			: [
+				{ fullName: '', relationship: '', contact: '' },
+				{ fullName: '', relationship: '', contact: '' },
+				{ fullName: '', relationship: '', contact: '' },
+			],
+	);
 
 	// Extract guardians (always 2, but only if minor_children is true)
 	const guardiansRaw = responses['guardians'];
-	const guardians: GuardianEntry[] = Array.isArray(guardiansRaw) && guardiansRaw.length === 2
-		? (guardiansRaw as GuardianEntry[])
-		: [
-			{ fullName: '', relationship: '', contact: '' },
-			{ fullName: '', relationship: '', contact: '' },
-		];
+	const guardians: GuardianEntry[] = normalizeRepEntries(
+		Array.isArray(guardiansRaw) && guardiansRaw.length === 2
+			? (guardiansRaw as GuardianEntry[])
+			: [
+				{ fullName: '', relationship: '', contact: '' },
+				{ fullName: '', relationship: '', contact: '' },
+			],
+	);
 
 	// Extract wasiyyah
 	const wasiyyahRaw = responses['wasiyyah'];
@@ -185,16 +197,21 @@ export function buildWillDocumentContext(will: FreeWillLike): WillDocumentContex
 			: null;
 
 	const address = getAddress(responses);
-	const fatherName = typeof responses['father_name'] === 'string' ? responses['father_name'] : '';
+	const fatherName = normalizeWillPersonName(
+		typeof responses['father_name'] === 'string' ? responses['father_name'] : '',
+	);
 	const fatherAlive =
 		typeof responses['father_alive'] === 'boolean' ? responses['father_alive'] : undefined;
-	const motherName = typeof responses['mother_name'] === 'string' ? responses['mother_name'] : '';
+	const motherName = normalizeWillPersonName(
+		typeof responses['mother_name'] === 'string' ? responses['mother_name'] : '',
+	);
 	const motherAlive =
 		typeof responses['mother_alive'] === 'boolean' ? responses['mother_alive'] : undefined;
 
 	return {
-		testatorName:
-			typeof responses['full_legal_name'] === 'string' ? responses['full_legal_name'].trim() : '',
+		testatorName: normalizeWillPersonName(
+			typeof responses['full_legal_name'] === 'string' ? responses['full_legal_name'] : '',
+		),
 		testatorAddress: formatAddress(responses),
 		streetAddress: [address?.street, address?.unit].filter((p) => p && p.trim()).join(', '),
 		city: address?.city?.trim() ?? '',
@@ -205,8 +222,9 @@ export function buildWillDocumentContext(will: FreeWillLike): WillDocumentContex
 		willDate: formatToday(),
 
 		maritalStatus: typeof responses['marital_status'] === 'string' ? responses['marital_status'] : '',
-		spouseName:
-			typeof responses['spouse_name'] === 'string' ? responses['spouse_name'].trim() : '',
+		spouseName: normalizeWillPersonName(
+			typeof responses['spouse_name'] === 'string' ? responses['spouse_name'] : '',
+		),
 		gender: responses['gender'] === 'Female' ? 'female' : 'male',
 		children: formatChildrenList(namedHeirs),
 		parents: formatParentsList({ fatherName, fatherAlive, motherName, motherAlive }),

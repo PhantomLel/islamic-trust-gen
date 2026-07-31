@@ -39,6 +39,9 @@
 		willLimitationWarningOutro,
 		willLimitationReasonLabels,
 		toWillResponses,
+		getStepValidationMessage,
+		normalizeWillPersonName,
+		areAssetQuestionsSkipped,
 		type PlanKey
 	} from '$lib/free-will/logic';
 	import HeirsCalculatorInput from '$lib/components/HeirsCalculatorInput.svelte';
@@ -102,6 +105,9 @@
 		activeSteps.length ? Math.min(1, (currentIndex + 1) / activeSteps.length) : 0
 	);
 	let canNext = $derived(currentStep ? isStepAnswered(currentStep, responses) : false);
+	let validationMessage = $derived(
+		currentStep && !canNext ? getStepValidationMessage(currentStep, responses) : null
+	);
 	let isLastQuestion = $derived(currentIndex === activeSteps.length - 1);
 	let complete = $derived(isWillComplete(responses));
 
@@ -125,7 +131,7 @@
 	const planCards: Record<Exclude<PlanKey, null>, PlanCard> = {
 		'goodtree-trust': {
 			title: 'GoodTree Trust',
-			tagline: 'Avoid probate with an attorney-supervised Islamic revocable living trust.',
+			tagline: 'Create your fully functional trust online. Avoid probate with an attorney-supervised Islamic revocable living trust.',
 			price: formatUsd(defaultPrepFee),
 			href: '/trust'
 		},
@@ -309,6 +315,21 @@
 	function setResponse(value: WillResponseValue) {
 		if (!currentStep) return;
 		responses[currentStep.id] = value;
+	}
+
+	function normalizeCurrentTextResponse() {
+		if (!currentStep || currentStep.type !== 'text') return;
+		const raw = responses[currentStep.id];
+		if (typeof raw !== 'string') return;
+		const normalized = normalizeWillPersonName(raw);
+		if (normalized !== raw) responses[currentStep.id] = normalized;
+	}
+
+	function skipAssetQuestions() {
+		responses = { ...responses, assets_skipped: true };
+		const steps = getActiveSteps(responses);
+		const goalsIndex = steps.findIndex((s) => s.stage === 'goals');
+		if (goalsIndex >= 0) currentIndex = goalsIndex;
 	}
 
 	const emptyAddress: AddressValue = { street: '', unit: '', city: '', zip: '' };
@@ -662,9 +683,14 @@
 						</button>
 						<button
 							onclick={editFinishedWill}
-							class="flex items-center justify-between gap-4 px-6 py-4 rounded-xl border border-navy/10 bg-white/70 text-navy transition-all duration-200 hover:border-emerald-accent/40 hover:-translate-y-px cursor-pointer"
+							class="flex items-center gap-4 px-6 py-4 rounded-xl border border-navy/10 bg-white/70 text-navy transition-all duration-200 hover:border-emerald-accent/40 hover:-translate-y-px cursor-pointer"
 						>
-							<span>
+							<span class="w-10 h-10 rounded-xl bg-emerald-accent/10 flex items-center justify-center shrink-0">
+								<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+								</svg>
+							</span>
+							<span class="flex-1 min-w-0">
 								<span class="block font-medium text-[15px]">Edit my answers</span>
 								<span class="block text-navy/50 text-xs mt-0.5">Update your will with new information</span>
 							</span>
@@ -672,9 +698,14 @@
 						</button>
 						<button
 							onclick={startNewWill}
-							class="flex items-center justify-between gap-4 px-6 py-4 rounded-xl border border-navy/10 bg-white/70 text-navy transition-all duration-200 hover:border-emerald-accent/40 hover:-translate-y-px cursor-pointer"
+							class="flex items-center gap-4 px-6 py-4 rounded-xl border border-navy/10 bg-white/70 text-navy transition-all duration-200 hover:border-emerald-accent/40 hover:-translate-y-px cursor-pointer"
 						>
-							<span>
+							<span class="w-10 h-10 rounded-xl bg-emerald-accent/10 flex items-center justify-center shrink-0">
+								<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+								</svg>
+							</span>
+							<span class="flex-1 min-w-0">
 								<span class="block font-medium text-[15px]">Start a new will</span>
 								<span class="block text-navy/50 text-xs mt-0.5">e.g. for a spouse, on the same account</span>
 							</span>
@@ -762,6 +793,7 @@
 								autocomplete="name"
 								value={(responses[currentStep.id] as string) ?? ''}
 								oninput={(e) => setResponse((e.currentTarget as HTMLInputElement).value)}
+								onblur={normalizeCurrentTextResponse}
 								placeholder="Full legal name"
 								class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
 							/>
@@ -847,12 +879,26 @@
 							onresponse={(v) => setResponse(v as WillResponseValue)}
 						/>
 					{/if}
+
+					{#if currentStep.id === 'own_home' && !areAssetQuestionsSkipped(responses)}
+						<button
+							type="button"
+							onclick={skipAssetQuestions}
+							class="mt-6 text-sm text-navy/45 hover:text-emerald-accent transition-colors cursor-pointer underline underline-offset-2"
+						>
+							Skip these questions — I&apos;ll review assets separately
+						</button>
+					{/if}
 					</div>
 				</div>
 
 				<!-- FOOTER -->
 				<div class="shrink-0 border-t border-navy/[0.06] bg-cream px-6 py-5">
-					<div class="{currentStep.type === 'heirs-calculator' || currentStep.type === 'executors' || currentStep.type === 'guardians' || currentStep.type === 'wasiyyah' ? 'max-w-xl' : 'max-w-lg'} mx-auto flex items-center justify-between">
+					<div class="{currentStep.type === 'heirs-calculator' || currentStep.type === 'executors' || currentStep.type === 'guardians' || currentStep.type === 'wasiyyah' ? 'max-w-xl' : 'max-w-lg'} mx-auto">
+					{#if validationMessage}
+						<p class="text-amber-700 text-xs leading-relaxed mb-3 text-center" role="status">{validationMessage}</p>
+					{/if}
+					<div class="flex items-center justify-between">
 						<button
 							onclick={goBack}
 							class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 transition-all hover:text-navy hover:bg-navy/[0.04] cursor-pointer"
@@ -874,6 +920,7 @@
 								<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
 							</svg>
 						</button>
+					</div>
 					</div>
 				</div>
 			</div>
@@ -1247,10 +1294,8 @@
 							</ul>
 							<p class="text-navy/60 text-sm leading-relaxed mb-5">{willLimitationWarningOutro}</p>
 							<div class="flex flex-col gap-2.5">
-								{#if tags.includes('community_property_state')}
-								 {/if}
 								{#if tags.includes('beneficiary_designation_review')}
-									<a href="/plans" class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
+									<a href="/beneficiary-checklist" class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
 										Review my beneficiary designations
 										<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 									</a>
@@ -1315,12 +1360,23 @@
 					     tweak their answers or start a second will (e.g. for a spouse)
 					     right from the completion page, not only on a later visit. -->
 					{#if data.user}
-						<div class="flex items-center justify-center gap-5 mt-6 pt-6 border-t border-navy/8">
-							<button onclick={editFinishedWill} class="text-navy/45 text-sm hover:text-navy/70 transition-colors cursor-pointer">
+						<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-6 pt-6 border-t border-navy/8">
+							<button
+								onclick={editFinishedWill}
+								class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl border border-navy/10 bg-white/80 text-sm font-medium text-navy/75 hover:border-emerald-accent/40 hover:text-navy hover:bg-white transition-all cursor-pointer"
+							>
+								<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+								</svg>
 								Edit my answers
 							</button>
-							<span class="text-navy/15">·</span>
-							<button onclick={startNewWill} class="text-navy/45 text-sm hover:text-navy/70 transition-colors cursor-pointer">
+							<button
+								onclick={startNewWill}
+								class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl border border-navy/10 bg-white/80 text-sm font-medium text-navy/75 hover:border-emerald-accent/40 hover:text-navy hover:bg-white transition-all cursor-pointer"
+							>
+								<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+								</svg>
 								Start a new will
 							</button>
 						</div>

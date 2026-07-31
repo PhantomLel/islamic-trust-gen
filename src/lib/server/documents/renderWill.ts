@@ -61,7 +61,11 @@ function preprocessXmlV2(xml: string): string {
 }
 
 function safeFilenameFragment(s: string | null | undefined, fallback: string): string {
-	const cleaned = (s ?? '').trim().replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+	const cleaned = (s ?? '')
+		.trim()
+		.replace(/[^A-Za-z0-9_-]+/g, '-')
+		.replace(/-+/g, '-')
+		.replace(/^-+|-+$/g, '');
 	return cleaned || fallback;
 }
 

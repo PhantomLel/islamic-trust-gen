@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { GuardianEntry } from '$lib/free-will/config';
-	import { isFullLegalName, fullLegalNameHint } from '$lib/free-will/validation';
+	import { isFullLegalName, fullLegalNameHint, normalizePersonName } from '$lib/free-will/validation';
 
 	let {
 		value,
@@ -33,10 +33,10 @@
 <div class="space-y-6">
 	<div class="rounded-2xl bg-white border border-navy/10 p-6 space-y-3">
 		<p class="text-[14px] text-navy/70 leading-relaxed">
-			Guardians are responsible for raising your minor children if both parents pass away. You must name two individuals in order of preference. Only one will serve at a time — if the first is unable or unwilling, the second steps in.
+			Guardians raise your minor children if both parents pass away. You must name a first choice. A backup is strongly recommended — you can add one later.
 		</p>
 		<p class="text-[14px] text-navy/50 leading-relaxed">
-			Choose people who share your values, are willing and able to care for your children, and understand their responsibilities. It is a good idea to ask them before naming them here.
+			Choose people who share your values, are willing and able to care for your children, and understand their responsibilities.
 		</p>
 	</div>
 
@@ -45,6 +45,9 @@
 			<div class="rounded-2xl border border-navy/8 bg-white p-4">
 				<div class="flex items-center justify-between mb-3">
 					<span class="text-[11px] font-semibold text-navy/35 tracking-wider uppercase">{ordinals[i]} Guardian</span>
+					{#if i > 0}
+						<span class="text-[10px] text-navy/35 uppercase tracking-wide">Optional backup</span>
+					{/if}
 				</div>
 				<div class="flex items-end gap-2">
 					<div class="flex-1 min-w-0">
@@ -55,6 +58,10 @@
 							placeholder="Full legal name"
 							value={guardian.fullName}
 							oninput={(e) => update(i, { fullName: (e.target as HTMLInputElement).value })}
+							onblur={(e) => {
+								const normalized = normalizePersonName((e.target as HTMLInputElement).value);
+								if (normalized !== guardian.fullName) update(i, { fullName: normalized });
+							}}
 							class="w-full rounded-xl border border-navy/8 bg-navy/2 px-3.5 py-2.5 text-sm text-navy placeholder:text-navy/30 focus:outline-none focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
 						/>
 						{#if guardian.fullName.trim() && !isFullLegalName(guardian.fullName)}

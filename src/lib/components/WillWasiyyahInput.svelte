@@ -92,11 +92,17 @@
 		emit({ ...data, bequests: data.bequests.filter((b) => b.charityId !== charityId) });
 	}
 
-	function updateCustomField(charityId: string, field: 'customName' | 'customEin', val: string) {
+	function updateCustomField(
+		charityId: string,
+		field: 'customName' | 'customEin' | 'einDeferred',
+		val: string | boolean,
+	) {
 		emit({
 			...data,
 			bequests: data.bequests.map((b) =>
-				b.charityId === charityId && isCustomEntry(b) ? { ...b, [field]: val } : b,
+				b.charityId === charityId && isCustomEntry(b)
+					? { ...b, [field]: val }
+					: b,
 			),
 		});
 	}
@@ -256,10 +262,24 @@
 									id="w-custom-ein-{custom.charityId}"
 									type="text"
 									value={custom.customEin}
+									disabled={custom.einDeferred}
 									oninput={(e) => updateCustomField(custom.charityId, 'customEin', e.currentTarget.value)}
-									placeholder="e.g. 12-3456789 (optional)"
-									class="w-full px-3 py-2 rounded-lg border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
+									placeholder="e.g. 12-3456789"
+									class="w-full px-3 py-2 rounded-lg border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10 disabled:opacity-50"
 								/>
+								<label class="mt-2 flex items-start gap-2 cursor-pointer">
+									<input
+										type="checkbox"
+										checked={custom.einDeferred === true}
+										onchange={(e) => {
+											const deferred = e.currentTarget.checked;
+											updateCustomField(custom.charityId, 'einDeferred', deferred);
+											if (deferred) updateCustomField(custom.charityId, 'customEin', '');
+										}}
+										class="mt-0.5 w-4 h-4 accent-emerald-accent cursor-pointer shrink-0"
+									/>
+									<span class="text-xs text-navy/55 leading-relaxed">I&apos;ll add the EIN later</span>
+								</label>
 							</div>
 						</div>
 						<div class="mt-3 flex flex-wrap items-center gap-3">

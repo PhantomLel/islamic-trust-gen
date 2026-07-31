@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { isFullLegalName } from './validation';
 import {
 	computeLeadTags,
+	getActiveSteps,
 	getEmailFlags,
+	getStepValidationMessage,
 	heirsCalculatorAllResponses,
 	isMarriedSpouseExcluded,
 	isStepAnswered,
+	normalizeWillPersonName,
 	type EmailFlag,
 } from './logic';
 import { willSteps, type WillResponses } from './config';
@@ -46,6 +49,28 @@ describe('isStepAnswered executors/guardians (B4)', () => {
 			],
 		};
 		expect(isStepAnswered(executorsStep, responses)).toBe(true);
+	});
+
+	it('accepts only the first executor when backups are empty (C1)', () => {
+		const responses: WillResponses = {
+			executors: [
+				{ fullName: 'Sumayya Ahmed', relationship: 'Sister', contact: '' },
+				{ fullName: '', relationship: '', contact: '' },
+				{ fullName: '', relationship: '', contact: '' },
+			],
+		};
+		expect(isStepAnswered(executorsStep, responses)).toBe(true);
+	});
+
+	it('rejects a partially filled backup executor (C1)', () => {
+		const responses: WillResponses = {
+			executors: [
+				{ fullName: 'Sumayya Ahmed', relationship: 'Sister', contact: '' },
+				{ fullName: 'Azzahra', relationship: '', contact: '' },
+				{ fullName: '', relationship: '', contact: '' },
+			],
+		};
+		expect(isStepAnswered(executorsStep, responses)).toBe(false);
 	});
 
 	it('rejects guardians with single-word names', () => {
@@ -107,5 +132,72 @@ describe('home_state yes/no flag (B5)', () => {
 		const sameState: WillResponses = { own_home: true, home_state: false, state: 'TX' };
 		expect(computeLeadTags(sameState)).not.toContain('out_of_state_home');
 		expect(getEmailFlags(sameState)).not.toContain('out_of_state_home' as EmailFlag);
+	});
+});
+
+describe('assets_skipped (C5)', () => {
+	it('hides asset steps when assets were skipped', () => {
+		const responses: WillResponses = { assets_skipped: true, state: 'TX' };
+		const ids = getActiveSteps(responses).map((s) => s.id);
+		expect(ids).not.toContain('own_home');
+		expect(ids).not.toContain('asset_range');
+		expect(ids).toContain('executors');
+	});
+
+	it('suppresses asset-based lead tags when skipped', () => {
+		const responses: WillResponses = {
+			assets_skipped: true,
+			state: 'TX',
+			own_home: true,
+			retirement_accounts: true,
+		};
+		expect(computeLeadTags(responses)).not.toContain('homeowner');
+		expect(computeLeadTags(responses)).not.toContain('beneficiary_designation_review');
+	});
+});
+
+describe('wasiyyah validation (C3)', () => {
+	const wasiyyahStep = willSteps.find((s) => s.id === 'wasiyyah')!;
+
+	it('accepts custom charity with einDeferred', () => {
+		const responses: WillResponses = {
+			wasiyyah: {
+				interested: true,
+				bequests: [
+					{
+						charityId: 'custom-1',
+						customName: 'Local Masjid',
+						customEin: '',
+						einDeferred: true,
+						percentage: 10,
+					},
+				],
+			},
+		};
+		expect(isStepAnswered(wasiyyahStep, responses)).toBe(true);
+	});
+
+	it('rejects custom charity without EIN or deferral', () => {
+		const responses: WillResponses = {
+			wasiyyah: {
+				interested: true,
+				bequests: [
+					{
+						charityId: 'custom-1',
+						customName: 'Local Masjid',
+						customEin: '',
+						percentage: 10,
+					},
+				],
+			},
+		};
+		expect(isStepAnswered(wasiyyahStep, responses)).toBe(false);
+		expect(getStepValidationMessage(wasiyyahStep, responses)).toMatch(/EIN/i);
+	});
+});
+
+describe('normalizeWillPersonName (C6)', () => {
+	it('dedupes repeated name segments', () => {
+		expect(normalizeWillPersonName('Ahmad Khan Ahmad Khan')).toBe('Ahmad Khan');
 	});
 });
