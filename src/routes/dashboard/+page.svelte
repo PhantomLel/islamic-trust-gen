@@ -352,9 +352,9 @@
 
 				{#if notarization}
 					<div class="rounded-2xl border border-emerald-accent/20 bg-white/70 backdrop-blur-sm p-6 md:p-7 shadow-sm">
-						<div class="flex flex-col sm:flex-row sm:items-stretch gap-5">
+						<div class="flex flex-col sm:flex-row sm:items-start gap-5">
 							<!-- calendar block -->
-							<div class="shrink-0 w-20 sm:w-24 rounded-xl border border-emerald-accent/30 bg-white overflow-hidden text-center shadow-sm">
+							<div class="shrink-0 self-start w-20 sm:w-24 rounded-xl border border-emerald-accent/30 bg-white overflow-hidden text-center shadow-sm">
 								<div class="bg-emerald-accent text-white text-[10px] tracking-[0.18em] uppercase font-semibold py-1.5">
 									{notarization.monthShort}
 								</div>
