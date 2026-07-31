@@ -82,7 +82,9 @@
 			t.approved && t.status !== 'notarization-scheduled' && t.status !== 'completed' && {
 				label: 'Schedule Notarization',
 				href: t.notarizationLinkUrl ?? notarizationBookingUrl,
-				desc: 'Book an appointment to notarize your documents',
+				desc: data.fundingSummary
+					? 'Book your appointment — you can work on funding steps in the meantime'
+					: 'Book an appointment to notarize your documents',
 				external: true,
 			},
 			data.fundingSummary &&
@@ -244,6 +246,13 @@
 		t.status === 'notarization-scheduled' && !t.notarizationStartTime
 	);
 
+	let fundingHref = $derived(data.fundingSummary?.href ?? `/make-your-trust-work/${t.id}`);
+	let showFundingWhileWaiting = $derived(
+		!!data.fundingSummary &&
+			!data.fundingSummary.implementationComplete &&
+			(t.status === 'notarization-scheduled' || t.status === 'notarization-pending')
+	);
+
 	async function handleLogout() {
 		await authClient.signOut();
 		window.location.href = '/';
@@ -375,6 +384,18 @@
 								<p class="text-[12px] text-navy/45 leading-relaxed mt-3">
 									Calendly will email you a confirmation with the meeting link and a reminder before the appointment.
 								</p>
+								{#if showFundingWhileWaiting}
+									<p class="text-[13px] text-navy/55 leading-relaxed mt-4">
+										While you wait, begin making your trust functional — start the guided steps in
+										<a href={fundingHref} class="text-emerald-accent font-medium underline underline-offset-2 hover:text-emerald-accent/80">Make Your Trust Work</a>.
+									</p>
+									<a
+										href={fundingHref}
+										class="inline-flex mt-3 px-4 py-2.5 rounded-xl bg-navy text-cream text-sm font-medium hover:bg-navy-light transition-colors"
+									>
+										Start Make Your Trust Work
+									</a>
+								{/if}
 							</div>
 						</div>
 					</div>
@@ -392,6 +413,18 @@
 						<p class="text-[13px] text-navy/55 mt-2 leading-relaxed">
 							Check your email for the Calendly confirmation with the meeting date, time, and link.
 						</p>
+						{#if showFundingWhileWaiting}
+							<p class="text-[13px] text-navy/55 leading-relaxed mt-4">
+								While you wait, begin making your trust functional — start the guided steps in
+								<a href={fundingHref} class="text-emerald-accent font-medium underline underline-offset-2 hover:text-emerald-accent/80">Make Your Trust Work</a>.
+							</p>
+							<a
+								href={fundingHref}
+								class="inline-flex mt-3 px-4 py-2.5 rounded-xl bg-navy text-cream text-sm font-medium hover:bg-navy-light transition-colors"
+							>
+								Start Make Your Trust Work
+							</a>
+						{/if}
 					</div>
 				{/if}
 
@@ -580,13 +613,32 @@
 									{/if}
 								</div>
 							</div>
+							{#if showFundingWhileWaiting}
+								<p class="text-[12px] text-navy/50 leading-relaxed mt-4">
+									While you wait, begin making your trust functional in
+									<a href={fundingHref} class="text-emerald-accent font-medium underline underline-offset-2 hover:text-emerald-accent/80">Make Your Trust Work</a>.
+								</p>
+							{/if}
 						{:else if notarizationScheduledPendingDetails}
 							<p class="text-[13px] text-navy/50 leading-relaxed">
 								Your notarization is booked. Check your email for the Calendly confirmation with date and time.
 							</p>
+							{#if showFundingWhileWaiting}
+								<a
+									href={fundingHref}
+									class="inline-flex mt-4 px-4 py-2.5 rounded-lg text-[12px] font-medium bg-navy text-cream hover:bg-navy-light transition-all"
+								>
+									Start Make Your Trust Work
+								</a>
+							{/if}
 						{:else if t.status !== 'notarization-scheduled'}
 							<p class="text-[13px] text-navy/50 leading-relaxed mb-4">
-								Your trust has been approved. Schedule a notarization appointment to finalize your documents.
+								{#if showFundingWhileWaiting}
+									Schedule your notarization appointment to finalize your documents. While you prepare, begin making your trust functional in
+									<a href={fundingHref} class="text-emerald-accent font-medium underline underline-offset-2 hover:text-emerald-accent/80">Make Your Trust Work</a>.
+								{:else}
+									Your trust has been approved. Schedule a notarization appointment to finalize your documents.
+								{/if}
 							</p>
 							<a href={t.notarizationLinkUrl ?? notarizationBookingUrl} target="_blank" rel="noopener noreferrer"
 								class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12px] font-medium
