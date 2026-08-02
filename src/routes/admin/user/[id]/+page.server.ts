@@ -124,7 +124,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			turnCount: c.turnCount,
 			lastMessageAt: c.lastMessageAt?.toISOString() ?? null,
 			maxTier: c.maxTier,
-			unresolvedEscalationTier: c.unresolvedEscalationTier,
 			hasRedaction: c.hasRedaction,
 		})),
 		trusts: trusts.map((t) => ({

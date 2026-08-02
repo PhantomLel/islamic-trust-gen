@@ -18,11 +18,11 @@ This document records the controlling decisions for the Help Assistant implement
 
 - **Tier 1**: Urgent — email admins via editable list; never quote user question text.
 - **Tier 2**: Consult required — may block the current app step until consult path is followed.
-- **153** non-`N/A` escalation conditions from KB policy import.
+- **153** non-`N/A` escalation conditions (deterministic triggers in code).
 
 ## Governance
 
-- Imported KB starts as `needs_revision`.
+- New KB entries start as `needs_revision`.
 - **Scholar-flagged** and **policy-blocked** cards require publication gates before servability.
 - Admin bulk approve skips gated entries.
 

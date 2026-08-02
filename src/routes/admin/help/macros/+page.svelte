@@ -9,7 +9,7 @@
 
 {#if data.macros.length === 0}
 	<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center">
-		<p class="text-navy/40 text-sm">No macros imported yet. Run <code class="font-mono">npm run import:kb</code>.</p>
+		<p class="text-navy/40 text-sm">No staff macros yet.</p>
 	</div>
 {:else}
 	<div class="space-y-3">

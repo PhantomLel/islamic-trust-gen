@@ -17,7 +17,6 @@ import { user } from './auth.schema';
 export type KbEntryType = 'faq' | 'explainer';
 export type KbClassificationBase = 'safe' | 'consult_trigger' | 'do_not_answer';
 export type KbGovernanceStatus = 'approved' | 'needs_revision' | 'disabled';
-export type KbAllowedAnswerMode = 'full_card' | 'limited_card' | 'template_only';
 export type HelpSurface =
 	| 'help_center'
 	| 'create_trust'
@@ -42,8 +41,7 @@ export type HelpRenderedResponse = {
 		| 'tier2'
 		| 'tier3'
 		| 'fallback'
-		| 'sensitive_data'
-		| 'provider_failure';
+		| 'sensitive_data';
 	entryId?: number;
 	templateId?: string;
 	shortAnswer?: string;
@@ -64,7 +62,6 @@ export const kbEntry = pgTable(
 		userFacingAnswer: text('user_facing_answer'),
 		goodTreeAppMeaning: text('good_tree_app_meaning'),
 		userNextStep: text('user_next_step'),
-		displayOrder: integer('display_order').default(0),
 		/** Precomputed document text for reranker (question + aliases + answer). */
 		rerankDocument: text('rerank_document'),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -78,41 +75,9 @@ export const kbEntryInternal = pgTable('kb_entry_internal', {
 		.primaryKey()
 		.references(() => kbEntry.id, { onDelete: 'cascade' }),
 	alsoAnswers: text('also_answers').array(),
-	keywords: text('keywords').array(),
-	relatedSteps: text('related_steps').array(),
 	classificationBase: text('classification_base').$type<KbClassificationBase>(),
-	classificationRaw: text('classification_raw'),
-	stabilityCode: text('stability_code'),
-	stabilityRaw: text('stability_raw'),
-	sourceReviewNote: text('source_review_note'),
-	sourceLinks: text('source_links'),
 	sourceHash: text('source_hash'),
-	needsManualPolicy: boolean('needs_manual_policy').notNull().default(false),
-	escalateIfRaw: text('escalate_if_raw'),
 });
-
-export const kbEntryPolicy = pgTable(
-	'kb_entry_policy',
-	{
-		id: serial('id').primaryKey(),
-		entryId: integer('entry_id')
-			.references(() => kbEntry.id, { onDelete: 'cascade' })
-			.notNull(),
-		conditionCode: text('condition_code').notNull(),
-		triggerCode: text('trigger_code'),
-		tier: text('tier').$type<HelpEscalationTier | null>(),
-		templateId: text('template_id'),
-		allowedAnswerMode: text('allowed_answer_mode').$type<KbAllowedAnswerMode>(),
-		createsFlag: boolean('creates_flag').notNull().default(false),
-		blocksStep: boolean('blocks_step').notNull().default(false),
-		consultRequired: boolean('consult_required').notNull().default(false),
-		priority: integer('priority').notNull().default(0),
-		enabled: boolean('enabled').notNull().default(true),
-		createdAt: timestamp('created_at').defaultNow().notNull(),
-		updatedAt: timestamp('updated_at').defaultNow().notNull(),
-	},
-	(t) => [index('kb_entry_policy_entry_idx').on(t.entryId)],
-);
 
 export const kbEntryGovernance = pgTable('kb_entry_governance', {
 	entryId: integer('entry_id')
@@ -121,7 +86,6 @@ export const kbEntryGovernance = pgTable('kb_entry_governance', {
 	status: text('status').$type<KbGovernanceStatus>().notNull().default('needs_revision'),
 	lastReviewedAt: timestamp('last_reviewed_at'),
 	lastReviewedBy: text('last_reviewed_by'),
-	reviewDueAt: timestamp('review_due_at'),
 	approvedAt: timestamp('approved_at'),
 	approvedBy: text('approved_by'),
 	serveCount: integer('serve_count').notNull().default(0),
@@ -171,26 +135,11 @@ export const helpTemplate = pgTable('help_template', {
 	templateId: text('template_id').notNull().unique(),
 	title: text('title').notNull(),
 	body: text('body').notNull(),
-	placeholderSchema: jsonb('placeholder_schema').$type<Record<string, string>>(),
 	status: text('status').$type<KbGovernanceStatus>().notNull().default('needs_revision'),
 	sourceHash: text('source_hash'),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
-
-export const helpTemplateVersion = pgTable(
-	'help_template_version',
-	{
-		id: serial('id').primaryKey(),
-		templateRowId: integer('template_row_id')
-			.references(() => helpTemplate.id, { onDelete: 'cascade' })
-			.notNull(),
-		snapshot: jsonb('snapshot').$type<Record<string, unknown>>().notNull(),
-		authorId: text('author_id'),
-		createdAt: timestamp('created_at').defaultNow().notNull(),
-	},
-	(t) => [index('help_template_version_tpl_idx').on(t.templateRowId)],
-);
 
 export const helpStaffMacro = pgTable('help_staff_macro', {
 	id: serial('id').primaryKey(),
@@ -223,7 +172,6 @@ export const helpConversation = pgTable(
 		turnCount: integer('turn_count').notNull().default(0),
 		lastMessageAt: timestamp('last_message_at'),
 		maxTier: text('max_tier').$type<HelpEscalationTier | null>(),
-		unresolvedEscalationTier: text('unresolved_escalation_tier').$type<HelpEscalationTier | null>(),
 		hasRedaction: boolean('has_redaction').notNull().default(false),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -250,20 +198,12 @@ export const helpQuery = pgTable(
 		selectedEntryId: integer('selected_entry_id').references(() => kbEntry.id, {
 			onDelete: 'set null',
 		}),
-		kbEntryVersionId: integer('kb_entry_version_id').references(() => kbEntryVersion.id, {
-			onDelete: 'set null',
-		}),
-		templateVersionId: integer('template_version_id').references(() => helpTemplateVersion.id, {
-			onDelete: 'set null',
-		}),
-		classification: text('classification'),
 		resolvedTier: text('resolved_tier').$type<HelpEscalationTier | null>(),
 		triggerCodes: jsonb('trigger_codes').$type<string[]>(),
 		rerankScore: text('rerank_score'),
 		runnerUpScore: text('runner_up_score'),
 		thresholdConfigVersion: text('threshold_config_version'),
 		providerModelVersions: jsonb('provider_model_versions').$type<Record<string, string>>(),
-		latencyMs: integer('latency_ms'),
 		renderedResponse: jsonb('rendered_response').$type<HelpRenderedResponse>().notNull(),
 		ctaShown: text('cta_shown'),
 		unanswered: boolean('unanswered').notNull().default(false),
@@ -389,7 +329,6 @@ export const kbEntryRelations = relations(kbEntry, ({ one, many }) => ({
 		fields: [kbEntry.id],
 		references: [kbEntryGovernance.entryId],
 	}),
-	policies: many(kbEntryPolicy),
 	versions: many(kbEntryVersion),
 }));
 
@@ -416,10 +355,6 @@ export const helpEscalationRelations = relations(helpEscalation, ({ one }) => ({
 		references: [helpConversation.id],
 	}),
 	user: one(user, { fields: [helpEscalation.userId], references: [user.id] }),
-}));
-
-export const kbEntryPolicyRelations = relations(kbEntryPolicy, ({ one }) => ({
-	entry: one(kbEntry, { fields: [kbEntryPolicy.entryId], references: [kbEntry.id] }),
 }));
 
 export const kbEntryVersionRelations = relations(kbEntryVersion, ({ one }) => ({

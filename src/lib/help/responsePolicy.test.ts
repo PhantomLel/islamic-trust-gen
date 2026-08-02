@@ -15,7 +15,6 @@ const baseEntry: ServableEntry = {
 	rerankDocument: null,
 	classificationBase: 'safe',
 	alsoAnswers: null,
-	relatedSteps: null,
 	status: 'approved',
 };
 

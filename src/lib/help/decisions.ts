@@ -22,21 +22,6 @@ export const HELP_PRODUCT_DECISIONS = {
 	modelsNeverWriteProse: true,
 } as const;
 
-/** Scholar-flagged cards requiring publication gate before servability (KB I-5). Used by import script only. */
-export const SCHOLAR_REVIEW_DOC_IDS = [
-	'C9.6',
-	'C12.3',
-	'C12.4',
-	'C12.6',
-	'C12.8',
-	'C12.9',
-	'C12.10',
-	'C16.5',
-] as const;
-
-/** Cards blocked until policy text exists. Used by import script only. */
-export const POLICY_BLOCKED_DOC_IDS = ['C17.11', 'C15.4'] as const;
-
 export const GENERAL_INFORMATION_FOOTER =
 	'This is general information for using the app, not individualized legal or tax advice.';
 

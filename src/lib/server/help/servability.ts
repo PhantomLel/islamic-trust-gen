@@ -22,7 +22,6 @@ export type ServableEntry = {
 	rerankDocument: string | null;
 	classificationBase: KbClassificationBase | null;
 	alsoAnswers: string[] | null;
-	relatedSteps: string[] | null;
 	status: KbGovernanceStatus;
 };
 
@@ -69,7 +68,6 @@ export async function isEntryServable(entryId: number): Promise<boolean> {
 export async function listServableEntries(options?: {
 	entryTypes?: KbEntryType[];
 	classifications?: KbClassificationBase[];
-	relatedStep?: string;
 	category?: string;
 	limit?: number;
 }): Promise<ServableEntry[]> {
@@ -86,14 +84,12 @@ export async function listServableEntries(options?: {
 			rerankDocument: kbEntry.rerankDocument,
 			classificationBase: sql<string | null>`null`,
 			alsoAnswers: sql<string[] | null>`null`,
-			relatedSteps: sql<string[] | null>`null`,
 			status: kbEntryGovernance.status,
 		})
 		.from(kbEntry)
 		.innerJoin(kbEntryGovernance, eq(kbEntryGovernance.entryId, kbEntry.id))
 		.where(eq(kbEntryGovernance.status, 'approved'));
 
-	// Enrich with internal metadata in a second query for approved ids
 	const ids = rows.map((r) => r.id);
 	if (ids.length === 0) return [];
 
@@ -101,17 +97,15 @@ export async function listServableEntries(options?: {
 		.select({
 			entryId: kbEntryInternal.entryId,
 			alsoAnswers: kbEntryInternal.alsoAnswers,
-			relatedSteps: kbEntryInternal.relatedSteps,
 			classificationBase: kbEntryInternal.classificationBase,
 		})
 		.from(kbEntryInternal)
 		.where(inArray(kbEntryInternal.entryId, ids));
 
-	const internalMap = new Map<number, { alsoAnswers: string[] | null; relatedSteps: string[] | null; classificationBase: KbClassificationBase | null }>();
+	const internalMap = new Map<number, { alsoAnswers: string[] | null; classificationBase: KbClassificationBase | null }>();
 	for (const ir of internalRows) {
 		internalMap.set(ir.entryId, {
 			alsoAnswers: ir.alsoAnswers ?? null,
-			relatedSteps: ir.relatedSteps ?? null,
 			classificationBase: ir.classificationBase ?? null,
 		});
 	}
@@ -132,7 +126,6 @@ export async function listServableEntries(options?: {
 			...row,
 			classificationBase: internal?.classificationBase ?? null,
 			alsoAnswers: internal?.alsoAnswers ?? null,
-			relatedSteps: internal?.relatedSteps ?? null,
 		};
 		if (options?.entryTypes && !options.entryTypes.includes(enriched.entryType)) continue;
 		if (
@@ -143,10 +136,6 @@ export async function listServableEntries(options?: {
 			continue;
 		}
 		if (options?.category && enriched.category !== options.category) continue;
-		if (options?.relatedStep) {
-			const steps = enriched.relatedSteps ?? [];
-			if (!steps.includes(options.relatedStep)) continue;
-		}
 		result.push(enriched);
 	}
 
@@ -205,7 +194,6 @@ export async function searchServableEntries(query: string, limit = 20): Promise<
 			rerankDocument: (r.rerank_document as string | null) ?? null,
 			classificationBase: null,
 			alsoAnswers: null,
-			relatedSteps: null,
 			status: r.status as KbGovernanceStatus,
 		}))
 		.filter((r) => entryHasRenderableText(r));

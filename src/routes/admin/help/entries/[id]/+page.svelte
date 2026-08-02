@@ -207,10 +207,6 @@
 		<section class="rounded-xl border border-navy/[0.06] bg-navy/[0.03] p-5">
 			<h2 class="text-[11px] uppercase tracking-wider text-navy/40 font-medium mb-3">Internal metadata (admin only)</h2>
 			<p class="text-sm text-navy/70">Classification: <span class="text-navy">{data.entry.internal.classificationBase}</span></p>
-			<p class="text-sm text-navy/70">Stability: <span class="text-navy">{data.entry.internal.stabilityCode}</span></p>
-			{#if data.entry.internal.escalateIfRaw}
-				<p class="mt-2 whitespace-pre-wrap text-sm text-navy/70 leading-relaxed">{data.entry.internal.escalateIfRaw}</p>
-			{/if}
 		</section>
 	{/if}
 

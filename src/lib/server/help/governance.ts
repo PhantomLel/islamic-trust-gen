@@ -234,7 +234,7 @@ export async function listEntryGates(entryId: number) {
 export async function getEntryDetail(entryId: number) {
 	const entry = await db.query.kbEntry.findFirst({
 		where: eq(kbEntry.id, entryId),
-		with: { internal: true, governance: true, policies: true, versions: true },
+		with: { internal: true, governance: true, versions: true },
 	});
 	if (!entry) return null;
 	if (entry.versions) {
