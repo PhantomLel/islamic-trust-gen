@@ -115,6 +115,7 @@
 							<th class="px-4 py-3 font-medium w-8"></th>
 							<th class="px-4 py-3 font-medium">ID</th>
 							<th class="px-4 py-3 font-medium">Question</th>
+							<th class="px-4 py-3 font-medium">Category</th>
 							<th class="px-4 py-3 font-medium">Status</th>
 							<th class="px-4 py-3 font-medium">Serves</th>
 							<th class="px-4 py-3 font-medium w-16"></th>
@@ -136,6 +137,9 @@
 								</td>
 								<td class="px-4 py-3 text-navy/80 max-w-[420px] truncate" title={row.question ?? row.title ?? ''}>
 									{row.question ?? row.title ?? '—'}
+								</td>
+								<td class="px-4 py-3 text-navy/60 max-w-[160px] truncate" title={row.category ?? ''}>
+									{row.category ?? '—'}
 								</td>
 								<td class="px-4 py-3">
 									<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium {statusColor(row.status)}">
