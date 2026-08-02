@@ -24,6 +24,7 @@
 	import ScreeningStep from '$lib/components/ScreeningStep.svelte';
 	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 	import WhatsAppHelpLink from '$lib/components/WhatsAppHelpLink.svelte';
+	import HelpLauncher from '$lib/components/help/HelpLauncher.svelte';
 
 	/** Set to `true` to show the individual vs joint trust picker again. */
 	const showTrustTypeSelection = false;
@@ -115,6 +116,9 @@
 	});
 
 	let currentQuestion = $derived(activeQuestions[currentIndex]);
+	let helpStepKey = $derived(
+		step === 'questionnaire' ? (currentQuestion?.id ?? null) : step
+	);
 	let currentValue = $derived(currentQuestion ? (responses[currentQuestion.id] ?? null) : null);
 
 	let isFirst = $derived(currentIndex === 0);
@@ -177,6 +181,11 @@
 
 	function goNext() {
 		if (!canGoNext) return;
+		if (currentQuestion && data.helpBlockedSteps.includes(currentQuestion.id)) {
+			completeBlockedMessage =
+				'A consultation is required before continuing this step. Open Help Assistant to book a consult.';
+			return;
+		}
 		if (!isLast) goToQuestion(currentIndex + 1);
 	}
 
@@ -644,3 +653,10 @@
 	</div>
 </div>
 {/if}
+
+<HelpLauncher
+	surface="create_trust"
+	stepKey={helpStepKey}
+	trustId={data.trust.id}
+	blockedStepKeys={data.helpBlockedSteps}
+/>

@@ -12,6 +12,7 @@ import { isFundingAccessible, computeFundingProgress, getNextUp } from '$lib/fun
 import { flagsFromDashboard } from '$lib/server/funding';
 import { getModuleContent } from '$lib/funding/content';
 import { reconcileNotarizationForTrust } from '$lib/server/notarization';
+	import { loadHelpBlockedStepsForUser } from '$lib/server/help/escalate';
 import type { Actions, PageServerLoad } from './$types';
 
 const utapi = new UTApi({ token: env.UPLOADTHING_TOKEN });
@@ -140,6 +141,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		requestedConsultation: (locals.user as any).requestedConsultationAt != null,
 		paid: hasPaid,
 		fundingSummary,
+		helpBlockedSteps: await loadHelpBlockedStepsForUser(locals.user.id, 'dashboard'),
 		trust: {
 			id: existing.id,
 			createdAt: existing.createdAt.toISOString(),

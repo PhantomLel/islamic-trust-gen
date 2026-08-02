@@ -57,6 +57,7 @@ import {
 	getMilestoneContent,
 } from '$lib/funding/content';
 import { assetsForCategories, collectListedAssets } from '$lib/funding/assets';
+import { loadHelpBlockedStepsForUser } from '$lib/server/help/escalate';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -251,6 +252,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		findYourStuffQuestions: FIND_YOUR_STUFF_QUESTIONS,
 		retirementBeneficiaryQuestion: RETIREMENT_BENEFICIARY_QUESTION,
 		categoryTranslation: CATEGORY_TRANSLATION,
+		helpBlockedSteps: await loadHelpBlockedStepsForUser(locals.user!.id, 'funding'),
 	};
 };
 
@@ -361,25 +363,6 @@ export const actions: Actions = {
 
 		await setMilestoneNotApplicable(dash.id, milestoneKey, 'Marked not applicable by user', locals.user.id);
 		return { na: true };
-	},
-
-	requestHelp: async ({ request, locals, params }) => {
-		if (!locals.user) throw redirect(302, '/login');
-		const trustId = Number(params.trust_id);
-		const dash = await loadFundingForTrust(trustId);
-		if (!dash || (dash.userId !== locals.user.id && locals.user.role !== 'admin')) {
-			return fail(403, { message: 'Forbidden' });
-		}
-
-		const fd = await request.formData();
-		const message = String(fd.get('message') ?? '').trim().slice(0, 2000);
-		await createFundingFlag(dash.id, 'help_clicked', {
-			severity: 'attention',
-			reason: message || 'User requested help',
-			payload: { message },
-		});
-		await logFundingEvent(dash.id, 'help_clicked', { message }, locals.user.id);
-		return { helpLogged: true };
 	},
 
 	ackConsult: async ({ locals, params }) => {

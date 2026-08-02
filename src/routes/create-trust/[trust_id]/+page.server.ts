@@ -21,6 +21,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { adminUserUrl, notifyAdmins } from '$lib/server/notifyAdmins';
 import { stripe } from '$lib/server/stripe';
 import { fulfillCheckoutSession } from '$lib/server/fulfillCheckout';
+import { loadHelpBlockedStepsForUser } from '$lib/server/help/escalate';
 
 type TrustRow = InferSelectModel<typeof trust>;
 
@@ -134,6 +135,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	const hasPaidInvoice = existing.selectedPlan !== null;
 
+	const helpBlockedSteps = await loadHelpBlockedStepsForUser(locals.user.id, 'create_trust');
+
 	// Joint trust by default when the type picker is hidden (see +page.svelte).
 	if (existing.isEligible === true && existing.joint === null) {
 		await db
@@ -160,6 +163,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		userEmail: locals.user.email,
 		userCounty: countyRow?.county?.trim() || null,
 		hasPaidInvoice,
+		helpBlockedSteps,
 	};
 };
 
@@ -364,6 +368,14 @@ export const actions: Actions = {
 				needsCharityPledge
 					? 'Intake incomplete: the discounted plan requires at least 1% of wasiyyah to one eligible charity (listed or added by you).'
 					: 'Intake incomplete: not all required questions are answered.'
+			);
+		}
+
+		const blockedSteps = await loadHelpBlockedStepsForUser(locals.user.id, 'create_trust');
+		if (blockedSteps.length > 0) {
+			throw error(
+				403,
+				'A consultation is required before you can submit intake. Please use the Help Assistant to book a consult.',
 			);
 		}
 

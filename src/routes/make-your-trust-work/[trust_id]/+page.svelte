@@ -4,13 +4,11 @@
 	import { siteName, notarizationBookingUrl } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
+	import HelpLauncher from '$lib/components/help/HelpLauncher.svelte';
 
 	let { data } = $props();
 
 	let disclaimerCollapsed = $state(false);
-	let helpOpen = $state(false);
-	let helpMessage = $state('');
-	let helpSent = $state(false);
 	let findYourStuffOpen = $state(!data.findYourStuff.completed);
 	let expandedModules = $state<Record<string, boolean>>({});
 	let showAllAssets = $state<Record<string, boolean>>({});
@@ -1054,18 +1052,6 @@
 						>
 					{/if}
 				</div>
-
-				<button
-					type="button"
-					onclick={() => {
-						helpOpen = true;
-						helpSent = false;
-						helpMessage = '';
-					}}
-					class="w-full rounded-2xl border border-navy/10 bg-white/80 px-4 py-3.5 text-sm font-medium text-navy hover:border-emerald-accent/30 transition-colors cursor-pointer"
-				>
-					Need Help?
-				</button>
 			</aside>
 		</div>
 	</div>
@@ -1092,65 +1078,10 @@
 		</div>
 	{/if}
 
-	<!-- Help modal -->
-	{#if helpOpen}
-		<div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-			<button
-				type="button"
-				class="absolute inset-0 bg-navy/40 cursor-pointer"
-				aria-label="Close"
-				onclick={() => (helpOpen = false)}
-			></button>
-			<div class="relative w-full max-w-md rounded-2xl bg-cream border border-navy/10 p-5 shadow-xl">
-				{#if helpSent}
-					<p class="text-sm text-navy/70 leading-relaxed mb-4">
-						Thanks — we logged your note for our team. For account-specific questions, a consultation is usually the
-						right next step.
-					</p>
-					<button
-						type="button"
-						onclick={() => (helpOpen = false)}
-						class="w-full py-2.5 rounded-xl bg-navy text-cream text-sm font-medium cursor-pointer">Close</button
-					>
-				{:else}
-					<h3 class="text-lg font-semibold text-navy mb-2">Need Help?</h3>
-					<p class="text-[13px] text-navy/55 leading-relaxed mb-4">{data.copy.needHelpBody}</p>
-					<form
-						method="POST"
-						action="?/requestHelp"
-						use:enhance={() => {
-							return async ({ result }) => {
-								if (result.type === 'success') helpSent = true;
-							};
-						}}
-						class="space-y-3"
-					>
-						<label class="block">
-							<span class="text-[11px] uppercase tracking-wider text-navy/40 font-medium">What are you stuck on?</span>
-							<textarea
-								name="message"
-								bind:value={helpMessage}
-								rows="3"
-								class="mt-1.5 w-full rounded-xl border border-navy/10 bg-white px-3 py-2.5 text-sm text-navy focus:outline-none focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
-								placeholder="Briefly describe the issue"
-							></textarea>
-						</label>
-						<div class="flex gap-2">
-							<button
-								type="button"
-								onclick={() => (helpOpen = false)}
-								class="flex-1 py-2.5 rounded-xl border border-navy/10 text-sm text-navy/60 cursor-pointer"
-								>Cancel</button
-							>
-							<button
-								type="submit"
-								class="flex-1 py-2.5 rounded-xl bg-navy text-cream text-sm font-medium cursor-pointer"
-								>Send</button
-							>
-						</div>
-					</form>
-				{/if}
-			</div>
-		</div>
-	{/if}
+	<HelpLauncher
+		surface="funding"
+		stepKey={data.nextUp?.milestoneKey ?? null}
+		trustId={data.trustId}
+		blockedStepKeys={data.helpBlockedSteps}
+	/>
 </div>

@@ -16,6 +16,8 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"build:will-template": "node scripts/build-will-template.mjs",
+		"import:kb": "node scripts/import-kb.mjs",
+		"import:kb:dry": "node scripts/import-kb.mjs --dry-run",
 		"auth:schema": "npx @better-auth/cli generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
 	},
 	"devDependencies": {

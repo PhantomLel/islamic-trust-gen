@@ -517,3 +517,4 @@ export const marketingEmailLogRelations = relations(marketingEmailLog, ({ one })
 }));
 
 export * from './auth.schema';
+export * from './help.schema';

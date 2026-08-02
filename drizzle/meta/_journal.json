@@ -8,6 +8,13 @@
       "when": 1783825319293,
       "tag": "0000_certain_cerebro",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783825319294,
+      "tag": "0001_help_assistant",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@
 	import { consultationBookingUrl, notarizationBookingUrl, siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import HouseDeedUploadCard from '$lib/components/HouseDeedUploadCard.svelte';
+	import HelpLauncher from '$lib/components/help/HelpLauncher.svelte';
 
 	let { data } = $props();
 
@@ -714,4 +715,11 @@
 			</div>
 		</div>
 	{/if}
+
+	<HelpLauncher
+		surface="dashboard"
+		stepKey={null}
+		trustId={t.id}
+		blockedStepKeys={data.helpBlockedSteps}
+	/>
 </div>

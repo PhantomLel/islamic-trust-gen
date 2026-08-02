@@ -33,7 +33,7 @@
 
 	let copiedEmail = $state(false);
 
-	type TabId = 'questionnaire' | 'files' | 'notes';
+	type TabId = 'questionnaire' | 'trustWork' | 'drip' | 'help' | 'files' | 'notes';
 	let activeTab = $state<TabId>('questionnaire');
 
 	type FileRow = {
@@ -602,264 +602,7 @@
 			</div>
 		</div>
 
-	<!-- ── Make Your Trust Work ───────────────────────────────────────── -->
-	{#each data.fundingByTrust as fb}
-		{#if fb.dashboard}
-			{@const fd = fb.dashboard}
-			<div class="rounded-2xl border border-navy/[0.08] bg-white/60 p-6 mb-6">
-				<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-					<div>
-						<span class="text-[10px] tracking-[0.22em] uppercase font-semibold text-emerald-accent">Make Your Trust Work</span>
-						<p class="text-[13px] text-navy/50 mt-1">Trust #{fb.trustId}</p>
-					</div>
-					<a
-						href="/make-your-trust-work/{fb.trustId}"
-						class="text-[12px] px-3 py-1.5 rounded-lg border border-navy/10 text-navy/70 hover:border-emerald-accent/30 transition-colors"
-						>Open user view</a
-					>
-				</div>
-
-				<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-					<div>
-						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Progress</p>
-						<p class="text-[13px] text-navy/80 font-medium tabular-nums">{fd.progress.journey.pct}%</p>
-					</div>
-					<div>
-						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Prepare</p>
-						<p class="text-[13px] text-navy/80 font-medium tabular-nums">{fd.progress.prepare.done}/{fd.progress.prepare.total}</p>
-					</div>
-					<div>
-						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Complete</p>
-						<p class="text-[13px] text-navy/80 font-medium tabular-nums">
-							{#if fd.progress.completePhaseLocked}
-								Locked
-							{:else}
-								{fd.progress.complete.done}/{fd.progress.complete.total}
-							{/if}
-						</p>
-					</div>
-					<div>
-						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5 flex items-center gap-1">
-							Pour-over will
-							<span
-								class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-navy/20 text-[9px] font-semibold text-navy/40 cursor-help"
-								title="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents. Normally detected from the document package; toggling it here overrides that detection permanently."
-								aria-label="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents. Normally detected from the document package; toggling it here overrides that detection permanently."
-							>i</span>
-						</p>
-						<form method="POST" action="?/togglePourOverIncluded" use:enhance class="inline">
-							<input type="hidden" name="trustId" value={fb.trustId} />
-							<input type="hidden" name="included" value={fd.pourOverWillIncluded ? 'false' : 'true'} />
-							<button type="submit" class="text-[13px] text-emerald-accent font-medium cursor-pointer hover:underline">
-								{fd.pourOverWillIncluded ? 'Included' : 'Not included'} (toggle)
-							</button>
-						</form>
-						<p class="text-[10px] text-navy/35 leading-snug mt-1 max-w-[11rem]">
-							{fd.pourOverWillManual
-								? 'Set manually — no longer auto-detected from the document package.'
-								: 'Auto-detected from the document package.'}
-						</p>
-					</div>
-				</div>
-
-				<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-					<div>
-						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Homeowner</p>
-						<p class="text-[13px] text-navy/80 font-medium">
-							{fd.isHomeowner === null ? 'Not answered' : fd.isHomeowner ? 'Yes' : 'No'}
-						</p>
-						<p class="text-[10px] text-navy/35 leading-snug mt-1 max-w-[11rem]">
-							Controls the deed, homeowners insurance, and homestead cards.
-						</p>
-					</div>
-					<div class="sm:col-span-3">
-						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Retirement beneficiary</p>
-						<p
-							class="text-[13px] font-medium {fd.retirementBeneficiary === 'other' ||
-							fd.retirementBeneficiary === 'not_sure'
-								? 'text-red-600'
-								: 'text-navy/80'}"
-						>
-							{fd.retirementBeneficiary === 'spouse_sole'
-								? 'Spouse is sole primary beneficiary'
-								: fd.retirementBeneficiary === 'other'
-									? 'Nonspouse, trust, or charity named'
-									: fd.retirementBeneficiary === 'not_sure'
-										? 'User is not sure'
-										: 'Not asked (unmarried or no retirement accounts)'}
-						</p>
-					</div>
-				</div>
-
-				{#if fd.actionNeededNote}
-					<div class="mb-4 rounded-xl border border-red-200 bg-red-50/70 p-3">
-						<p class="text-[11px] uppercase tracking-wider text-red-700 font-semibold mb-1">Action needed (user-visible)</p>
-						<p class="text-[13px] text-navy/75 leading-relaxed">{fd.actionNeededNote}</p>
-						<form method="POST" action="?/clearFundingActionNeeded" use:enhance class="mt-2">
-							<input type="hidden" name="trustId" value={fb.trustId} />
-							<button type="submit" class="text-[12px] text-navy/50 underline cursor-pointer">Clear note</button>
-						</form>
-					</div>
-				{/if}
-
-				<form method="POST" action="?/setFundingActionNeeded" use:enhance class="space-y-3 mb-4">
-					<input type="hidden" name="trustId" value={fb.trustId} />
-					<label class="block">
-						<span class="text-[10px] uppercase tracking-wider text-navy/35 font-medium">Set action-needed note</span>
-						<select
-							class="mt-1 w-full rounded-xl border border-navy/10 bg-white px-3 py-2 text-[13px] text-navy"
-							onchange={(e) => {
-								const sel = e.currentTarget;
-								const tpl = data.fundingNoteTemplates.find((t) => t.id === sel.value);
-								const ta = sel.form?.querySelector('textarea[name="note"]') as HTMLTextAreaElement | null;
-								if (tpl && ta) ta.value = tpl.body;
-							}}
-						>
-							<option value="">Template…</option>
-							{#each data.fundingNoteTemplates as tpl}
-								<option value={tpl.id}>{tpl.label}</option>
-							{/each}
-						</select>
-					</label>
-					<textarea
-						name="note"
-						rows="3"
-						required
-						class="w-full rounded-xl border border-navy/10 bg-white px-3 py-2 text-[13px] text-navy"
-						placeholder="User-visible note"
-					></textarea>
-					<label class="flex items-center gap-2 text-[12px] text-navy/60">
-						<input type="checkbox" name="sendEmail" value="true" class="rounded border-navy/20" />
-						Also send action-needed email
-					</label>
-					<button
-						type="submit"
-						class="px-4 py-2 rounded-xl bg-navy text-cream text-[12px] font-medium cursor-pointer hover:bg-navy-light"
-						>Save action needed</button
-					>
-				</form>
-
-				{#if fd.openFlags.length}
-					<div>
-						<p class="text-[10px] uppercase tracking-wider text-navy/35 font-medium mb-2">Open flags</p>
-						<ul class="space-y-2">
-							{#each fd.openFlags as flag}
-								<li class="flex items-start justify-between gap-3 rounded-lg border border-navy/8 px-3 py-2">
-									<div>
-										<p class="text-[12px] font-medium text-navy">{flag.flagKey} <span class="text-navy/35 font-normal">({flag.severity})</span></p>
-										{#if flag.reason}
-											<p class="text-[11px] text-navy/50 mt-0.5">{flag.reason}</p>
-										{/if}
-									</div>
-									<form method="POST" action="?/resolveFundingFlag" use:enhance>
-										<input type="hidden" name="flagId" value={flag.id} />
-										<button type="submit" class="text-[11px] text-emerald-accent cursor-pointer hover:underline">Resolve</button>
-									</form>
-								</li>
-							{/each}
-						</ul>
-					</div>
-				{/if}
-			</div>
-		{/if}
-	{/each}
-
-	<!-- ── Marketing Drip Panel ───────────────────────────────────────── -->
-	{#if data.dripLead}
-		{@const dl = data.dripLead}
-		<div class="rounded-2xl border border-navy/[0.08] bg-white/60 p-6 mb-6">
-			<div class="flex items-center justify-between mb-4">
-				<div class="flex items-center gap-2">
-					<span class="text-[10px] tracking-[0.22em] uppercase font-semibold text-emerald-accent">Marketing Drip</span>
-				</div>
-				<div class="flex items-center gap-2">
-					{#if dl.sequenceStatus === 'active'}
-						<form method="POST" action="?/dripStop" use:enhance>
-							<input type="hidden" name="email" value={dl.email} />
-							<button type="submit" class="text-[11px] px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors cursor-pointer">Stop sequence</button>
-						</form>
-					{/if}
-				</div>
-			</div>
-
-			<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-				<div>
-					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Sequence</p>
-					<p class="text-[13px] text-navy/80 font-medium">{dl.currentSequence?.replace(/_/g, ' ') ?? '—'}</p>
-				</div>
-				<div>
-					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Status</p>
-					<p class="text-[13px] font-medium
-						{dl.sequenceStatus === 'active' ? 'text-emerald-accent' :
-						dl.sequenceStatus === 'stopped_paid' ? 'text-navy/55' :
-						dl.sequenceStatus === 'unsubscribed' ? 'text-red-500' :
-						'text-navy/45'}">
-						{dl.sequenceStatus?.replace(/_/g, ' ') ?? '—'}
-					</p>
-				</div>
-				<div>
-					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Next email</p>
-					<p class="text-[13px] text-navy/80">
-						{dl.nextEmailAt ? new Date(dl.nextEmailAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
-					</p>
-				</div>
-				<div>
-					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Last sent</p>
-					<p class="text-[13px] text-navy/80">
-						{dl.lastEmailAt ? new Date(dl.lastEmailAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
-					</p>
-				</div>
-				<div>
-					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Last email key</p>
-					<p class="text-[13px] text-navy/60 font-mono">{dl.lastEmailKey ?? '—'}</p>
-				</div>
-				{#if dl.quizResult}
-					<div>
-						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Quiz result</p>
-						<p class="text-[13px] text-navy/80">{dl.quizResult.replace(/_/g, ' ')}</p>
-					</div>
-				{/if}
-				{#if dl.appStatus}
-					<div>
-						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">App status</p>
-						<p class="text-[13px] text-navy/80">{dl.appStatus.replace(/_/g, ' ')}</p>
-					</div>
-				{/if}
-				{#if dl.stoppedReason}
-					<div>
-						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Stop reason</p>
-						<p class="text-[13px] text-navy/60">{dl.stoppedReason.replace(/_/g, ' ')}</p>
-					</div>
-				{/if}
-			</div>
-
-			{#if dl.complexityFlags && dl.complexityFlags.length > 0}
-				<div class="flex flex-wrap gap-1.5 mb-3">
-					{#each dl.complexityFlags as flag}
-						<span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700">{flag.replace(/_/g, ' ')}</span>
-					{/each}
-				</div>
-			{/if}
-
-			{#if data.dripEmailLogs && data.dripEmailLogs.length > 0}
-				<div class="border-t border-navy/[0.06] pt-3 mt-2">
-					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-2">Send log (last {data.dripEmailLogs.length})</p>
-					<div class="space-y-1">
-						{#each data.dripEmailLogs as log}
-							<div class="flex items-center gap-3 text-[11px]">
-								<span class="text-navy/35 tabular-nums shrink-0">{new Date(log.sentAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}</span>
-								<span class="font-mono text-navy/45 shrink-0">{log.emailKey}</span>
-								<span class="text-navy/60 truncate">{log.subject}</span>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-		</div>
-	{/if}
-
-	{#if trust}
-		{#if notarizationCard}
+	{#if trust && notarizationCard}
 				<div class="rounded-2xl border border-emerald-accent/20 bg-white/70 backdrop-blur-sm p-6 md:p-7 shadow-sm mb-6">
 					{#if notarizationCard.fallback}
 						<div class="min-w-0 flex-1 flex flex-col">
@@ -922,7 +665,7 @@
 					</div>
 					{/if}
 				</div>
-			{/if}
+	{/if}
 
 			<!-- tabs -->
 			<div class="flex items-center gap-1 mb-4 border-b border-navy/[0.08]" role="tablist">
@@ -937,6 +680,47 @@
 							: 'text-navy/45 border-transparent hover:text-navy/70'}"
 				>
 					Questionnaire
+				</button>
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === 'trustWork'}
+					onclick={() => (activeTab = 'trustWork')}
+					class="px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors cursor-pointer
+						{activeTab === 'trustWork'
+							? 'text-navy border-emerald-accent'
+							: 'text-navy/45 border-transparent hover:text-navy/70'}"
+				>
+					Make Your Trust Work
+				</button>
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === 'drip'}
+					onclick={() => (activeTab = 'drip')}
+					class="px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors cursor-pointer
+						{activeTab === 'drip'
+							? 'text-navy border-emerald-accent'
+							: 'text-navy/45 border-transparent hover:text-navy/70'}"
+				>
+					Marketing Drip
+				</button>
+				<button
+					type="button"
+					role="tab"
+					aria-selected={activeTab === 'help'}
+					onclick={() => (activeTab = 'help')}
+					class="px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors cursor-pointer flex items-center gap-1.5
+						{activeTab === 'help'
+							? 'text-navy border-emerald-accent'
+							: 'text-navy/45 border-transparent hover:text-navy/70'}"
+				>
+					Help Conversations
+					{#if data.helpConversations.length > 0}
+						<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
+							{data.helpConversations.length}
+						</span>
+					{/if}
 				</button>
 				<button
 					type="button"
@@ -972,7 +756,8 @@
 				</button>
 			</div>
 
-			{#if activeTab === 'questionnaire'}
+	{#if activeTab === 'questionnaire'}
+		{#if trust}
 				{#if trust && (trust.screeningAnswers || trust.isEligible !== null)}
 					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6 md:p-7 mb-6">
 						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-4">Eligibility screening</p>
@@ -1152,7 +937,313 @@
 			{/if}
 
 			<AdminQuestionResponses {trust} />
-		{:else if activeTab === 'files'}
+		{:else}
+			<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center mb-6">
+				<p class="text-navy/40 text-sm">No trust created yet.</p>
+			</div>
+		{/if}
+	{:else if activeTab === 'trustWork'}
+	<!-- ── Make Your Trust Work ───────────────────────────────────────── -->
+	{#each data.fundingByTrust as fb}
+		{#if fb.dashboard}
+			{@const fd = fb.dashboard}
+			<div class="rounded-2xl border border-navy/[0.08] bg-white/60 p-6 mb-6">
+				<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+					<div>
+						<span class="text-[10px] tracking-[0.22em] uppercase font-semibold text-emerald-accent">Make Your Trust Work</span>
+						<p class="text-[13px] text-navy/50 mt-1">Trust #{fb.trustId}</p>
+					</div>
+					<a
+						href="/make-your-trust-work/{fb.trustId}"
+						class="text-[12px] px-3 py-1.5 rounded-lg border border-navy/10 text-navy/70 hover:border-emerald-accent/30 transition-colors"
+						>Open user view</a
+					>
+				</div>
+
+				<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Progress</p>
+						<p class="text-[13px] text-navy/80 font-medium tabular-nums">{fd.progress.journey.pct}%</p>
+					</div>
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Prepare</p>
+						<p class="text-[13px] text-navy/80 font-medium tabular-nums">{fd.progress.prepare.done}/{fd.progress.prepare.total}</p>
+					</div>
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Complete</p>
+						<p class="text-[13px] text-navy/80 font-medium tabular-nums">
+							{#if fd.progress.completePhaseLocked}
+								Locked
+							{:else}
+								{fd.progress.complete.done}/{fd.progress.complete.total}
+							{/if}
+						</p>
+					</div>
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+							Pour-over will
+							<span
+								class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-navy/20 text-[9px] font-semibold text-navy/40 cursor-help"
+								title="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents. Normally detected from the document package; toggling it here overrides that detection permanently."
+								aria-label="Controls whether Make Your Trust Work shows pour-over will signing steps and sends the day-21 will reminder. Does not change or remove the generated will documents. Normally detected from the document package; toggling it here overrides that detection permanently."
+							>i</span>
+						</p>
+						<form method="POST" action="?/togglePourOverIncluded" use:enhance class="inline">
+							<input type="hidden" name="trustId" value={fb.trustId} />
+							<input type="hidden" name="included" value={fd.pourOverWillIncluded ? 'false' : 'true'} />
+							<button type="submit" class="text-[13px] text-emerald-accent font-medium cursor-pointer hover:underline">
+								{fd.pourOverWillIncluded ? 'Included' : 'Not included'} (toggle)
+							</button>
+						</form>
+						<p class="text-[10px] text-navy/35 leading-snug mt-1 max-w-[11rem]">
+							{fd.pourOverWillManual
+								? 'Set manually — no longer auto-detected from the document package.'
+								: 'Auto-detected from the document package.'}
+						</p>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Homeowner</p>
+						<p class="text-[13px] text-navy/80 font-medium">
+							{fd.isHomeowner === null ? 'Not answered' : fd.isHomeowner ? 'Yes' : 'No'}
+						</p>
+						<p class="text-[10px] text-navy/35 leading-snug mt-1 max-w-[11rem]">
+							Controls the deed, homeowners insurance, and homestead cards.
+						</p>
+					</div>
+					<div class="sm:col-span-3">
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Retirement beneficiary</p>
+						<p
+							class="text-[13px] font-medium {fd.retirementBeneficiary === 'other' ||
+							fd.retirementBeneficiary === 'not_sure'
+								? 'text-red-600'
+								: 'text-navy/80'}"
+						>
+							{fd.retirementBeneficiary === 'spouse_sole'
+								? 'Spouse is sole primary beneficiary'
+								: fd.retirementBeneficiary === 'other'
+									? 'Nonspouse, trust, or charity named'
+									: fd.retirementBeneficiary === 'not_sure'
+										? 'User is not sure'
+										: 'Not asked (unmarried or no retirement accounts)'}
+						</p>
+					</div>
+				</div>
+
+				{#if fd.actionNeededNote}
+					<div class="mb-4 rounded-xl border border-red-200 bg-red-50/70 p-3">
+						<p class="text-[11px] uppercase tracking-wider text-red-700 font-semibold mb-1">Action needed (user-visible)</p>
+						<p class="text-[13px] text-navy/75 leading-relaxed">{fd.actionNeededNote}</p>
+						<form method="POST" action="?/clearFundingActionNeeded" use:enhance class="mt-2">
+							<input type="hidden" name="trustId" value={fb.trustId} />
+							<button type="submit" class="text-[12px] text-navy/50 underline cursor-pointer">Clear note</button>
+						</form>
+					</div>
+				{/if}
+
+				<form method="POST" action="?/setFundingActionNeeded" use:enhance class="space-y-3 mb-4">
+					<input type="hidden" name="trustId" value={fb.trustId} />
+					<label class="block">
+						<span class="text-[10px] uppercase tracking-wider text-navy/35 font-medium">Set action-needed note</span>
+						<select
+							class="mt-1 w-full rounded-xl border border-navy/10 bg-white px-3 py-2 text-[13px] text-navy"
+							onchange={(e) => {
+								const sel = e.currentTarget;
+								const tpl = data.fundingNoteTemplates.find((t) => t.id === sel.value);
+								const ta = sel.form?.querySelector('textarea[name="note"]') as HTMLTextAreaElement | null;
+								if (tpl && ta) ta.value = tpl.body;
+							}}
+						>
+							<option value="">Template…</option>
+							{#each data.fundingNoteTemplates as tpl}
+								<option value={tpl.id}>{tpl.label}</option>
+							{/each}
+						</select>
+					</label>
+					<textarea
+						name="note"
+						rows="3"
+						required
+						class="w-full rounded-xl border border-navy/10 bg-white px-3 py-2 text-[13px] text-navy"
+						placeholder="User-visible note"
+					></textarea>
+					<label class="flex items-center gap-2 text-[12px] text-navy/60">
+						<input type="checkbox" name="sendEmail" value="true" class="rounded border-navy/20" />
+						Also send action-needed email
+					</label>
+					<button
+						type="submit"
+						class="px-4 py-2 rounded-xl bg-navy text-cream text-[12px] font-medium cursor-pointer hover:bg-navy-light"
+						>Save action needed</button
+					>
+				</form>
+
+				{#if fd.openFlags.length}
+					<div>
+						<p class="text-[10px] uppercase tracking-wider text-navy/35 font-medium mb-2">Open flags</p>
+						<ul class="space-y-2">
+							{#each fd.openFlags as flag}
+								<li class="flex items-start justify-between gap-3 rounded-lg border border-navy/8 px-3 py-2">
+									<div>
+										<p class="text-[12px] font-medium text-navy">{flag.flagKey} <span class="text-navy/35 font-normal">({flag.severity})</span></p>
+										{#if flag.reason}
+											<p class="text-[11px] text-navy/50 mt-0.5">{flag.reason}</p>
+										{/if}
+									</div>
+									<form method="POST" action="?/resolveFundingFlag" use:enhance>
+										<input type="hidden" name="flagId" value={flag.id} />
+										<button type="submit" class="text-[11px] text-emerald-accent cursor-pointer hover:underline">Resolve</button>
+									</form>
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+			</div>
+		{/if}
+	{/each}
+	{#if !data.fundingByTrust.some((fb) => fb.dashboard)}
+		<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center mb-6">
+			<p class="text-navy/40 text-sm">No funding dashboard yet.</p>
+			<p class="text-navy/35 text-[12px] mt-1">This appears once a trust's documents are approved.</p>
+		</div>
+	{/if}
+	{:else if activeTab === 'drip'}
+	<!-- ── Marketing Drip Panel ───────────────────────────────────────── -->
+	{#if data.dripLead}
+		{@const dl = data.dripLead}
+		<div class="rounded-2xl border border-navy/[0.08] bg-white/60 p-6 mb-6">
+			<div class="flex items-center justify-between mb-4">
+				<div class="flex items-center gap-2">
+					<span class="text-[10px] tracking-[0.22em] uppercase font-semibold text-emerald-accent">Marketing Drip</span>
+				</div>
+				<div class="flex items-center gap-2">
+					{#if dl.sequenceStatus === 'active'}
+						<form method="POST" action="?/dripStop" use:enhance>
+							<input type="hidden" name="email" value={dl.email} />
+							<button type="submit" class="text-[11px] px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors cursor-pointer">Stop sequence</button>
+						</form>
+					{/if}
+				</div>
+			</div>
+
+			<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Sequence</p>
+					<p class="text-[13px] text-navy/80 font-medium">{dl.currentSequence?.replace(/_/g, ' ') ?? '—'}</p>
+				</div>
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Status</p>
+					<p class="text-[13px] font-medium
+						{dl.sequenceStatus === 'active' ? 'text-emerald-accent' :
+						dl.sequenceStatus === 'stopped_paid' ? 'text-navy/55' :
+						dl.sequenceStatus === 'unsubscribed' ? 'text-red-500' :
+						'text-navy/45'}">
+						{dl.sequenceStatus?.replace(/_/g, ' ') ?? '—'}
+					</p>
+				</div>
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Next email</p>
+					<p class="text-[13px] text-navy/80">
+						{dl.nextEmailAt ? new Date(dl.nextEmailAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+					</p>
+				</div>
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Last sent</p>
+					<p class="text-[13px] text-navy/80">
+						{dl.lastEmailAt ? new Date(dl.lastEmailAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+					</p>
+				</div>
+				<div>
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Last email key</p>
+					<p class="text-[13px] text-navy/60 font-mono">{dl.lastEmailKey ?? '—'}</p>
+				</div>
+				{#if dl.quizResult}
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Quiz result</p>
+						<p class="text-[13px] text-navy/80">{dl.quizResult.replace(/_/g, ' ')}</p>
+					</div>
+				{/if}
+				{#if dl.appStatus}
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">App status</p>
+						<p class="text-[13px] text-navy/80">{dl.appStatus.replace(/_/g, ' ')}</p>
+					</div>
+				{/if}
+				{#if dl.stoppedReason}
+					<div>
+						<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-0.5">Stop reason</p>
+						<p class="text-[13px] text-navy/60">{dl.stoppedReason.replace(/_/g, ' ')}</p>
+					</div>
+				{/if}
+			</div>
+
+			{#if dl.complexityFlags && dl.complexityFlags.length > 0}
+				<div class="flex flex-wrap gap-1.5 mb-3">
+					{#each dl.complexityFlags as flag}
+						<span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700">{flag.replace(/_/g, ' ')}</span>
+					{/each}
+				</div>
+			{/if}
+
+			{#if data.dripEmailLogs && data.dripEmailLogs.length > 0}
+				<div class="border-t border-navy/[0.06] pt-3 mt-2">
+					<p class="text-[10px] text-navy/35 uppercase tracking-wider mb-2">Send log (last {data.dripEmailLogs.length})</p>
+					<div class="space-y-1">
+						{#each data.dripEmailLogs as log}
+							<div class="flex items-center gap-3 text-[11px]">
+								<span class="text-navy/35 tabular-nums shrink-0">{new Date(log.sentAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}</span>
+								<span class="font-mono text-navy/45 shrink-0">{log.emailKey}</span>
+								<span class="text-navy/60 truncate">{log.subject}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+	{:else}
+		<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center mb-6">
+			<p class="text-navy/40 text-sm">No marketing drip activity for this user.</p>
+		</div>
+	{/if}
+	{:else if activeTab === 'help'}
+		<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] overflow-hidden">
+			{#if data.helpConversations.length === 0}
+				<div class="p-12 text-center">
+					<p class="text-navy/40 text-sm">No help conversations yet.</p>
+				</div>
+			{:else}
+				<ul class="divide-y divide-navy/[0.06]">
+					{#each data.helpConversations as c (c.id)}
+						<li class="flex items-center justify-between gap-4 px-5 py-3.5">
+							<div class="min-w-0">
+								<div class="text-[13px] text-navy font-medium truncate">
+									{c.surface}{c.stepKey ? ` / ${c.stepKey}` : ''}
+								</div>
+								<div class="text-[11px] text-navy/45 mt-0.5">
+									{c.turnCount} turn{c.turnCount === 1 ? '' : 's'}
+									{#if c.lastMessageAt}
+										&middot; {new Date(c.lastMessageAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+									{/if}
+									{#if c.hasRedaction}
+										&middot; <span class="text-amber-700">Redacted content</span>
+									{/if}
+								</div>
+							</div>
+							<a
+								href={`/admin/help/conversations/${c.id}`}
+								class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border bg-emerald-accent/10 text-emerald-accent border-emerald-accent/30 hover:bg-emerald-accent/20 transition-all cursor-pointer shrink-0"
+							>
+								View transcript
+							</a>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+	{:else if activeTab === 'files'}
 			{#if trust}
 				{@const canGenerate = trust.complete}
 				<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-5 mb-4 flex flex-col gap-4">
@@ -1308,18 +1399,9 @@
 						</ul>
 					{/if}
 				</div>
-			{:else if activeTab === 'notes'}
+	{:else if activeTab === 'notes'}
 				<AdminUserNotes notes={data.notes} userName={data.targetUser.name} />
-			{/if}
-		{:else}
-			<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center mb-6">
-				<p class="text-navy/40 text-sm">No trust created yet.</p>
-			</div>
-			<div class="mb-2">
-				<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-3">Notes</p>
-			</div>
-			<AdminUserNotes notes={data.notes} userName={data.targetUser.name} />
-		{/if}
+	{/if}
 	</div>
 
 	{#if showDocxPreview}

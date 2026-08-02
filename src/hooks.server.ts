@@ -8,7 +8,7 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 
 	if (session) {
 		event.locals.session = session.session;
-		event.locals.user = session.user;
+		event.locals.user = session.user as App.Locals['user'];
 	}
 
 	return svelteKitHandler({ event, resolve, auth, building });

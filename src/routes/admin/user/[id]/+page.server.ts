@@ -2,7 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { Resend } from 'resend';
 import { siteName } from '$lib/config';
 import { db } from '$lib/server/db';
-import { trust, user, adminNote, TrustStatus, marketingLead, marketingEmailLog } from '$lib/server/db/schema';
+import { trust, user, adminNote, TrustStatus, marketingLead, marketingEmailLog, helpConversation } from '$lib/server/db/schema';
 import type { LoeAgreementData, WarningAgreementData } from '$lib/server/db/schema';
 import type { UserFile } from '$lib/server/db/schema';
 import { documentsApprovedEmail } from '$lib/server/emails/documentsApproved';
@@ -60,6 +60,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			})
 		: [];
 
+	const helpConversations = await db.query.helpConversation.findMany({
+		where: eq(helpConversation.userId, params.id),
+		orderBy: [desc(helpConversation.lastMessageAt)],
+		limit: 50,
+	});
+
 	return {
 		currentAdminId: locals.user.id,
 		notes: notes.map((n) => ({
@@ -109,6 +115,17 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			emailKey: l.emailKey,
 			subject: l.subject,
 			resendId: l.resendId,
+		})),
+		helpConversations: helpConversations.map((c) => ({
+			id: c.id,
+			trustId: c.trustId,
+			surface: c.surface,
+			stepKey: c.stepKey,
+			turnCount: c.turnCount,
+			lastMessageAt: c.lastMessageAt?.toISOString() ?? null,
+			maxTier: c.maxTier,
+			unresolvedEscalationTier: c.unresolvedEscalationTier,
+			hasRedaction: c.hasRedaction,
 		})),
 		trusts: trusts.map((t) => ({
 			id: t.id,
