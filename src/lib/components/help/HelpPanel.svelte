@@ -70,7 +70,7 @@
 				id: nextId++,
 				role: 'assistant',
 				status: 'done',
-				text: "Hi! Ask me a general question about using Good Tree — signing your documents, funding your trust, or what to do next.",
+				text: "Asalamualaikum! Ask me a general question about using Good Tree — signing your documents, funding your trust, or what to do next.",
 			},
 		];
 		scrollToBottom();
