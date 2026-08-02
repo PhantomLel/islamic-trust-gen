@@ -3,7 +3,7 @@ import { HELP_PROVIDER_MODELS, HELP_RERANK_DEFAULTS } from '$lib/help/decisions'
 import type { ServableEntry } from '$lib/server/help/servability';
 
 export type RerankResult = {
-	sourceId: string;
+	entryId: number;
 	score: number;
 }[];
 
@@ -31,7 +31,9 @@ export async function rerankCorpus(
 		? `Represent the query for retrieving supporting documents about the Good Tree trust app step "${stepHint}": `
 		: 'Represent the query for retrieving supporting Good Tree help documents: ';
 
-	const documents = entries.map((e) => e.rerankDocument ?? e.question ?? e.title ?? e.sourceId);
+	const documents = entries.map(
+		(e) => e.rerankDocument ?? e.question ?? e.title ?? String(e.id),
+	);
 
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), HELP_RERANK_DEFAULTS.timeoutMs);
@@ -63,10 +65,10 @@ export async function rerankCorpus(
 
 		const ranked = (data.data ?? [])
 			.map((row) => ({
-				sourceId: entries[row.index]?.sourceId,
+				entryId: entries[row.index]?.id,
 				score: row.relevance_score ?? 0,
 			}))
-			.filter((r) => r.sourceId);
+			.filter((r) => r.entryId != null);
 
 		return ranked.sort((a, b) => b.score - a.score);
 	} catch (err) {

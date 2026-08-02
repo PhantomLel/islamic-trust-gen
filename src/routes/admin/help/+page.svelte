@@ -100,24 +100,24 @@
 					<thead>
 						<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
 							<th class="px-4 py-3 font-medium w-8"></th>
-							<th class="px-4 py-3 font-medium">Source ID</th>
+							<th class="px-4 py-3 font-medium">ID</th>
 							<th class="px-4 py-3 font-medium">Question</th>
 							<th class="px-4 py-3 font-medium">Status</th>
 							<th class="px-4 py-3 font-medium">Serves</th>
 						</tr>
 					</thead>
 					<tbody>
-						{#each data.entries as row (row.sourceId)}
+						{#each data.entries as row (row.id)}
 							<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
 								<td class="px-4 py-3">
-									<input type="checkbox" name="sourceId" value={row.sourceId} class="cursor-pointer" />
+									<input type="checkbox" name="entryId" value={row.id} class="cursor-pointer" />
 								</td>
 								<td class="px-4 py-3 font-mono text-[12px]">
 									<a
 										class="text-emerald-accent hover:text-emerald-accent/80 font-medium"
-										href="/admin/help/entries/{encodeURIComponent(row.sourceId)}"
+										href="/admin/help/entries/{row.id}"
 									>
-										{row.sourceId}
+										{row.id}
 									</a>
 								</td>
 								<td class="px-4 py-3 text-navy/80 max-w-[420px] truncate" title={row.question ?? row.title ?? ''}>

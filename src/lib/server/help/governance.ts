@@ -2,13 +2,11 @@ import { db } from '$lib/server/db';
 import {
 	kbEntry,
 	kbEntryGovernance,
-	kbEntryInternal,
 	kbEntryVersion,
 	kbPublicationGate,
 	type KbGovernanceStatus,
 } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { POLICY_BLOCKED_SOURCE_IDS, SCHOLAR_REVIEW_SOURCE_IDS } from '$lib/help/decisions';
 
 export async function snapshotEntryVersion(
 	entryId: number,
@@ -40,9 +38,9 @@ export async function snapshotEntryVersion(
 	return version.id;
 }
 
-export async function approveEntry(sourceId: string, adminUserId: string): Promise<void> {
+export async function approveEntry(entryId: number, adminUserId: string): Promise<void> {
 	const row = await db.query.kbEntry.findFirst({
-		where: eq(kbEntry.sourceId, sourceId),
+		where: eq(kbEntry.id, entryId),
 		with: { governance: true },
 	});
 	if (!row?.governance) throw new Error('Entry not found');
@@ -50,9 +48,7 @@ export async function approveEntry(sourceId: string, adminUserId: string): Promi
 	const unsatisfied = await db
 		.select()
 		.from(kbPublicationGate)
-		.where(
-			eq(kbPublicationGate.contentId, sourceId),
-		);
+		.where(eq(kbPublicationGate.contentId, String(entryId)));
 	const blocking = unsatisfied.filter((g) => g.required && !g.satisfied);
 	if (blocking.length > 0) {
 		throw new Error(`Publication gates unsatisfied: ${blocking.map((g) => g.gateType).join(', ')}`);
@@ -71,27 +67,35 @@ export async function approveEntry(sourceId: string, adminUserId: string): Promi
 		.where(eq(kbEntryGovernance.entryId, row.id));
 }
 
-export async function bulkApproveEntries(sourceIds: string[], adminUserId: string): Promise<{
-	approved: string[];
-	skipped: Array<{ sourceId: string; reason: string }>;
+export async function bulkApproveEntries(entryIds: number[], adminUserId: string): Promise<{
+	approved: number[];
+	skipped: Array<{ entryId: number; reason: string }>;
 }> {
-	const approved: string[] = [];
-	const skipped: Array<{ sourceId: string; reason: string }> = [];
+	const approved: number[] = [];
+	const skipped: Array<{ entryId: number; reason: string }> = [];
 
-	for (const sourceId of sourceIds) {
-		if (
-			(SCHOLAR_REVIEW_SOURCE_IDS as readonly string[]).includes(sourceId) ||
-			(POLICY_BLOCKED_SOURCE_IDS as readonly string[]).includes(sourceId)
-		) {
-			skipped.push({ sourceId, reason: 'scholar or policy gate required' });
+	for (const entryId of entryIds) {
+		const gates = await db
+			.select()
+			.from(kbPublicationGate)
+			.where(
+				and(
+					eq(kbPublicationGate.contentType, 'kb_entry'),
+					eq(kbPublicationGate.contentId, String(entryId)),
+					eq(kbPublicationGate.required, true),
+					eq(kbPublicationGate.satisfied, false),
+				),
+			);
+		if (gates.some((g) => g.gateType === 'scholar_review' || g.gateType === 'policy_confirmation')) {
+			skipped.push({ entryId, reason: 'scholar or policy gate required' });
 			continue;
 		}
 		try {
-			await approveEntry(sourceId, adminUserId);
-			approved.push(sourceId);
+			await approveEntry(entryId, adminUserId);
+			approved.push(entryId);
 		} catch (err) {
 			skipped.push({
-				sourceId,
+				entryId,
 				reason: err instanceof Error ? err.message : 'approve failed',
 			});
 		}
@@ -100,11 +104,11 @@ export async function bulkApproveEntries(sourceIds: string[], adminUserId: strin
 }
 
 export async function updateEntryGovernanceStatus(
-	sourceId: string,
+	entryId: number,
 	status: KbGovernanceStatus,
 	adminUserId: string,
 ): Promise<void> {
-	const row = await db.query.kbEntry.findFirst({ where: eq(kbEntry.sourceId, sourceId) });
+	const row = await db.query.kbEntry.findFirst({ where: eq(kbEntry.id, entryId) });
 	if (!row) throw new Error('Entry not found');
 	await snapshotEntryVersion(row.id, adminUserId, `status:${status}`, status);
 	await db
@@ -121,7 +125,7 @@ export async function updateEntryGovernanceStatus(
 }
 
 export async function satisfyPublicationGate(
-	sourceId: string,
+	entryId: number,
 	gateType: string,
 	reviewerId: string,
 	note?: string,
@@ -135,19 +139,24 @@ export async function satisfyPublicationGate(
 			evidenceNote: note ?? null,
 			updatedAt: new Date(),
 		})
-		.where(and(eq(kbPublicationGate.contentId, sourceId), eq(kbPublicationGate.gateType, gateType as never)));
+		.where(
+			and(
+				eq(kbPublicationGate.contentId, String(entryId)),
+				eq(kbPublicationGate.gateType, gateType as never),
+			),
+		);
 }
 
-export async function listEntryGates(sourceId: string) {
+export async function listEntryGates(entryId: number) {
 	return db
 		.select()
 		.from(kbPublicationGate)
-		.where(eq(kbPublicationGate.contentId, sourceId));
+		.where(eq(kbPublicationGate.contentId, String(entryId)));
 }
 
-export async function getEntryDetail(sourceId: string) {
+export async function getEntryDetail(entryId: number) {
 	const entry = await db.query.kbEntry.findFirst({
-		where: eq(kbEntry.sourceId, sourceId),
+		where: eq(kbEntry.id, entryId),
 		with: { internal: true, governance: true, policies: true, versions: true },
 	});
 	if (!entry) return null;
@@ -158,7 +167,7 @@ export async function getEntryDetail(sourceId: string) {
 }
 
 export async function updateEntryUserFacingFields(
-	sourceId: string,
+	entryId: number,
 	fields: {
 		question?: string | null;
 		userFacingAnswer?: string | null;
@@ -168,7 +177,7 @@ export async function updateEntryUserFacingFields(
 	adminUserId: string,
 ): Promise<void> {
 	const row = await db.query.kbEntry.findFirst({
-		where: eq(kbEntry.sourceId, sourceId),
+		where: eq(kbEntry.id, entryId),
 		with: { governance: true },
 	});
 	if (!row) throw new Error('Entry not found');
@@ -178,31 +187,4 @@ export async function updateEntryUserFacingFields(
 		.update(kbEntry)
 		.set({ ...fields, updatedAt: new Date() })
 		.where(eq(kbEntry.id, row.id));
-}
-
-export async function seedDefaultGatesForEntry(sourceId: string): Promise<void> {
-	if ((SCHOLAR_REVIEW_SOURCE_IDS as readonly string[]).includes(sourceId)) {
-		await db
-			.insert(kbPublicationGate)
-			.values({
-				contentType: 'kb_entry',
-				contentId: sourceId,
-				gateType: 'scholar_review',
-				required: true,
-				satisfied: false,
-			})
-			.onConflictDoNothing();
-	}
-	if ((POLICY_BLOCKED_SOURCE_IDS as readonly string[]).includes(sourceId)) {
-		await db
-			.insert(kbPublicationGate)
-			.values({
-				contentType: 'kb_entry',
-				contentId: sourceId,
-				gateType: 'policy_confirmation',
-				required: true,
-				satisfied: false,
-			})
-			.onConflictDoNothing();
-	}
 }

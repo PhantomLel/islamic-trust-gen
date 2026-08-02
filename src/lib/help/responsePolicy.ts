@@ -71,7 +71,7 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 		return {
 			kind: 'do_not_answer',
 			shortAnswer: input.templateBody ?? input.entry.userFacingAnswer ?? '',
-			entrySourceId: input.entry.sourceId,
+			entryId: input.entry.id,
 			footer,
 			cta: consultCta,
 		};
@@ -81,7 +81,7 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 		return {
 			kind: 'tier2',
 			shortAnswer: input.entry.userFacingAnswer ?? '',
-			entrySourceId: input.entry.sourceId,
+			entryId: input.entry.id,
 			learnMore: {
 				appMeaning: input.entry.goodTreeAppMeaning ?? undefined,
 				nextStep: input.entry.userNextStep ?? undefined,
@@ -96,7 +96,7 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 		return {
 			kind: classification === 'consult_trigger' ? 'consult_trigger' : 'tier3',
 			shortAnswer: input.entry.userFacingAnswer ?? '',
-			entrySourceId: input.entry.sourceId,
+			entryId: input.entry.id,
 			learnMore: {
 				appMeaning: input.entry.goodTreeAppMeaning ?? undefined,
 				nextStep: input.entry.userNextStep ?? undefined,
@@ -109,7 +109,7 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 	return {
 		kind: 'safe_answer',
 		shortAnswer: input.entry.userFacingAnswer ?? '',
-		entrySourceId: input.entry.sourceId,
+		entryId: input.entry.id,
 		learnMore: {
 			appMeaning: input.entry.goodTreeAppMeaning ?? undefined,
 			nextStep: input.entry.userNextStep ?? undefined,

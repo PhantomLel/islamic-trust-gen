@@ -97,7 +97,7 @@ export async function processHelpQuery(req: HelpQueryRequest): Promise<HelpQuery
 	let runnerUpScore: number | null = null;
 	let verifierAccepted = false;
 	let providerFailure = false;
-	let matchedIds: string[] = [];
+	let matchedIds: number[] = [];
 
 	const templateFromTrigger = deterministicTriggers.find((t) => t.templateId)?.templateId;
 	let templateBody = await loadTemplateBody(templateFromTrigger);
@@ -106,13 +106,13 @@ export async function processHelpQuery(req: HelpQueryRequest): Promise<HelpQuery
 		try {
 			const corpus = await listServableEntries({ entryTypes: ['faq'] });
 			const ranked = await rerankCorpus(redacted.text, corpus, req.stepKey ?? undefined);
-			matchedIds = ranked.map((r) => r.sourceId);
+			matchedIds = ranked.map((r) => r.entryId);
 			const gate = passesRerankGate(ranked);
 			rerankScore = gate.top?.score ?? null;
 			runnerUpScore = gate.runnerUp ?? null;
 
 			if (gate.ok && gate.top) {
-				selectedEntry = corpus.find((e) => e.sourceId === gate.top!.sourceId) ?? null;
+				selectedEntry = corpus.find((e) => e.id === gate.top!.entryId) ?? null;
 				if (selectedEntry) {
 					const verification = await verifyTopEntry(redacted.text, selectedEntry);
 					verifierAccepted = verification.accept;
@@ -154,7 +154,7 @@ export async function processHelpQuery(req: HelpQueryRequest): Promise<HelpQuery
 			turnIndex,
 			questionText: redacted.text,
 			matchedEntryIds: matchedIds,
-			selectedEntrySourceId: selectedEntry?.sourceId ?? null,
+			selectedEntryId: selectedEntry?.id ?? null,
 			resolvedTier: sessionTier,
 			triggerCodes: allTriggers.map((t) => t.code),
 			rerankScore: rerankScore?.toString() ?? null,

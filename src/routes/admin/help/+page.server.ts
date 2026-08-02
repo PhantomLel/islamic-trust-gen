@@ -23,16 +23,16 @@ export const load: PageServerLoad = async ({ url }) => {
 	if (q) {
 		conditions.push(
 			or(
-				ilike(kbEntry.sourceId, `%${q}%`),
 				ilike(kbEntry.question, `%${q}%`),
 				ilike(kbEntry.title, `%${q}%`),
+				sql`${kbEntry.id}::text ILIKE ${'%' + q + '%'}`,
 			),
 		);
 	}
 
 	const entries = await db
 		.select({
-			sourceId: kbEntry.sourceId,
+			id: kbEntry.id,
 			question: kbEntry.question,
 			title: kbEntry.title,
 			status: kbEntryGovernance.status,
@@ -42,7 +42,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		.from(kbEntry)
 		.leftJoin(kbEntryGovernance, eq(kbEntryGovernance.entryId, kbEntry.id))
 		.where(conditions.length ? and(...conditions) : undefined)
-		.orderBy(kbEntry.sourceId);
+		.orderBy(kbEntry.id);
 
 	const [openEscalations, unanswered, conversations] = await Promise.all([
 		db.select({ count: sql<number>`count(*)` }).from(helpEscalation).where(eq(helpEscalation.status, 'open')),
@@ -71,7 +71,10 @@ export const load: PageServerLoad = async ({ url }) => {
 export const actions: Actions = {
 	bulkApprove: async ({ request, locals }) => {
 		const form = await request.formData();
-		const ids = form.getAll('sourceId').map(String).filter(Boolean);
+		const ids = form
+			.getAll('entryId')
+			.map((v) => Number(v))
+			.filter((n) => Number.isFinite(n));
 		if (ids.length === 0) return fail(400, { message: 'No entries selected' });
 		const result = await bulkApproveEntries(ids, locals.user!.id);
 		return { bulkApprove: result };

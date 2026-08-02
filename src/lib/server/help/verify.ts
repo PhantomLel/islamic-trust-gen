@@ -67,7 +67,7 @@ export async function verifyTopEntry(
 						role: 'user',
 						content: JSON.stringify({
 							question,
-							entrySourceId: entry.sourceId,
+							entryId: entry.id,
 							entryQuestion: entry.question,
 							alsoAnswers: entry.alsoAnswers ?? [],
 							approvedAnswer: entry.userFacingAnswer,

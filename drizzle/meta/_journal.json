@@ -15,6 +15,13 @@
       "when": 1783825319294,
       "tag": "0001_help_assistant",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783825319295,
+      "tag": "0002_remove_source_id",
+      "breakpoints": true
     }
   ]
 }

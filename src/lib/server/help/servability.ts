@@ -12,7 +12,6 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 
 export type ServableEntry = {
 	id: number;
-	sourceId: string;
 	entryType: KbEntryType;
 	category: string | null;
 	title: string | null;
@@ -34,14 +33,14 @@ export function entryHasRenderableText(row: Pick<ServableEntry, 'entryType' | 'q
 	return Boolean(row.question?.trim() && row.userFacingAnswer?.trim());
 }
 
-export async function entryHasUnsatisfiedRequiredGates(sourceId: string): Promise<boolean> {
+export async function entryHasUnsatisfiedRequiredGates(entryId: number): Promise<boolean> {
 	const gates = await db
 		.select()
 		.from(kbPublicationGate)
 		.where(
 			and(
 				eq(kbPublicationGate.contentType, 'kb_entry'),
-				eq(kbPublicationGate.contentId, sourceId),
+				eq(kbPublicationGate.contentId, String(entryId)),
 				eq(kbPublicationGate.required, true),
 				eq(kbPublicationGate.satisfied, false),
 			),
@@ -49,9 +48,9 @@ export async function entryHasUnsatisfiedRequiredGates(sourceId: string): Promis
 	return gates.length > 0;
 }
 
-export async function isEntryServableBySourceId(sourceId: string): Promise<boolean> {
+export async function isEntryServable(entryId: number): Promise<boolean> {
 	const row = await db.query.kbEntry.findFirst({
-		where: eq(kbEntry.sourceId, sourceId),
+		where: eq(kbEntry.id, entryId),
 		with: { governance: true, internal: true },
 	});
 	if (!row?.governance) return false;
@@ -64,7 +63,7 @@ export async function isEntryServableBySourceId(sourceId: string): Promise<boole
 	})) {
 		return false;
 	}
-	return !(await entryHasUnsatisfiedRequiredGates(sourceId));
+	return !(await entryHasUnsatisfiedRequiredGates(entryId));
 }
 
 export async function listServableEntries(options?: {
@@ -77,7 +76,6 @@ export async function listServableEntries(options?: {
 	const rows = await db
 		.select({
 			id: kbEntry.id,
-			sourceId: kbEntry.sourceId,
 			entryType: kbEntry.entryType,
 			category: kbEntry.category,
 			title: kbEntry.title,
@@ -127,7 +125,7 @@ export async function listServableEntries(options?: {
 
 	let result: ServableEntry[] = [];
 	for (const row of rows) {
-		if (blocked.has(row.sourceId)) continue;
+		if (blocked.has(String(row.id))) continue;
 		if (!entryHasRenderableText(row)) continue;
 		const internal = internalMap.get(row.id);
 		const enriched: ServableEntry = {
@@ -169,7 +167,7 @@ export async function searchServableEntries(query: string, limit = 20): Promise<
 	if (!pattern) return [];
 
 	const rows = await db.execute(sql`
-		SELECT e.id, e.source_id, e.entry_type, e.category, e.title, e.question,
+		SELECT e.id, e.entry_type, e.category, e.title, e.question,
 			e.user_facing_answer, e.good_tree_app_meaning, e.user_next_step, e.rerank_document,
 			g.status
 		FROM kb_entry e
@@ -194,10 +192,9 @@ export async function searchServableEntries(query: string, limit = 20): Promise<
 	);
 
 	return (rows.rows as Array<Record<string, unknown>>)
-		.filter((r) => !blocked.has(String(r.source_id)))
+		.filter((r) => !blocked.has(String(r.id)))
 		.map((r) => ({
 			id: Number(r.id),
-			sourceId: String(r.source_id),
 			entryType: r.entry_type as KbEntryType,
 			category: (r.category as string | null) ?? null,
 			title: (r.title as string | null) ?? null,

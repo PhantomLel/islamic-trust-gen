@@ -71,7 +71,7 @@
 <a href="/admin/help" class="text-sm text-navy/50 hover:text-navy inline-flex items-center gap-1">← Back to entries</a>
 
 <div class="mt-4 mb-8 flex items-center gap-3">
-	<h1 class="text-2xl font-semibold text-navy tracking-tight font-mono">{data.sourceId}</h1>
+	<h1 class="text-2xl font-semibold text-navy tracking-tight font-mono">Entry #{data.entryId}</h1>
 	<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium {statusColor(data.entry.governance?.status)}">
 		{data.entry.governance?.status ?? 'unknown'}
 	</span>

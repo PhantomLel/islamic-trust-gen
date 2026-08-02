@@ -305,19 +305,33 @@ async function writeToDb(data) {
 
 	for (const card of data.cCards) {
 		const hash = hashContent(card);
-		const entryRows = await sql`
-			INSERT INTO kb_entry (source_id, entry_type, category, title, question, user_facing_answer, good_tree_app_meaning, user_next_step, rerank_document, updated_at)
-			VALUES (${card.sourceId}, ${card.entryType}, ${card.category}, ${card.question}, ${card.question}, ${card.userFacingAnswer}, ${card.goodTreeAppMeaning}, ${card.userNextStep}, ${card.rerankDocument}, NOW())
-			ON CONFLICT (source_id) DO UPDATE SET
-				category = EXCLUDED.category,
-				question = EXCLUDED.question,
-				user_facing_answer = EXCLUDED.user_facing_answer,
-				good_tree_app_meaning = EXCLUDED.good_tree_app_meaning,
-				user_next_step = EXCLUDED.user_next_step,
-				rerank_document = EXCLUDED.rerank_document,
-				updated_at = NOW()
-			RETURNING id`;
-		const entryId = entryRows[0].id;
+		const existing = await sql`
+			SELECT i.entry_id FROM kb_entry_internal i WHERE i.source_hash = ${hash}
+			UNION
+			SELECT e.id AS entry_id FROM kb_entry e
+			WHERE e.entry_type = ${card.entryType} AND e.question = ${card.question}
+			LIMIT 1`;
+		let entryId = existing[0]?.entry_id;
+
+		if (entryId) {
+			await sql`
+				UPDATE kb_entry SET
+					category = ${card.category},
+					question = ${card.question},
+					user_facing_answer = ${card.userFacingAnswer},
+					good_tree_app_meaning = ${card.goodTreeAppMeaning},
+					user_next_step = ${card.userNextStep},
+					rerank_document = ${card.rerankDocument},
+					updated_at = NOW()
+				WHERE id = ${entryId}`;
+		} else {
+			const entryRows = await sql`
+				INSERT INTO kb_entry (entry_type, category, title, question, user_facing_answer, good_tree_app_meaning, user_next_step, rerank_document, updated_at)
+				VALUES (${card.entryType}, ${card.category}, ${card.question}, ${card.question}, ${card.userFacingAnswer}, ${card.goodTreeAppMeaning}, ${card.userNextStep}, ${card.rerankDocument}, NOW())
+				RETURNING id`;
+			entryId = entryRows[0].id;
+		}
+
 		await sql`
 			INSERT INTO kb_entry_internal (entry_id, also_answers, classification_base, classification_raw, stability_raw, source_review_note, source_links, source_hash, needs_manual_policy, escalate_if_raw)
 			VALUES (${entryId}, ${card.alsoAnswers}, ${card.classificationBase}, ${card.classificationRaw}, ${card.stabilityRaw}, ${card.sourceReviewNote}, ${card.sourceLinks}, ${hash}, ${card.needsManualPolicy}, ${card.escalateIfRaw})
@@ -338,18 +352,33 @@ async function writeToDb(data) {
 		for (const gate of card.gates) {
 			await sql`
 				INSERT INTO kb_publication_gate (content_type, content_id, gate_type, required, satisfied, updated_at)
-				VALUES ('kb_entry', ${card.sourceId}, ${gate.gateType}, ${gate.required}, ${gate.satisfied}, NOW())
+				VALUES ('kb_entry', ${String(entryId)}, ${gate.gateType}, ${gate.required}, ${gate.satisfied}, NOW())
 				ON CONFLICT DO NOTHING`;
 		}
 	}
 
 	for (const exp of data.dExplainers) {
-		const rows = await sql`
-			INSERT INTO kb_entry (source_id, entry_type, category, title, question, user_facing_answer, rerank_document, updated_at)
-			VALUES (${exp.sourceId}, 'explainer', ${exp.category}, ${exp.title}, ${exp.question}, ${exp.userFacingAnswer}, ${exp.rerankDocument}, NOW())
-			ON CONFLICT (source_id) DO UPDATE SET title = EXCLUDED.title, user_facing_answer = EXCLUDED.user_facing_answer, rerank_document = EXCLUDED.rerank_document, updated_at = NOW()
-			RETURNING id`;
-		await sql`INSERT INTO kb_entry_governance (entry_id, status) VALUES (${rows[0].id}, 'approved') ON CONFLICT (entry_id) DO NOTHING`;
+		const existing = await sql`
+			SELECT id FROM kb_entry
+			WHERE entry_type = 'explainer' AND title = ${exp.title}
+			LIMIT 1`;
+		let entryId = existing[0]?.id;
+
+		if (entryId) {
+			await sql`
+				UPDATE kb_entry SET
+					user_facing_answer = ${exp.userFacingAnswer},
+					rerank_document = ${exp.rerankDocument},
+					updated_at = NOW()
+				WHERE id = ${entryId}`;
+		} else {
+			const rows = await sql`
+				INSERT INTO kb_entry (entry_type, category, title, question, user_facing_answer, rerank_document, updated_at)
+				VALUES ('explainer', ${exp.category}, ${exp.title}, ${exp.question}, ${exp.userFacingAnswer}, ${exp.rerankDocument}, NOW())
+				RETURNING id`;
+			entryId = rows[0].id;
+		}
+		await sql`INSERT INTO kb_entry_governance (entry_id, status) VALUES (${entryId}, 'approved') ON CONFLICT (entry_id) DO NOTHING`;
 	}
 
 	for (const tpl of data.eTemplates) {
@@ -388,7 +417,7 @@ if (errors.length) {
 }
 
 if (dryRun) {
-	console.log('Dry run OK. Sample card:', data.cCards[0]?.sourceId);
+	console.log('Dry run OK. Sample card:', data.cCards[0]?.question);
 	process.exit(0);
 }
 

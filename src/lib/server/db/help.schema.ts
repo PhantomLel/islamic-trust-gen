@@ -44,7 +44,7 @@ export type HelpRenderedResponse = {
 		| 'fallback'
 		| 'sensitive_data'
 		| 'provider_failure';
-	entrySourceId?: string;
+	entryId?: number;
 	templateId?: string;
 	shortAnswer?: string;
 	learnMore?: { appMeaning?: string; nextStep?: string };
@@ -57,7 +57,6 @@ export const kbEntry = pgTable(
 	'kb_entry',
 	{
 		id: serial('id').primaryKey(),
-		sourceId: text('source_id').notNull().unique(),
 		entryType: text('entry_type').$type<KbEntryType>().notNull(),
 		category: text('category'),
 		title: text('title'),
@@ -247,8 +246,10 @@ export const helpQuery = pgTable(
 			.notNull(),
 		turnIndex: integer('turn_index').notNull(),
 		questionText: text('question_text').notNull(),
-		matchedEntryIds: jsonb('matched_entry_ids').$type<string[]>(),
-		selectedEntrySourceId: text('selected_entry_source_id'),
+		matchedEntryIds: jsonb('matched_entry_ids').$type<number[]>(),
+		selectedEntryId: integer('selected_entry_id').references(() => kbEntry.id, {
+			onDelete: 'set null',
+		}),
 		kbEntryVersionId: integer('kb_entry_version_id').references(() => kbEntryVersion.id, {
 			onDelete: 'set null',
 		}),

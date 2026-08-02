@@ -10,7 +10,7 @@ export const load: PageServerLoad = async () => {
 			createdAt: helpQuery.createdAt,
 			unanswered: helpQuery.unanswered,
 			adminReviewStatus: helpQuery.adminReviewStatus,
-			selectedEntrySourceId: helpQuery.selectedEntrySourceId,
+			selectedEntryId: helpQuery.selectedEntryId,
 			userId: helpQuery.userId,
 			userEmail: user.email,
 			renderedResponse: helpQuery.renderedResponse,

@@ -5,7 +5,6 @@ import type { ServableEntry } from '$lib/server/help/servability';
 
 const baseEntry: ServableEntry = {
 	id: 1,
-	sourceId: 'C1.1',
 	entryType: 'faq',
 	category: 'Category 1',
 	title: null,
