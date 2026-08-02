@@ -35,6 +35,22 @@
 
 	const stepBlocked = $derived(stepKey ? blockedStepKeys.includes(stepKey) : false);
 
+	// Trust builder (and funding on mobile) have a bottom nav bar — keep the launcher above it.
+	const launcherBottomClass = $derived(
+		surface === 'create_trust'
+			? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]'
+			: surface === 'funding'
+				? 'bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:bottom-6'
+				: 'bottom-6',
+	);
+	const panelBottomClass = $derived(
+		surface === 'create_trust'
+			? 'sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]'
+			: surface === 'funding'
+				? 'sm:bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:bottom-6'
+				: 'sm:bottom-6',
+	);
+
 	function scrollToBottom() {
 		tick().then(() => {
 			if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
@@ -119,7 +135,7 @@
 {#if !open}
 	<button
 		type="button"
-		class="fixed bottom-6 right-6 z-[70] flex items-center gap-2.5 rounded-full bg-navy px-5 py-3.5 text-sm font-medium text-cream shadow-lg shadow-navy/20 transition-all hover:bg-navy-light hover:shadow-xl hover:shadow-navy/25 cursor-pointer"
+		class="fixed right-6 z-[70] flex items-center gap-2.5 rounded-full bg-navy px-5 py-3.5 text-sm font-medium text-cream shadow-lg shadow-navy/20 transition-all hover:bg-navy-light hover:shadow-xl hover:shadow-navy/25 cursor-pointer {launcherBottomClass}"
 		onclick={openPanel}
 		aria-haspopup="dialog"
 	>
@@ -134,7 +150,7 @@
 	</button>
 {:else}
 	<div
-		class="fixed inset-x-4 bottom-4 top-16 z-[80] flex flex-col overflow-hidden rounded-3xl border border-navy/10 bg-cream shadow-2xl shadow-navy/20 sm:inset-x-auto sm:top-auto sm:right-6 sm:bottom-6 sm:h-[36rem] sm:w-[400px] sm:max-h-[calc(100vh-3rem)]"
+		class="fixed inset-x-4 bottom-4 top-16 z-[80] flex flex-col overflow-hidden rounded-3xl border border-navy/10 bg-cream shadow-2xl shadow-navy/20 sm:inset-x-auto sm:top-auto sm:right-6 sm:h-[36rem] sm:w-[400px] sm:max-h-[calc(100vh-3rem)] {panelBottomClass}"
 		role="dialog"
 		aria-modal="true"
 		aria-label="Good Tree Help Assistant"
