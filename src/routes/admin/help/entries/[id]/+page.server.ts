@@ -7,7 +7,10 @@ import {
 	satisfyPublicationGate,
 	listEntryGates,
 	approveEntry,
+	deleteKbEntry,
+	parseAlsoAnswers,
 } from '$lib/server/help/governance';
+import { redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const entryId = Number(params.id);
@@ -49,10 +52,17 @@ export const actions: Actions = {
 				userFacingAnswer: String(form.get('userFacingAnswer') ?? ''),
 				goodTreeAppMeaning: String(form.get('goodTreeAppMeaning') ?? ''),
 				userNextStep: String(form.get('userNextStep') ?? ''),
+				category: String(form.get('category') ?? '') || null,
+				alsoAnswers: parseAlsoAnswers(String(form.get('alsoAnswers') ?? '')),
 			},
 			locals.user!.id,
 		);
 		return { saved: true };
+	},
+	delete: async ({ params }) => {
+		const entryId = Number(params.id);
+		await deleteKbEntry(entryId);
+		throw redirect(303, '/admin/help');
 	},
 	satisfyGate: async ({ request, params, locals }) => {
 		const entryId = Number(params.id);

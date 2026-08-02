@@ -8,11 +8,17 @@
 		stepKey = null,
 		trustId = null,
 		blockedStepKeys = [] as string[],
+		embedded = false,
+		showDebug = false,
 	} = $props<{
 		surface: 'help_center' | 'create_trust' | 'funding' | 'dashboard';
 		stepKey?: string | null;
 		trustId?: number | null;
 		blockedStepKeys?: string[];
+		/** Inline panel for admin test page — no floating launcher. */
+		embedded?: boolean;
+		/** Show response kind / entry id for admin debugging. */
+		showDebug?: boolean;
 	}>();
 
 	type ChatMessage = {
@@ -57,18 +63,29 @@
 		});
 	}
 
+	function resetConversation() {
+		conversationId = null;
+		messages = [
+			{
+				id: nextId++,
+				role: 'assistant',
+				status: 'done',
+				text: "Hi! Ask me a general question about using Good Tree — signing your documents, funding your trust, or what to do next.",
+			},
+		];
+		scrollToBottom();
+	}
+
+	$effect(() => {
+		if (embedded) {
+			open = true;
+			if (messages.length === 0) resetConversation();
+		}
+	});
+
 	function openPanel() {
 		open = true;
-		if (messages.length === 0) {
-			messages = [
-				{
-					id: nextId++,
-					role: 'assistant',
-					status: 'done',
-					text: "Hi! Ask me a general question about using Good Tree — signing your documents, funding your trust, or what to do next.",
-				},
-			];
-		}
+		if (messages.length === 0) resetConversation();
 		scrollToBottom();
 		tick().then(() => textareaEl?.focus());
 	}
@@ -132,7 +149,15 @@
 	}
 </script>
 
-{#if !open}
+{#if embedded}
+	<div
+		class="flex h-[32rem] flex-col overflow-hidden rounded-2xl border border-navy/10 bg-cream shadow-lg"
+		role="region"
+		aria-label="Good Tree Help Assistant test chat"
+	>
+		{@render panelContents(false)}
+	</div>
+{:else if !open}
 	<button
 		type="button"
 		class="fixed right-6 z-[70] flex items-center gap-2.5 rounded-full bg-navy px-5 py-3.5 text-sm font-medium text-cream shadow-lg shadow-navy/20 transition-all hover:bg-navy-light hover:shadow-xl hover:shadow-navy/25 cursor-pointer {launcherBottomClass}"
@@ -155,25 +180,34 @@
 		aria-modal="true"
 		aria-label="Good Tree Help Assistant"
 	>
+		{@render panelContents(true)}
+	</div>
+{/if}
+
+{#snippet panelContents(showClose: boolean)}
 		<!-- Header -->
 		<div class="flex shrink-0 items-center justify-between gap-3 bg-navy px-5 py-4">
 			<div class="flex items-center gap-2.5 min-w-0">
 				<span class="h-2 w-2 shrink-0 rounded-full bg-emerald-accent"></span>
 				<div class="min-w-0">
 					<h2 class="truncate text-[15px] font-semibold text-cream">Good Tree Help Assistant</h2>
-					<p class="truncate text-[11px] text-cream/50">General information, not individualized advice</p>
+					<p class="truncate text-[11px] text-cream/50">
+						{embedded ? 'Admin test — same pipeline as production' : 'General information, not individualized advice'}
+					</p>
 				</div>
 			</div>
-			<button
-				type="button"
-				class="shrink-0 rounded-full p-1.5 text-cream/60 transition-colors hover:bg-white/10 hover:text-cream cursor-pointer"
-				onclick={() => (open = false)}
-				aria-label="Close chat"
-			>
-				<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-				</svg>
-			</button>
+			{#if showClose}
+				<button
+					type="button"
+					class="shrink-0 rounded-full p-1.5 text-cream/60 transition-colors hover:bg-white/10 hover:text-cream cursor-pointer"
+					onclick={() => (open = false)}
+					aria-label="Close chat"
+				>
+					<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			{/if}
 		</div>
 
 		{#if stepBlocked}
@@ -216,6 +250,17 @@
 				{:else if m.rendered}
 					<div class="flex justify-start">
 						<div class="max-w-[88%] rounded-2xl rounded-bl-md border border-navy/10 bg-white px-4 py-3 shadow-sm">
+							{#if showDebug}
+								<p class="mb-2 font-mono text-[10px] text-navy/45">
+									kind: {m.rendered.kind}
+									{#if m.rendered.entryId != null}
+										· entry #{m.rendered.entryId}
+									{/if}
+									{#if m.queryId != null}
+										· query #{m.queryId}
+									{/if}
+								</p>
+							{/if}
 							<p class="text-[13.5px] leading-relaxed text-navy">{m.rendered.shortAnswer}</p>
 							{#if m.rendered.learnMore?.appMeaning || m.rendered.learnMore?.nextStep}
 								<details class="mt-2.5 group">
@@ -284,8 +329,7 @@
 				</button>
 			</form>
 		</div>
-	</div>
-{/if}
+{/snippet}
 
 <style>
 	.typing-dot {

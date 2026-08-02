@@ -10,7 +10,7 @@ import {
 	helpConversation,
 } from '$lib/server/db/schema';
 import { eq, desc, sql, and, ilike, or } from 'drizzle-orm';
-import { bulkApproveEntries } from '$lib/server/help/governance';
+import { bulkApproveEntries, deleteKbEntry } from '$lib/server/help/governance';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const statusFilter = url.searchParams.get('status') ?? 'all';
@@ -69,6 +69,16 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
+	delete: async ({ request }) => {
+		const entryId = Number((await request.formData()).get('entryId'));
+		if (!Number.isFinite(entryId)) return fail(400, { message: 'Invalid entry' });
+		try {
+			await deleteKbEntry(entryId);
+			return { deleted: true };
+		} catch (err) {
+			return fail(400, { message: err instanceof Error ? err.message : 'Delete failed' });
+		}
+	},
 	bulkApprove: async ({ request, locals }) => {
 		const form = await request.formData();
 		const ids = form

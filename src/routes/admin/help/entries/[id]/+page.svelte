@@ -98,6 +98,23 @@
 				>
 			</label>
 			<label class="block">
+				<span class="text-sm font-medium text-navy">Also answers</span>
+				<p class="text-[12px] text-navy/45 mt-0.5">Alternate phrasings, comma-separated.</p>
+				<input
+					name="alsoAnswers"
+					class="mt-1.5 w-full rounded-md border border-navy/15 bg-white px-3 py-2 text-sm text-navy focus:outline-none focus:border-emerald-accent"
+					value={data.entry.internal?.alsoAnswers?.join(', ') ?? ''}
+				/>
+			</label>
+			<label class="block">
+				<span class="text-sm font-medium text-navy">Category</span>
+				<input
+					name="category"
+					class="mt-1.5 w-full rounded-md border border-navy/15 bg-white px-3 py-2 text-sm text-navy focus:outline-none focus:border-emerald-accent"
+					value={data.entry.category ?? ''}
+				/>
+			</label>
+			<label class="block">
 				<span class="text-sm font-medium text-navy">App meaning</span>
 				<textarea
 					name="goodTreeAppMeaning"
@@ -122,7 +139,7 @@
 		</form>
 	</section>
 
-	<section class="flex flex-wrap gap-3">
+	<section class="flex flex-wrap gap-3 items-center">
 		<form method="POST" action="?/approve" use:enhance={withToast('Entry approved')}>
 			<button class="rounded-lg bg-emerald-accent px-4 py-2 text-sm font-medium text-white hover:bg-emerald-accent/90 transition-colors cursor-pointer" type="submit">
 				Approve
@@ -138,6 +155,21 @@
 			<input type="hidden" name="status" value="disabled" />
 			<button class="rounded-lg border border-navy/15 bg-white px-4 py-2 text-sm text-navy hover:border-emerald-accent cursor-pointer" type="submit">
 				Disable
+			</button>
+		</form>
+		<form
+			method="POST"
+			action="?/delete"
+			use:enhance={({ cancel }) => {
+				if (!confirm('Delete this entry permanently? This cannot be undone.')) cancel();
+			}}
+			class="ml-auto"
+		>
+			<button
+				type="submit"
+				class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
+			>
+				Delete entry
 			</button>
 		</form>
 	</section>

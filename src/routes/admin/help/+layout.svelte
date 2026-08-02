@@ -23,6 +23,7 @@
 			match: (p: string) => p.startsWith('/admin/help/unanswered'),
 		},
 		{ href: '/admin/help/macros', label: 'Macros', match: (p: string) => p.startsWith('/admin/help/macros') },
+		{ href: '/admin/help/test', label: 'Test', match: (p: string) => p.startsWith('/admin/help/test') },
 		{ href: '/admin/help/settings', label: 'Settings', match: (p: string) => p.startsWith('/admin/help/settings') },
 	];
 

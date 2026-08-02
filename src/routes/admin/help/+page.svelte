@@ -45,9 +45,17 @@
 	</div>
 </div>
 
-<div class="mb-6 flex items-center justify-between">
-	<h2 class="text-lg font-semibold text-navy tracking-tight">Knowledge base entries</h2>
-	<p class="text-navy/45 text-sm">{data.entries.length} entries</p>
+<div class="mb-6 flex items-center justify-between gap-4">
+	<div>
+		<h2 class="text-lg font-semibold text-navy tracking-tight">Knowledge base entries</h2>
+		<p class="text-navy/45 text-sm">{data.entries.length} entries</p>
+	</div>
+	<a
+		href="/admin/help/entries/new"
+		class="rounded-lg bg-emerald-accent px-4 py-2 text-sm font-medium text-white hover:bg-emerald-accent/90 transition-colors shrink-0"
+	>
+		+ New entry
+	</a>
 </div>
 
 <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
@@ -76,18 +84,23 @@
 	</button>
 </form>
 
+{#if form?.deleted}
+	<p class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Entry deleted.</p>
+{/if}
+
 {#if form?.bulkApprove}
 	<p class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
 		Approved {form.bulkApprove.approved.length}; skipped {form.bulkApprove.skipped.length}
 	</p>
 {/if}
 
-<form method="POST" action="?/bulkApprove" use:enhance>
+<form id="bulk-approve-form" method="POST" action="?/bulkApprove" use:enhance>
 	<div class="mb-3 flex items-center justify-end">
 		<button class="rounded-lg bg-emerald-accent px-4 py-2 text-sm font-medium text-white hover:bg-emerald-accent/90 transition-colors cursor-pointer" type="submit">
 			Bulk approve selected
 		</button>
 	</div>
+</form>
 
 	{#if data.entries.length === 0}
 		<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center">
@@ -104,13 +117,14 @@
 							<th class="px-4 py-3 font-medium">Question</th>
 							<th class="px-4 py-3 font-medium">Status</th>
 							<th class="px-4 py-3 font-medium">Serves</th>
+							<th class="px-4 py-3 font-medium w-16"></th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each data.entries as row (row.id)}
 							<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
 								<td class="px-4 py-3">
-									<input type="checkbox" name="entryId" value={row.id} class="cursor-pointer" />
+									<input type="checkbox" form="bulk-approve-form" name="entryId" value={row.id} class="cursor-pointer" />
 								</td>
 								<td class="px-4 py-3 font-mono text-[12px]">
 									<a
@@ -129,6 +143,27 @@
 									</span>
 								</td>
 								<td class="px-4 py-3 text-navy/60 tabular-nums">{row.serveCount ?? 0}</td>
+								<td class="px-4 py-3">
+									<form
+										method="POST"
+										action="?/delete"
+										use:enhance={({ cancel }) => {
+											if (!confirm('Delete this entry permanently?')) {
+												cancel();
+												return;
+											}
+											return async ({ update }) => update();
+										}}
+									>
+										<input type="hidden" name="entryId" value={row.id} />
+										<button
+											type="submit"
+											class="text-[12px] text-rose-500/70 hover:text-rose-600 font-medium cursor-pointer"
+										>
+											Delete
+										</button>
+									</form>
+								</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -136,4 +171,3 @@
 			</div>
 		</div>
 	{/if}
-</form>
