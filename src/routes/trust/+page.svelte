@@ -57,6 +57,11 @@
 			label: 'Deed recorded',
 			body: 'We prepare and record your deed transferring the homestead into your trust, then guide you through preserving your Texas homestead exemption.',
 			meta: 'County clerk filing included'
+		},
+		{
+			label: 'Make Your Trust Work',
+			body: 'Your documents are only the first step. Our guided dashboard walks you through signing follow-through, updating banks and brokerages, and storing originals where your family can find them — with checklists and progress tracking.',
+			meta: 'Guided dashboard'
 		}
 	];
 
@@ -306,7 +311,7 @@
 						<span class="text-emerald-accent text-[11px] tracking-[0.3em] uppercase font-medium">How it works</span>
 					</div>
 					<h2 class="text-3xl md:text-4xl tracking-tight text-navy leading-tight text-balance">
-						From sign-up to recorded deed, in four steps.
+						From sign-up to a funded trust, in five steps.
 					</h2>
 				</div>
 				<p class="text-navy/55 text-base leading-relaxed md:pl-8 md:border-l md:border-navy/10 md:pt-2">

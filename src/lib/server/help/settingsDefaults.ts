@@ -14,7 +14,7 @@ export const DEFAULT_HELP_SETTINGS: HelpSettings = {
 	consultBookingUrl: consultationBookingUrl,
 	supportEmail: replyToEmail,
 	urgentEscalationEmailList: [],
-	generalSupportContactLabel: 'Contact the Good Tree team',
+	generalSupportContactLabel: 'Contact our team',
 	consultCtaLabel: 'Book a consultation',
 	urgentCtaLabel: 'Contact the office before continuing',
 	officePhoneIfUsed: null,

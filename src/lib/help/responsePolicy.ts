@@ -60,7 +60,7 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 		return {
 			kind: 'fallback',
 			shortAnswer:
-				'I do not have an approved answer for that yet. Please contact the Good Tree team so we can give you a real answer instead of a guess.',
+				'I do not have an approved answer for that yet. Try rephrasing your question. If that doesn\'t work, please contact our team so we can give you a real answer instead of a guess.',
 			footer,
 			cta: supportCta,
 		};

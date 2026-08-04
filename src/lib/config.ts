@@ -14,7 +14,7 @@ export const wasiyyahDiscount = 200;
 /** CAN-SPAM physical mailing address required in all marketing emails. */
 export const firmMailingAddress = 'McDaniel Estate Planning, PLLC · 3800 N Lamar Blvd, Ste 200 · Austin, TX 78756';
 /** Reply-to address for marketing emails (a real inbox, not no-reply). */
-export const replyToEmail = 'info@mcdanielestateplanning.com';
+export const replyToEmail = 'leonard@mcdanielestateplanning.com';
 
 /** Format a whole-dollar USD amount for display (e.g. 1499 → "$1,499.00"). */
 export function formatUsd(amountUsd: number): string {
