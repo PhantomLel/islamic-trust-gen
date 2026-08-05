@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { authClient } from '$lib/auth-client';
-	import { siteName, consultationBookingUrl, defaultPrepFee, formatUsd, wasiyyahDiscount } from '$lib/config';
+	import { siteName, consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
 	import type { HeirsCalculatorResponse } from '$lib/config';
 	import {
 		usStates,

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { buckets, type Question, type QuestionResponseValue } from '$lib/config';
-	import { isQuestionResponseComplete, meetsDiscountedCharityPledge } from '$lib/question-response-helpers';
+	import { isQuestionResponseComplete } from '$lib/question-response-helpers';
 
 	let {
 		currentIndex,
@@ -46,18 +46,10 @@
 		return -1;
 	}
 
-	/** While the discounted pledge is unmet, do not skip ahead of the charities step. */
-	let firstBlockedNavIndex = $derived.by(() => {
-		if (selectedPlan !== 'discounted') return Infinity;
-		if (meetsDiscountedCharityPledge(responses['charities'])) return Infinity;
-		const i = activeQuestions.findIndex((q) => q.id === 'charities');
-		return i >= 0 ? i + 1 : Infinity;
-	});
-
 	function tryNavigate(questionId: string, sectionLocked: boolean) {
 		if (sectionLocked) return;
 		const idx = activeQuestions.findIndex((aq) => aq.id === questionId);
-		if (idx < 0 || idx >= firstBlockedNavIndex) return;
+		if (idx < 0) return;
 		onnavigate(questionId);
 		mobileOpen = false;
 	}
@@ -65,7 +57,7 @@
 	function tryNavigateBucket(bucketQs: Question[], sectionLocked: boolean) {
 		if (sectionLocked) return;
 		const idx = firstNavigableIndexInBucket(bucketQs);
-		if (idx < 0 || idx >= firstBlockedNavIndex) return;
+		if (idx < 0) return;
 		onnavigate(activeQuestions[idx].id);
 		mobileOpen = false;
 	}
@@ -76,7 +68,7 @@
 	let postSectionLocked = $derived(selectedPlan === null);
 
 	function isQuestionDone(q: Question): boolean {
-		return isQuestionResponseComplete(q.type, responses[q.id], responses, { selectedPlan });
+		return isQuestionResponseComplete(q.type, responses[q.id], responses);
 	}
 
 	let overallProgress = $derived(

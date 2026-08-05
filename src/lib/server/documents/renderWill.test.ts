@@ -141,7 +141,7 @@ const v11FactPattern = [
 		id: 'wasiyyah',
 		response: {
 			interested: true,
-			bequests: [{ charityId: 'jabal-foundation', percentage: 5 }],
+			bequests: [{ charityId: 'islamic-center-of-greater-austin-austin', percentage: 5 }],
 		},
 	},
 	{ id: 'avoid_probate', response: 'yes' },
@@ -203,7 +203,7 @@ describe('renderFreeWill (Texas v2)', () => {
 		expect(text).toContain('If that person cannot serve, I nominate Shafiq Rahman, my close friend');
 
 		// Wasiyyah table renders the bequest.
-		expect(text).toContain('Jabal Foundation');
+		expect(text).toContain('Islamic Center of Greater Austin');
 		expect(text).toContain('5%');
 		expect(text).not.toContain('I make no wasiyyah gifts under this Will.');
 

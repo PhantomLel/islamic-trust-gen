@@ -185,7 +185,7 @@ export const trust = pgTable('trust', {
 	generated_files: jsonb('generated_files').$type<GeneratedFile[]>(),
 	user_files: jsonb('user_files').$type<UserFile[]>(),
 	charities: jsonb('charities').$type<string[]>(),
-	selectedPlan: text('selected_plan'), // 'full' or 'discounted'
+	selectedPlan: text('selected_plan'), // payment-completion marker ('full' for new checkouts; 'discounted' may exist on legacy rows)
 	deedRetrievalRequested: boolean('deed_retrieval_requested').notNull().default(false),
 	customPrice: integer('custom_price'), // admin-set override for defaultPrepFee (in whole dollars)
 	// ── Notarization (Calendly) ───────────────────────────────────────

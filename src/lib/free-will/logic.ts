@@ -8,8 +8,8 @@
  */
 
 import type { EstateInput } from '$lib/inheritance/types';
+import { buildCharityNameMap } from '$lib/charityLookup';
 import {
-	charities as presetCharities,
 	type HeirsCalculatorResponse,
 	type NamedHeir,
 	type PersonalDataResponse,
@@ -121,7 +121,7 @@ export function isStepAnswered(step: WillStep, responses: WillResponses): boolea
 		if (!Array.isArray(w.bequests) || w.bequests.length === 0) return false;
 		const total = w.bequests.reduce((s, b) => s + (b.percentage || 0), 0);
 		if (total > WILL_WASIYYAH_CAP + 1e-6) return false;
-		const presetNames = new Map(presetCharities.map((c) => [c.id, c.name]));
+		const presetNames = buildCharityNameMap();
 		return w.bequests.every((b) => isWasiyyahBequestComplete(b, presetNames));
 	}
 	if (typeof v === 'string') return v.trim().length > 0;
@@ -602,7 +602,7 @@ export function getStepValidationMessage(step: WillStep, responses: WillResponse
 		if (total > WILL_WASIYYAH_CAP + 1e-6) {
 			return 'Total wasiyyah exceeds one-third of your estate. Please reduce your allocations.';
 		}
-		const presetNames = new Map(presetCharities.map((c) => [c.id, c.name]));
+		const presetNames = buildCharityNameMap();
 		for (const b of w.bequests) {
 			if (typeof b.customName === 'string' && b.customName.trim() && !b.customEin?.trim() && !b.einDeferred) {
 				return 'Custom recipients need an EIN or the “I’ll add it later” option.';

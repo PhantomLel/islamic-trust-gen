@@ -1,5 +1,4 @@
 import {
-	charities as charityCatalog,
 	type AssetAllocationEntry,
 	type CharitiesResponse,
 	type CharityResponse,
@@ -12,6 +11,7 @@ import {
 	type PersonalDataResponse,
 	type SuccessorTrusteeEntry,
 } from '$lib/config';
+import { resolveCharityName } from '$lib/charityLookup';
 import {
 	flattenNamedHeirs,
 	formatToday,
@@ -135,8 +135,7 @@ function countChildren(named: NamedHeir[] | undefined): number {
 }
 
 function charityName(c: CharityResponse): string {
-	if (c.customName) return c.customName;
-	return charityCatalog.find((x) => x.id === c.charityId)?.name ?? c.charityId;
+	return resolveCharityName(c.charityId, c.customName);
 }
 
 function bulletList(lines: string[]): string {

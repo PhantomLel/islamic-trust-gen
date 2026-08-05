@@ -12,9 +12,7 @@ import {
 import type { TrustScreeningAnswers, LoeAgreementData } from '$lib/server/db/schema';
 import { LOE_AGREEMENT_VERSION } from '$lib/server/db/schema';
 import {
-	isIntakePhaseComplete,
-	meetsDiscountedCharityPledge,
-	type QuestionCompletionContext
+	isIntakePhaseComplete
 } from '$lib/question-response-helpers';
 import type { QuestionResponseValue } from '$lib/config';
 import type { PageServerLoad, Actions } from './$types';
@@ -281,10 +279,8 @@ export const actions: Actions = {
 		const merged = mergeResponses(currentTrust.responses, parsed);
 		const record = responsesToRecord(merged);
 
-		const completionCtx: QuestionCompletionContext = { selectedPlan: currentTrust.selectedPlan };
-		// `trust.complete` means the full intake (including post-payment) is submitted — see completePostPayment.
 		const allDone =
-			hasPaidInvoice && isIntakePhaseComplete(record, allIntakeQuestions, completionCtx);
+			hasPaidInvoice && isIntakePhaseComplete(record, allIntakeQuestions);
 
 		await db
 			.update(trust)
@@ -358,17 +354,8 @@ export const actions: Actions = {
 		if (currentTrust.selectedPlan === null) throw error(403, 'Payment required');
 
 		const record = responsesToRecord((currentTrust.responses ?? []) as { id: string; response: unknown }[]);
-		const completionCtx: QuestionCompletionContext = { selectedPlan: currentTrust.selectedPlan };
-		if (!isIntakePhaseComplete(record, allIntakeQuestions, completionCtx)) {
-			const needsCharityPledge =
-				currentTrust.selectedPlan === 'discounted' &&
-				!meetsDiscountedCharityPledge(record['charities']);
-			throw error(
-				400,
-				needsCharityPledge
-					? 'Intake incomplete: the discounted plan requires at least 1% of wasiyyah to one eligible charity (listed or added by you).'
-					: 'Intake incomplete: not all required questions are answered.'
-			);
+		if (!isIntakePhaseComplete(record, allIntakeQuestions)) {
+			throw error(400, 'Intake incomplete: not all required questions are answered.');
 		}
 
 		const blockedSteps = await loadHelpBlockedStepsForUser(locals.user.id, 'create_trust');

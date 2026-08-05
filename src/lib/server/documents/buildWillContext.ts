@@ -8,7 +8,7 @@ import {
 	resolveWillWasiyyahRecipientName,
 	type WillWasiyyahResponse,
 } from '$lib/free-will/config';
-import { charities as presetCharities } from '$lib/config';
+import { buildCharityNameMap } from '$lib/charityLookup';
 import {
 	appliesCommunityPropertyClauses,
 	communityPropertyClauses,
@@ -115,7 +115,7 @@ function buildWasiyyahList(
 	w: WillWasiyyahResponse | null | undefined,
 ): { name: string; ein: string; percentage: number }[] {
 	if (!w || !w.interested || !Array.isArray(w.bequests)) return [];
-	const charityMap = new Map(presetCharities.map((c) => [c.id, c.name]));
+	const charityMap = buildCharityNameMap();
 	return w.bequests
 		.filter((b) => b.percentage > 0)
 		.map((b) => ({

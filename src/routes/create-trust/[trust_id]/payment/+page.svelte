@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName, consultationBookingUrl, wasiyyahDiscount } from '$lib/config';
+	import { siteName, consultationBookingUrl } from '$lib/config';
 	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 	import { authClient } from '$lib/auth-client';
 	import { page } from '$app/stores';
@@ -11,15 +11,11 @@
 	let { data } = $props();
 	const DEED_RETRIEVAL_FEE = 35;
 
-	type PlanId = 'full' | 'discounted';
-	let selectedPlan = $state<PlanId>('full');
 	let addDeedRetrieval = $state(false);
 	let submitting = $state(false);
 
 	let fullPrice = $derived(data.amountUsd);
-	let discountedPrice = $derived(Math.max(0, data.amountUsd - wasiyyahDiscount));
-	let baseDue = $derived(selectedPlan === 'discounted' ? discountedPrice : fullPrice);
-	let amountDue = $derived(baseDue + (addDeedRetrieval ? DEED_RETRIEVAL_FEE : 0));
+	let amountDue = $derived(fullPrice + (addDeedRetrieval ? DEED_RETRIEVAL_FEE : 0));
 
 	let cancelled = $derived($page.url.searchParams.get('cancelled') === 'true');
 
@@ -292,7 +288,7 @@
 			<p class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium mb-3">Payment</p>
 			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-2">Complete your trust preparation</h1>
 			<p class="text-sm text-navy/45 font-light leading-relaxed">
-				Watch the short video below to learn about wasiyyah, then choose your payment option.
+				Watch the short video below to learn about wasiyyah, then complete your payment.
 			</p>
 		</div>
 
@@ -303,79 +299,20 @@
 				title="Your Wasiyyah is a commitment to charity"
 			/>
 			<p class="text-[13px] text-navy/50 font-light leading-relaxed">
-				Before any money is distributed to your heirs, you can bequest up to 1/3 of your wealth to almost any cause. We are
-				offering to give you a ${wasiyyahDiscount} discount if you pledge even 1% of your wealth to any charity of your
-				choosing. You will select where to donate later.
+				Before any money is distributed to your heirs, you can bequest up to 1/3 of your wealth to almost any cause.
+				You will select where to donate later in the questionnaire.
 			</p>
 		</div>
 
-		<!-- Plan selection -->
-		<div class="space-y-3">
-			<p class="text-[11px] text-navy/40 tracking-wider uppercase font-medium">Choose your payment plan</p>
-
-			<!-- Option A — Full price -->
-			<button
-				type="button"
-				onclick={() => (selectedPlan = 'full')}
-				class="w-full text-left rounded-2xl border-2 p-5 transition-all duration-200 cursor-pointer
-					{selectedPlan === 'full'
-						? 'border-navy bg-white shadow-sm'
-						: 'border-navy/8 bg-white/60 hover:border-navy/20 hover:bg-white/80'}"
-			>
-				<div class="flex items-start gap-4">
-					<div class="mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors
-						{selectedPlan === 'full' ? 'border-navy' : 'border-navy/25'}">
-						{#if selectedPlan === 'full'}
-							<div class="w-2.5 h-2.5 rounded-full bg-navy"></div>
-						{/if}
-					</div>
-					<div class="flex-1 min-w-0">
-						<div class="flex items-baseline justify-between gap-3 mb-1.5">
-							<span class="text-sm font-semibold text-navy">Option A — Pay in full</span>
-							<span class="text-lg font-bold text-navy tabular-nums shrink-0">${fullPrice.toFixed(2)}</span>
-						</div>
-						<p class="text-[13px] text-navy/50 leading-relaxed">
-							Pay the full fee now. If you make a charitable bequest election later in this process, we will refund you
-							<span class="font-medium text-emerald-accent">${wasiyyahDiscount}</span>.
-						</p>
-					</div>
-				</div>
-			</button>
-
-			<!-- Option B — Discounted -->
-			<button
-				type="button"
-				onclick={() => (selectedPlan = 'discounted')}
-				class="w-full text-left rounded-2xl border-2 p-5 transition-all duration-200 cursor-pointer relative overflow-hidden
-					{selectedPlan === 'discounted'
-						? 'border-emerald-accent bg-white shadow-sm'
-						: 'border-navy/8 bg-white/60 hover:border-emerald-accent/40 hover:bg-white/80'}"
-			>
-				<div class="absolute top-3 right-4">
-					<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-accent/10 text-emerald-accent">
-						Save ${wasiyyahDiscount}
-					</span>
-				</div>
-				<div class="flex items-start gap-4">
-					<div class="mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors
-						{selectedPlan === 'discounted' ? 'border-emerald-accent' : 'border-navy/25'}">
-						{#if selectedPlan === 'discounted'}
-							<div class="w-2.5 h-2.5 rounded-full bg-emerald-accent"></div>
-						{/if}
-					</div>
-					<div class="flex-1 min-w-0 pr-16">
-						<div class="flex items-baseline justify-between gap-3 mb-1.5">
-							<span class="text-sm font-semibold text-navy">Option B — Pay with wasiyyah pledge</span>
-							<span class="text-lg font-bold text-emerald-accent tabular-nums shrink-0">${discountedPrice.toFixed(2)}</span>
-						</div>
-						<p class="text-[13px] text-navy/50 leading-relaxed">
-							Pay the discounted rate now. This price is confirmed when you complete your charitable bequest election later.
-							If you do not make the election, the remaining
-							<span class="font-medium text-navy/70">${wasiyyahDiscount}</span> is charged before your document is generated.
-						</p>
-					</div>
-				</div>
-			</button>
+		<!-- Trust preparation fee -->
+		<div class="rounded-2xl border-2 border-navy/8 bg-white p-5">
+			<div class="flex items-baseline justify-between gap-3">
+				<span class="text-sm font-semibold text-navy">Trust preparation fee</span>
+				<span class="text-2xl font-bold text-navy tabular-nums">${fullPrice.toFixed(2)}</span>
+			</div>
+			<p class="text-[13px] text-navy/50 leading-relaxed mt-2">
+				One-time fee for attorney-supervised trust preparation and document drafting.
+			</p>
 		</div>
 
 		<!-- Add-ons -->
@@ -418,14 +355,8 @@
 			<div class="space-y-1.5 text-[13px]">
 				<div class="flex items-baseline justify-between text-navy/55">
 					<span>Trust preparation fee</span>
-					<span class="tabular-nums">${baseDue.toFixed(2)}</span>
+					<span class="tabular-nums">${fullPrice.toFixed(2)}</span>
 				</div>
-				{#if selectedPlan === 'discounted'}
-					<div class="flex items-baseline justify-between text-emerald-accent">
-						<span>Wasiyyah pledge discount</span>
-						<span class="tabular-nums">-${wasiyyahDiscount}.00</span>
-					</div>
-				{/if}
 				{#if addDeedRetrieval}
 					<div class="flex items-baseline justify-between text-navy/55">
 						<span>House deed retrieval</span>
@@ -440,9 +371,6 @@
 			</div>
 			<p class="text-[12px] text-navy/35">
 				Invoice{addDeedRetrieval ? 's' : ''} will be sent to {data.userEmail}
-				{#if selectedPlan === 'discounted'}
-					&middot; Wasiyyah pledge required to lock in discounted price
-				{/if}
 			</p>
 		</div>
 
@@ -464,7 +392,6 @@
 						};
 					}}
 				>
-					<input type="hidden" name="selectedPlan" value={selectedPlan} />
 					<input type="hidden" name="addDeedRetrieval" value={String(addDeedRetrieval)} />
 					<input type="hidden" name="warningAgreement" value={JSON.stringify(warningAgreement)} />
 					<button

@@ -12,14 +12,14 @@
 		SuccessorTrusteeEntry,
 		PourOverRepresentativeEntry,
 	} from '$lib/config';
-	import { allIntakeQuestions, charities } from '$lib/config';
+	import { allIntakeQuestions } from '$lib/config';
+	import { resolveCharityName } from '$lib/charityLookup';
 	import {
 		isIntakePhaseComplete,
 		getIncompleteIntakeQuestions,
 		isCharitiesResponseShape,
 		isPersonalDataShape,
 		isNonCharitableBequestsShape,
-		meetsDiscountedCharityPledge,
 	} from '$lib/question-response-helpers';
 
 	let {
@@ -29,7 +29,6 @@
 		onnavigate,
 		oncomplete,
 		completing = false,
-		selectedPlan = null,
 	}: {
 		value: QuestionResponseValue;
 		onresponse: (val: QuestionResponseValue) => void;
@@ -37,7 +36,6 @@
 		onnavigate?: (questionId: string) => void;
 		oncomplete?: () => void;
 		completing?: boolean;
-		selectedPlan?: string | null;
 	} = $props();
 
 	$effect(() => {
@@ -134,13 +132,8 @@
 	});
 	let trustName = $derived(typeof allResponses['trust-name'] === 'string' ? allResponses['trust-name'] : null);
 
-	let discountedPledgeBlocksFinalize = $derived(
-		selectedPlan === 'discounted' && !meetsDiscountedCharityPledge(allResponses['charities'])
-	);
-	let intakeFullyComplete = $derived(
-		isIntakePhaseComplete(allResponses, allIntakeQuestions, { selectedPlan })
-	);
-	let cannotFinalize = $derived(!intakeFullyComplete || discountedPledgeBlocksFinalize);
+	let intakeFullyComplete = $derived(isIntakePhaseComplete(allResponses, allIntakeQuestions));
+	let cannotFinalize = $derived(!intakeFullyComplete);
 
 	/** Friendly, section-style labels for questions listed as "incomplete" below (falls back to the question's own text). */
 	let incompleteQuestionLabels = $derived.by((): Record<string, string> => {
@@ -174,16 +167,13 @@
 
 	/** Active, required-for-completion questions that are still missing an answer (excludes this review step itself). */
 	let incompleteQuestions = $derived(
-		getIncompleteIntakeQuestions(allResponses, allIntakeQuestions, { selectedPlan })
+		getIncompleteIntakeQuestions(allResponses, allIntakeQuestions)
 			.filter((q) => q.id !== 'summary-review')
 			.map((q) => ({ id: q.id, label: incompleteQuestionLabels[q.id] ?? q.text }))
 	);
 
 	function charityLabel(ch: CharityResponse): string {
-		if (typeof ch.customName === 'string' && ch.customName.trim() !== '') {
-			return ch.customName.trim();
-		}
-		return charities.find((c) => c.id === ch.charityId)?.name ?? ch.charityId;
+		return resolveCharityName(ch.charityId, ch.customName);
 	}
 
 	function ownerLabel(s: string): string {
@@ -585,12 +575,7 @@
 
 	<!-- Generate button -->
 	<div class="pt-4 space-y-3">
-		{#if discountedPledgeBlocksFinalize}
-			<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950 leading-relaxed">
-				Your discounted plan includes a charitable wasiyyah pledge. Use <strong>Edit</strong> on Charitable Bequests
-				above and allocate at least <strong>1%</strong> to one eligible charity before you can finalize.
-			</div>
-		{:else if !intakeFullyComplete}
+		{#if !intakeFullyComplete}
 			<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950 leading-relaxed">
 				<p>
 					{incompleteQuestions.length === 1

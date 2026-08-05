@@ -26,7 +26,7 @@
 	import SummaryReviewScreen from './SummaryReviewScreen.svelte';
 	import HouseDeedQuestionInput from './HouseDeedQuestionInput.svelte';
 
-	let { question, value, onresponse, onnext, allResponses = {}, onnavigate, oncomplete, completing = false, trustId = 0, userId = '', userCounty = null, houseDeedUrl = null, deedRetrievalRequested = false, selectedPlan = null }: {
+	let { question, value, onresponse, onnext, allResponses = {}, onnavigate, oncomplete, completing = false, trustId = 0, userId = '', userCounty = null, houseDeedUrl = null, deedRetrievalRequested = false }: {
 		question: Question;
 		value: QuestionResponseValue;
 		onresponse: (val: QuestionResponseValue) => void;
@@ -41,7 +41,6 @@
 		userCounty?: string | null;
 		houseDeedUrl?: string | null;
 		deedRetrievalRequested?: boolean;
-		selectedPlan?: string | null;
 	} = $props();
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -395,8 +394,8 @@
 	/>
 
 {:else if question.type === 'summary-review'}
-	<SummaryReviewScreen {value} {onresponse} {allResponses} {onnavigate} {oncomplete} {completing} {selectedPlan} />
+	<SummaryReviewScreen {value} {onresponse} {allResponses} {onnavigate} {oncomplete} {completing} />
 
 {:else if question.type === 'charities'}
-	<CharitiesInput {value} {onresponse} {allResponses} {selectedPlan} />
+	<CharitiesInput {value} {onresponse} {allResponses} />
 {/if}

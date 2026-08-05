@@ -8,7 +8,7 @@ import { and, eq } from 'drizzle-orm';
 import { stripe } from '$lib/server/stripe';
 import { promoteTrustAfterPayment } from '$lib/server/fulfillCheckout';
 import type { PageServerLoad, Actions } from './$types';
-import { defaultPrepFee, postPaymentEntryQuestionId, wasiyyahDiscount } from '$lib/config';
+import { defaultPrepFee, postPaymentEntryQuestionId } from '$lib/config';
 const DEED_RETRIEVAL_FEE = 35;
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -52,7 +52,7 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const selectedPlan = formData.get('selectedPlan') === 'discounted' ? 'discounted' : 'full';
+		const selectedPlan = 'full';
 		const addDeedRetrieval = formData.get('addDeedRetrieval') === 'true';
 
 		// Parse and persist the Planning Warning agreement
@@ -79,25 +79,15 @@ export const actions: Actions = {
 
 		const baseAmount = existing.customPrice ?? defaultPrepFee;
 		const deedAmount = addDeedRetrieval ? DEED_RETRIEVAL_FEE : 0;
-		// Stripe caps a fixed-amount coupon at the order subtotal, so the effective total
-		// can only bottom out at $0 (never negative) even for a large discount on a low price.
-		const discountApplied = selectedPlan === 'discounted'
-			? Math.min(wasiyyahDiscount, baseAmount + deedAmount)
-			: 0;
-		const effectiveTotal = baseAmount + deedAmount - discountApplied;
-		const trustFeeAmount = selectedPlan === 'discounted'
-			? Math.max(0, baseAmount - wasiyyahDiscount)
-			: baseAmount;
+		const effectiveTotal = baseAmount + deedAmount;
+		const trustFeeAmount = baseAmount;
 
 		const successUrl = `${env.ORIGIN}/create-trust/${trustId}?payment=success&session_id={CHECKOUT_SESSION_ID}#${postPaymentEntryQuestionId}`;
 
 		// ── No-cost order ($0 effective total) ────────────────────────────────
-		// A comped price or a discount that meets/exceeds the subtotal (e.g. $1 base
-		// with the $200 wasiyyah pledge) reduces the total to $0. Stripe does not
-		// reliably deliver `checkout.session.completed` for no-cost orders, which would
-		// otherwise leave the trust stuck in AwaitingPayment (webhook never sets
-		// selectedPlan) and silently discard the user's post-payment answers. Skip
-		// Stripe entirely and fulfill directly instead.
+		// A comped price reduces the total to $0. Stripe does not reliably deliver
+		// `checkout.session.completed` for no-cost orders, which would otherwise leave
+		// the trust stuck in AwaitingPayment. Skip Stripe entirely and fulfill directly.
 		if (effectiveTotal <= 0) {
 			const now = new Date();
 			await db.insert(invoice).values({
@@ -164,23 +154,10 @@ export const actions: Actions = {
 			});
 		}
 
-		// Create a one-off coupon so Stripe shows it as a separate discount line.
-		let discounts: { coupon: string }[] | undefined;
-		if (selectedPlan === 'discounted') {
-			const coupon = await stripe.coupons.create({
-				amount_off: wasiyyahDiscount * 100,
-				currency: 'usd',
-				name: 'Wasiyyah Pledge Discount',
-				duration: 'once',
-			});
-			discounts = [{ coupon: coupon.id }];
-		}
-
 		const session = await stripe.checkout.sessions.create({
 			mode: 'payment',
 			customer_email: locals.user.email,
 			line_items: lineItems,
-			...(discounts ? { discounts } : {}),
 			metadata: {
 				trustId: String(trustId),
 				userId: locals.user.id,

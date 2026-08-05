@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { consultationBookingUrl, defaultPrepFee, formatUsd, wasiyyahDiscount } from '$lib/config';
+	import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
 	import { slide } from 'svelte/transition';
 	import { authClient } from '$lib/auth-client';
 
@@ -424,9 +424,6 @@
 							<span class="text-2xl tracking-tight text-navy">{formatUsd(defaultPrepFee)}</span>
 							<span class="text-navy/40 text-xs">flat fee · attorney-supervised</span>
 						</div>
-						<p class="text-emerald-accent text-xs leading-relaxed">
-							Save {formatUsd(wasiyyahDiscount)} with a charitable contribution to a masjid or Islamic institution of your choice.
-						</p>
 					</div>
 
 					<a

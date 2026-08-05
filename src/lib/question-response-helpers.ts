@@ -1,6 +1,5 @@
 import {
 	allIntakeQuestions,
-	charities as configuredCharities,
 	prePaymentQuestions,
 	type ChildResponse,
 	type CharityResponse,
@@ -16,11 +15,6 @@ import {
 
 /** Islamic wasiyyah cap: one-third of the estate (charitable + non-charitable combined). */
 export const WASIYYAH_THIRD_PERCENT = 100 / 3;
-
-const CHARITY_ID_SET = new Set(configuredCharities.map((c) => c.id));
-
-/** Minimum charitable wasiyyah to one preset or user-added charity when the user chose the discounted (pledge) plan. */
-export const DISCOUNTED_CHARITY_MIN_PCT = 1;
 
 /** User-added charity row (name + EIN stored on the response). */
 export function isCustomCharityResponse(c: unknown): c is CharityResponse & { customName: string; customEin: string } {
@@ -46,29 +40,6 @@ export function isCharitiesResponseShape(value: unknown): value is CharitiesResp
 	);
 }
 
-function meetsPledgeForCharityRow(c: CharityResponse): boolean {
-	if (
-		typeof c.charityId !== 'string' ||
-		typeof c.percentage !== 'number' ||
-		Number.isNaN(c.percentage) ||
-		c.percentage < DISCOUNTED_CHARITY_MIN_PCT - 1e-6
-	) {
-		return false;
-	}
-	if (CHARITY_ID_SET.has(c.charityId)) return true;
-	if (isCustomCharityResponse(c)) {
-		return c.customName.trim() !== '' && c.customEin.trim() !== '';
-	}
-	return false;
-}
-
-/** True when at least one listed or user-added charity (from either spouse) has a wasiyyah allocation at or above the discounted-plan minimum. */
-export function meetsDiscountedCharityPledge(charitiesValue: unknown): boolean {
-	if (!isCharitiesResponseShape(charitiesValue)) return false;
-	const all = [...charitiesValue.husbandCharities, ...charitiesValue.wifeCharities];
-	return all.some((raw) => meetsPledgeForCharityRow(raw));
-}
-
 /** Total charitable wasiyyah for the husband's estate. */
 export function getHusbandCharityPercentage(charitiesValue: unknown): number {
 	if (!isCharitiesResponseShape(charitiesValue)) return 0;
@@ -80,10 +51,6 @@ export function getWifeCharityPercentage(charitiesValue: unknown): number {
 	if (!isCharitiesResponseShape(charitiesValue)) return 0;
 	return charitiesValue.wifeCharities.reduce((sum, c) => sum + (c.percentage || 0), 0);
 }
-
-export type QuestionCompletionContext = {
-	selectedPlan?: string | null;
-};
 
 export function isNonCharitableBequestsShape(value: unknown): value is NonCharitableBequestsResponse {
 	return (
@@ -296,8 +263,7 @@ export function isQuestionResponseAnswered(value: unknown): boolean {
 export function isQuestionResponseComplete(
 	type: Question['type'],
 	value: unknown,
-	allResponses?: Record<string, QuestionResponseValue>,
-	context?: QuestionCompletionContext
+	allResponses?: Record<string, QuestionResponseValue>
 ): boolean {
 	if (type === 'heirs-calculator') {
 		return (
@@ -334,8 +300,6 @@ export function isQuestionResponseComplete(
 			if (!value.wifeCharities.every((c) => isCharityResponseComplete(c))) return false;
 			if (getWifeCharityPercentage(value) > WASIYYAH_THIRD_PERCENT + 1e-6) return false;
 		}
-		const discounted = context?.selectedPlan === 'discounted';
-		if (discounted && !meetsDiscountedCharityPledge(value)) return false;
 		return true;
 	}
 	if (type === 'tel') {
@@ -368,14 +332,6 @@ export function isQuestionResponseComplete(
 		return valid.length >= 1;
 	}
 	if (type === 'heir-preview' || type === 'summary-review') {
-		if (
-			type === 'summary-review' &&
-			context?.selectedPlan === 'discounted' &&
-			allResponses &&
-			!meetsDiscountedCharityPledge(allResponses['charities'])
-		) {
-			return false;
-		}
 		return value === true;
 	}
 	if (type === 'minor-distribution') {
@@ -435,25 +391,19 @@ export function getActiveQuestions(
 /** True when every question in `questionList` that is active for `record` has a complete response. */
 export function isIntakePhaseComplete(
 	record: Record<string, QuestionResponseValue>,
-	questionList: Question[],
-	completionContext?: QuestionCompletionContext
+	questionList: Question[]
 ): boolean {
 	const { active } = getActiveQuestions(record, questionList);
-	return active.every((q) =>
-		isQuestionResponseComplete(q.type, record[q.id], record, completionContext)
-	);
+	return active.every((q) => isQuestionResponseComplete(q.type, record[q.id], record));
 }
 
 /** The active questions in `questionList` that are still missing a complete response. */
 export function getIncompleteIntakeQuestions(
 	record: Record<string, QuestionResponseValue>,
-	questionList: Question[],
-	completionContext?: QuestionCompletionContext
+	questionList: Question[]
 ): Question[] {
 	const { active } = getActiveQuestions(record, questionList);
-	return active.filter(
-		(q) => !isQuestionResponseComplete(q.type, record[q.id], record, completionContext)
-	);
+	return active.filter((q) => !isQuestionResponseComplete(q.type, record[q.id], record));
 }
 
 export type IntakeProgressOptions = {

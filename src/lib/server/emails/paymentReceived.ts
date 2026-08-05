@@ -11,14 +11,12 @@ export type PaymentReceivedEmailInput = {
 	continueUrl: string;
 };
 
-function planTitle(plan: PaymentPlanId): string {
-	return plan === 'full' ? 'Option A — Pay in full' : 'Option B — Pay with wasiyyah pledge';
+function planTitle(_plan: PaymentPlanId): string {
+	return 'Trust preparation fee';
 }
 
-function planDescription(plan: PaymentPlanId): string {
-	return plan === 'full'
-		? 'You paid the full trust preparation fee. If you elect a qualifying charitable bequest later, the applicable refund will be handled per your intake.'
-		: 'You selected the wasiyyah pledge rate. Your discounted price is confirmed when you complete your charitable bequest election in the questionnaire.';
+function planDescription(_plan: PaymentPlanId): string {
+	return 'You paid the full trust preparation fee. Continue the questionnaire to complete your Islamic estate plan.';
 }
 
 export function paymentReceivedEmail(input: PaymentReceivedEmailInput): string {

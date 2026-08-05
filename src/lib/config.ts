@@ -8,9 +8,6 @@ export const notarizationBookingUrl = 'https://calendly.com/sumayya-mcdanielesta
 /** Default trust preparation fee in whole USD (e.g. 1499 → $1,499.00). */
 export const defaultPrepFee = 1499;
 
-/** Wasiyyah pledge discount in whole USD (1499 − 200 = $1,299 discounted rate). */
-export const wasiyyahDiscount = 200;
-
 /** CAN-SPAM physical mailing address required in all marketing emails. */
 export const firmMailingAddress = 'McDaniel Estate Planning, PLLC · 3800 N Lamar Blvd, Ste 200 · Austin, TX 78756';
 /** Reply-to address for marketing emails (a real inbox, not no-reply). */
@@ -236,22 +233,6 @@ export const buckets: Record<string, { label: string; icon: string }> = {
 	review: { label: 'Review', icon: 'check-circle' },
 };
 
-export type Charity = {
-	id: string;
-	name: string;
-	logo: string;
-	website: string;
-};
-
-export const charities: Charity[] = [
-	{
-		id: 'jabal-foundation',
-		name: 'Jabal Foundation',
-		logo: 'https://images.squarespace-cdn.com/content/v1/65d7974e2ed5dc230d92760b/6f02944b-fb31-4cd4-b463-6799ce6fadb8/The-Jabal-Foundation4.png?format=1500w',
-		website: 'https://jabalfoundation.org'
-	},
-];
-
 export const prePaymentQuestions: Question[] = [
 	{
 		id: "husband-data",
@@ -338,7 +319,7 @@ export const postPaymentQuestions: Question[] = [
 	},
 	{
 		id: "charities",
-		text: "Would you like any of these charities to receive a portion of your wasiyyah?",
+		text: "Would you like to include any charitable bequests in your wasiyyah?",
 		type: 'charities',
 		required: false,
 		bucket: 'property',

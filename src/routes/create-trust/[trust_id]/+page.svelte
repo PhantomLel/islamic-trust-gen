@@ -13,8 +13,7 @@
 		getActiveQuestions,
 		isIntakePhaseComplete,
 		isQuestionResponseAnswered,
-		isQuestionResponseComplete,
-		meetsDiscountedCharityPledge
+		isQuestionResponseComplete
 	} from '$lib/question-response-helpers';
 	import { authClient } from '$lib/auth-client';
 	import { page } from '$app/stores';
@@ -138,9 +137,7 @@
 
 	function isCurrentQuestionComplete(): boolean {
 		if (!currentQuestion) return false;
-		return isQuestionResponseComplete(currentQuestion.type, currentValue, responses, {
-			selectedPlan: data.trust.selectedPlan
-		});
+		return isQuestionResponseComplete(currentQuestion.type, currentValue, responses);
 	}
 
 	let canGoNext = $derived(isCurrentQuestionComplete());
@@ -191,17 +188,7 @@
 
 	async function completeIntake() {
 		completeBlockedMessage = null;
-		const completionCtx = { selectedPlan: data.trust.selectedPlan };
-		if (
-			hasPaidInvoice &&
-			selectedPlan === 'discounted' &&
-			!meetsDiscountedCharityPledge(responses['charities'])
-		) {
-			completeBlockedMessage =
-				'You chose the discounted wasiyyah pledge. Allocate at least 1% of your wasiyyah to one of the listed charities before continuing.';
-			return;
-		}
-		if (!isIntakePhaseComplete(responses, intakeQuestions, completionCtx)) {
+		if (!isIntakePhaseComplete(responses, intakeQuestions)) {
 			completeBlockedMessage =
 				'Please complete all questions before finalizing. Use the sidebar to jump to any section that still needs answers.';
 			return;
@@ -215,7 +202,7 @@
 				const res = await fetch('?/completePostPayment', { method: 'POST', body: form });
 				if (!res.ok) {
 					completeBlockedMessage =
-						'We could not finalize your intake. If you are on the discounted plan, confirm at least 1% to one charity.';
+						'We could not finalize your intake. Please check that all required questions are complete.';
 					return;
 				}
 				await goto('/dashboard');
@@ -585,7 +572,6 @@
 								userCounty={data.userCounty}
 								houseDeedUrl={data.trust.houseDeedUrl}
 								deedRetrievalRequested={data.trust.deedRetrievalRequested}
-								selectedPlan={data.trust.selectedPlan}
 							/>
 
 							<div class="mt-8 pt-6 border-t border-navy/10">

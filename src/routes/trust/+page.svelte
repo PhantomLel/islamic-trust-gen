@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { siteName, defaultPrepFee, formatUsd, wasiyyahDiscount } from '$lib/config';
+	import { siteName, defaultPrepFee, formatUsd } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { slide } from 'svelte/transition';
-
-	const discountedPrepFee = defaultPrepFee - wasiyyahDiscount;
 
 	let { data } = $props();
 	let mobileMenuOpen = $state(false);
@@ -254,29 +252,6 @@
 					<div class="hidden sm:flex items-center gap-2 text-navy/45 text-[11px] leading-snug text-right max-w-48">
 						<svg class="w-3.5 h-3.5 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 						<span>Attorney drafting, review &amp; deed recording included</span>
-					</div>
-				</div>
-
-				<!-- Discount card -->
-				<div class="relative mx-3 mb-3 rounded-xl border border-emerald-accent/20 bg-linear-to-br from-emerald-accent/8 to-emerald-accent/2 overflow-hidden">
-					<div
-						class="absolute -right-6 -top-8 w-28 h-28 rounded-full pointer-events-none"
-						style="background: radial-gradient(circle, rgba(74,124,111,0.16) 0%, transparent 70%);"
-					></div>
-					<div class="relative flex items-center gap-4 px-5 py-4">
-						<div class="shrink-0 w-10 h-10 rounded-xl bg-emerald-accent/12 border border-emerald-accent/20 flex items-center justify-center">
-							<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
-						</div>
-						<div class="flex-1 min-w-0">
-							<div class="flex items-baseline gap-2 flex-wrap">
-								<span class="text-sm font-semibold text-navy">Pay {formatUsd(discountedPrepFee)}</span>
-								<span class="text-navy/35 text-xs line-through tabular-nums">{formatUsd(defaultPrepFee)}</span>
-								<span class="text-[10px] font-semibold tracking-wide uppercase text-emerald-accent">Save {formatUsd(wasiyyahDiscount)}</span>
-							</div>
-							<p class="text-[11px] text-navy/50 leading-relaxed mt-0.5">
-								Pledge a charitable gift to a masjid or Islamic institution of your choice.
-							</p>
-						</div>
 					</div>
 				</div>
 			</div>

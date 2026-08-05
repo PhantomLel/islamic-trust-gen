@@ -13,6 +13,7 @@
 
 import type { HeirsCalculatorResponse } from '$lib/config';
 import { texasCounties, californiaCounties } from '$lib/counties';
+import { getMasjidById } from '$lib/masajid';
 
 export type UsState = { code: string; name: string };
 
@@ -164,7 +165,7 @@ export type WillFieldType =
 	| 'heirs-calculator' // reuses the Islamic inheritance calculator + heir names
 	| 'executors' // executor selection (1 required, 2 backups optional — C1)
 	| 'guardians' // guardian selection (1 required, 1 backup optional — C1)
-	| 'wasiyyah'; // wasiyyah bequests — preset charities + custom, capped at 1/3
+	| 'wasiyyah'; // wasiyyah bequests — masajid + custom charities, capped at 1/3
 
 /** Islamic wasiyyah cap: one-third of the estate. */
 export const WILL_WASIYYAH_CAP = 100 / 3;
@@ -196,7 +197,7 @@ export function resolveWillWasiyyahRecipientName(
 	presetCharityNames: ReadonlyMap<string, string>,
 ): string {
 	if (isCustomWillWasiyyahEntry(e)) return e.customName?.trim() ?? '';
-	return presetCharityNames.get(e.charityId) ?? '';
+	return presetCharityNames.get(e.charityId) ?? getMasjidById(e.charityId)?.name ?? '';
 }
 
 /** Residential address; `state` is collected separately in the `state` step. */

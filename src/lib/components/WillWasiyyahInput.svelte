@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { charities as presetCharities } from '$lib/config';
+	import MasajidBequestPicker from '$lib/components/MasajidBequestPicker.svelte';
+	import { isMasjidId } from '$lib/masajid';
 	import { WILL_WASIYYAH_CAP, type WillWasiyyahEntry, type WillWasiyyahResponse, type WillResponseValue } from '$lib/free-will/config';
 
 	let {
@@ -107,6 +108,10 @@
 		});
 	}
 
+	function masjidIds(): string[] {
+		return data.bequests.filter((b) => isMasjidId(b.charityId)).map((b) => b.charityId);
+	}
+
 	let totalPct = $derived(data.bequests.reduce((s, b) => s + (b.percentage || 0), 0));
 	let overCap = $derived(totalPct > WILL_WASIYYAH_CAP + 0.01);
 </script>
@@ -158,74 +163,14 @@
 				</p>
 			{/if}
 
-			<!-- Preset charities -->
-			{#each presetCharities as charity}
-				{@const selected = isPresetSelected(charity.id)}
-				{@const entry = data.bequests.find((b) => b.charityId === charity.id)}
-				{@const pct = entry?.percentage ?? 0}
-				<div class="rounded-xl border transition-all duration-200
-					{selected ? 'border-emerald-accent/30 bg-emerald-accent/5' : 'border-navy/10 bg-white'}">
-					<div class="p-4">
-						<div class="flex items-start gap-4">
-							<button
-								type="button"
-								onclick={() => togglePreset(charity.id)}
-								class="flex items-center justify-center w-6 h-6 mt-1 rounded-md border-2 shrink-0 transition-colors cursor-pointer
-									{selected ? 'border-emerald-accent bg-emerald-accent' : 'border-navy/20 bg-white hover:border-navy/30'}"
-								aria-label={selected ? `Deselect ${charity.name}` : `Select ${charity.name}`}
-							>
-								{#if selected}
-									<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-									</svg>
-								{/if}
-							</button>
-							<div class="flex-1 min-w-0">
-								<div class="flex items-center gap-3 mb-2">
-									<div class="w-24 h-12 bg-white rounded-lg border border-navy/5 flex items-center justify-center p-2 shrink-0">
-										<img src={charity.logo} alt="{charity.name} logo" class="max-w-full max-h-full object-contain" />
-									</div>
-									<div class="flex-1 min-w-0">
-										<h3 class="text-base font-medium text-navy mb-0.5">{charity.name}</h3>
-										<a
-											href={charity.website}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-xs text-emerald-accent hover:text-emerald-accent/80 transition-colors"
-										>
-											Visit Website →
-										</a>
-									</div>
-								</div>
-								{#if selected}
-									<div class="mt-3 flex items-center gap-3">
-										<label for="w-ch-{charity.id}" class="text-sm text-navy/70 whitespace-nowrap">
-											Percentage:
-										</label>
-										<div class="flex items-center gap-2 flex-1 max-w-xs">
-											<input
-												id="w-ch-{charity.id}"
-												type="number"
-												min="0"
-												max="100"
-												step="0.1"
-												value={pct}
-												oninput={(e) => {
-													const val = parseFloat(e.currentTarget.value);
-													if (!isNaN(val)) updatePercentage(charity.id, val);
-												}}
-												class="w-full px-3 py-2 rounded-lg border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
-												placeholder="0"
-											/>
-											<span class="text-sm text-navy/50 shrink-0">%</span>
-										</div>
-									</div>
-								{/if}
-							</div>
-						</div>
-					</div>
-				</div>
-			{/each}
+			<MasajidBequestPicker
+				idPrefix="will-masjid"
+				selectedIds={masjidIds()}
+				getPercentage={(id) => data.bequests.find((b) => b.charityId === id)?.percentage ?? 0}
+				onselect={(id) => togglePreset(id)}
+				onremove={(id) => togglePreset(id)}
+				onPercentageChange={updatePercentage}
+			/>
 
 			<!-- Custom charities / recipients -->
 			<div class="rounded-xl border border-navy/10 bg-navy/2 p-4">

@@ -2,7 +2,6 @@
 	import { invalidateAll } from '$app/navigation';
 import {
 	allIntakeQuestions,
-	charities,
 	type ChildResponse,
 	type HeirResponse,
 	type CharityResponse,
@@ -24,6 +23,8 @@ import {
 		isPersonalDataShape,
 		isQuestionResponseAnswered
 	} from '$lib/question-response-helpers';
+	import { resolveCharityName } from '$lib/charityLookup';
+	import { isMasjidId } from '$lib/masajid';
 
 	type TrustResponse = { id: string; response: unknown };
 	type TrustDetails = {
@@ -184,14 +185,6 @@ import {
 	function setEditWifeInterested(questionId: string, yes: boolean) {
 		const cr = getEditCharitiesResponse(questionId);
 		setEditCharitiesResponse(questionId, yes ? { ...cr, wifeInterested: true } : { ...cr, wifeInterested: false, wifeCharities: [] });
-	}
-
-	function isEditHusbandCharitySelected(questionId: string, charityId: string): boolean {
-		return getEditCharitiesResponse(questionId).husbandCharities.some((c) => c.charityId === charityId);
-	}
-
-	function isEditWifeCharitySelected(questionId: string, charityId: string): boolean {
-		return getEditCharitiesResponse(questionId).wifeCharities.some((c) => c.charityId === charityId);
 	}
 
 	function toggleEditHusbandCharity(questionId: string, charityId: string) {
@@ -535,21 +528,15 @@ import {
 									</div>
 									{#if ecr.husbandInterested}
 										<div class="space-y-1.5">
-											{#each charities as charity}
-												{@const sel = isEditHusbandCharitySelected(q.id, charity.id)}
-												{@const pct = ecr.husbandCharities.find((c) => c.charityId === charity.id)?.percentage ?? 0}
-												<div class="rounded-md border {sel ? 'border-emerald-accent/30 bg-emerald-accent/5' : 'border-navy/10 bg-white'} p-2 flex items-center gap-2">
-													<button type="button" onclick={() => toggleEditHusbandCharity(q.id, charity.id)}
-														class="w-4 h-4 rounded border-2 shrink-0 cursor-pointer flex items-center justify-center {sel ? 'border-emerald-accent bg-emerald-accent' : 'border-navy/20 bg-white'}">
-														{#if sel}<svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>{/if}
-													</button>
-													<span class="text-[11px] font-medium text-navy flex-1">{charity.name}</span>
-													{#if sel}
-														<input type="number" min="0" max="100" step="0.1" value={pct}
-															oninput={(e) => { const v = parseFloat(e.currentTarget.value); if (!isNaN(v)) updateEditHusbandCharityPct(q.id, charity.id, v); }}
-															class="w-14 px-1.5 py-1 rounded border border-navy/10 text-[11px] text-navy outline-none focus:border-emerald-accent/40" placeholder="0" />
-														<span class="text-[10px] text-navy/45">%</span>
-													{/if}
+											{#each ecr.husbandCharities.filter((c) => isMasjidId(c.charityId)) as ch}
+												<div class="rounded-md border border-emerald-accent/30 bg-emerald-accent/5 p-2 flex items-center gap-2">
+													<span class="text-[11px] font-medium text-navy flex-1">{resolveCharityName(ch.charityId)}</span>
+													<input type="number" min="0" max="100" step="0.1" value={ch.percentage}
+														oninput={(e) => { const v = parseFloat(e.currentTarget.value); if (!isNaN(v)) updateEditHusbandCharityPct(q.id, ch.charityId, v); }}
+														class="w-14 px-1.5 py-1 rounded border border-navy/10 text-[11px] text-navy outline-none focus:border-emerald-accent/40" placeholder="0" />
+													<span class="text-[10px] text-navy/45">%</span>
+													<button type="button" onclick={() => toggleEditHusbandCharity(q.id, ch.charityId)}
+														class="text-[10px] text-navy/40 hover:text-red-600 cursor-pointer">Remove</button>
 												</div>
 											{/each}
 											<div class="flex items-center justify-between mt-1">
@@ -594,21 +581,15 @@ import {
 									</div>
 									{#if ecr.wifeInterested}
 										<div class="space-y-1.5">
-											{#each charities as charity}
-												{@const sel = isEditWifeCharitySelected(q.id, charity.id)}
-												{@const pct = ecr.wifeCharities.find((c) => c.charityId === charity.id)?.percentage ?? 0}
-												<div class="rounded-md border {sel ? 'border-emerald-accent/30 bg-emerald-accent/5' : 'border-navy/10 bg-white'} p-2 flex items-center gap-2">
-													<button type="button" onclick={() => toggleEditWifeCharity(q.id, charity.id)}
-														class="w-4 h-4 rounded border-2 shrink-0 cursor-pointer flex items-center justify-center {sel ? 'border-emerald-accent bg-emerald-accent' : 'border-navy/20 bg-white'}">
-														{#if sel}<svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>{/if}
-													</button>
-													<span class="text-[11px] font-medium text-navy flex-1">{charity.name}</span>
-													{#if sel}
-														<input type="number" min="0" max="100" step="0.1" value={pct}
-															oninput={(e) => { const v = parseFloat(e.currentTarget.value); if (!isNaN(v)) updateEditWifeCharityPct(q.id, charity.id, v); }}
-															class="w-14 px-1.5 py-1 rounded border border-navy/10 text-[11px] text-navy outline-none focus:border-emerald-accent/40" placeholder="0" />
-														<span class="text-[10px] text-navy/45">%</span>
-													{/if}
+											{#each ecr.wifeCharities.filter((c) => isMasjidId(c.charityId)) as ch}
+												<div class="rounded-md border border-emerald-accent/30 bg-emerald-accent/5 p-2 flex items-center gap-2">
+													<span class="text-[11px] font-medium text-navy flex-1">{resolveCharityName(ch.charityId)}</span>
+													<input type="number" min="0" max="100" step="0.1" value={ch.percentage}
+														oninput={(e) => { const v = parseFloat(e.currentTarget.value); if (!isNaN(v)) updateEditWifeCharityPct(q.id, ch.charityId, v); }}
+														class="w-14 px-1.5 py-1 rounded border border-navy/10 text-[11px] text-navy outline-none focus:border-emerald-accent/40" placeholder="0" />
+													<span class="text-[10px] text-navy/45">%</span>
+													<button type="button" onclick={() => toggleEditWifeCharity(q.id, ch.charityId)}
+														class="text-[10px] text-navy/40 hover:text-red-600 cursor-pointer">Remove</button>
 												</div>
 											{/each}
 											<div class="flex items-center justify-between mt-1">
@@ -757,9 +738,8 @@ import {
 									<div>
 										<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Husband</div>
 										{#each vcr.husbandCharities as ch}
-											{@const preset = charities.find((c) => c.id === ch.charityId)}
 											<div class="text-[12px] text-navy">
-												{#if preset}{preset.name}{:else if typeof ch.customName === 'string' && ch.customName.trim()}{ch.customName.trim()}{:else}<span class="text-navy/40">Custom charity</span>{/if}
+												{resolveCharityName(ch.charityId, ch.customName)}
 												<span class="text-navy/40 font-normal"> — {ch.percentage}%</span>
 											</div>
 										{/each}
@@ -769,9 +749,8 @@ import {
 									<div>
 										<div class="text-[10px] font-semibold text-navy/40 tracking-wider uppercase mb-1">Wife</div>
 										{#each vcr.wifeCharities as ch}
-											{@const preset = charities.find((c) => c.id === ch.charityId)}
 											<div class="text-[12px] text-navy">
-												{#if preset}{preset.name}{:else if typeof ch.customName === 'string' && ch.customName.trim()}{ch.customName.trim()}{:else}<span class="text-navy/40">Custom charity</span>{/if}
+												{resolveCharityName(ch.charityId, ch.customName)}
 												<span class="text-navy/40 font-normal"> — {ch.percentage}%</span>
 											</div>
 										{/each}

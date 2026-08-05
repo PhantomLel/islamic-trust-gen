@@ -12,13 +12,13 @@
 		type WillWasiyyahResponse,
 	} from '$lib/free-will/config';
 	import { getActiveSteps, formatAddress, getNamedHeirs } from '$lib/free-will/logic';
-	import { charities as presetCharities } from '$lib/config';
+	import { buildCharityNameMap } from '$lib/charityLookup';
 
 	type WillResponse = { id: string; response: unknown };
 
 	let { responses }: { responses: WillResponse[] } = $props();
 
-	const presetCharityNames = new Map(presetCharities.map((c) => [c.id, c.name]));
+	const presetCharityNames = buildCharityNameMap();
 
 	let values = $derived(
 		Object.fromEntries((responses ?? []).map((r) => [r.id, r.response as WillResponseValue])) as WillResponses,
