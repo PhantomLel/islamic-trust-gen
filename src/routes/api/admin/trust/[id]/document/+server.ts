@@ -28,7 +28,13 @@ async function persistAllGeneratedDocuments(
 	trustId: number,
 	docs: Awaited<ReturnType<typeof renderAllTrustDocuments>>,
 ) {
-	const [jointTrust, pourOverWillHusband, pourOverWillWife] = await saveGeneratedDocxBatch({
+	const [
+		jointTrust,
+		pourOverWillHusband,
+		pourOverWillWife,
+		acknowledgmentOfOwnershipElection,
+		certificationOfTrust,
+	] = await saveGeneratedDocxBatch({
 		trustId,
 		files: [
 			{
@@ -46,10 +52,26 @@ async function persistAllGeneratedDocuments(
 				buffer: docs.pourOverWillWife.buffer,
 				filename: docs.pourOverWillWife.filename,
 			},
+			{
+				kind: 'acknowledgment-of-islamic-ownership-election',
+				buffer: docs.acknowledgmentOfOwnershipElection.buffer,
+				filename: docs.acknowledgmentOfOwnershipElection.filename,
+			},
+			{
+				kind: 'certification-of-trust',
+				buffer: docs.certificationOfTrust.buffer,
+				filename: docs.certificationOfTrust.filename,
+			},
 		],
 	});
 
-	return { jointTrust, pourOverWillHusband, pourOverWillWife };
+	return {
+		jointTrust,
+		pourOverWillHusband,
+		pourOverWillWife,
+		acknowledgmentOfOwnershipElection,
+		certificationOfTrust,
+	};
 }
 
 export const POST: RequestHandler = async ({ locals, params }) => {

@@ -5,7 +5,6 @@
 		CharityResponse,
 		CharitiesResponse,
 		HeirsCalculatorResponse,
-		HebaResponse,
 		MinorDistributionResponse,
 		NonCharitableBequestsResponse,
 		PersonalDataResponse,
@@ -84,11 +83,6 @@
 	let wife = $derived(pd('wife-data'));
 	let marriageDate = $derived(typeof allResponses['marriage-date'] === 'string' ? allResponses['marriage-date'] : null);
 	let ownershipChoice = $derived(typeof allResponses['ownership-allocation'] === 'string' ? allResponses['ownership-allocation'] : null);
-	let hebaData = $derived.by(() => {
-		const v = allResponses['heba'];
-		if (v && typeof v === 'object' && !Array.isArray(v) && 'husbandConfirmation' in v) return v as HebaResponse;
-		return null;
-	});
 	let assetsData = $derived.by(() => {
 		const v = allResponses['assets'];
 		if (Array.isArray(v) && v.length > 0 && typeof (v[0] as Record<string, unknown>)?.assetName === 'string') return v as AssetAllocationEntry[];
@@ -159,7 +153,7 @@
 			'husband-heirs': `${h}'s Heirs`,
 			'wife-heirs': `${w}'s Heirs`,
 			'ownership-allocation': 'Ownership Allocation',
-			heba: '50/50 Mutual Gift (Heba) Confirmation',
+			heba: '50/50 Mutual Gift (Heba)',
 			assets: 'Asset by Asset Ownership',
 			charities: 'Charitable Bequests',
 			'non-charitable-bequests': 'Non-Charitable Bequests',
@@ -262,22 +256,6 @@
 		<div class="px-5 py-4">
 			{#if ownershipChoice === 'heba'}
 				<p class="text-sm text-navy font-medium">50/50 Mutual Gift (Heba)</p>
-				{#if hebaData}
-					<div class="mt-3 space-y-1.5 text-[13px] text-navy/60">
-						<p>
-							{husband?.name || 'Husband'}: {hebaData.husbandConfirmation ? '✓ Confirmed' : '✗ Not confirmed'}
-							{#if hebaData.husbandConfirmation}
-								<span class="text-navy/40"> · {new Date(hebaData.husbandConfirmation).toLocaleString()}</span>
-							{/if}
-						</p>
-						<p>
-							{wife?.name || 'Wife'}: {hebaData.wifeConfirmation ? '✓ Confirmed' : '✗ Not confirmed'}
-							{#if hebaData.wifeConfirmation}
-								<span class="text-navy/40"> · {new Date(hebaData.wifeConfirmation).toLocaleString()}</span>
-							{/if}
-						</p>
-					</div>
-				{/if}
 				<div class="mt-4">
 					<div class="flex items-center justify-between mb-2">
 						<div class="text-[11px] font-medium text-navy/40 tracking-wider uppercase">Listed Assets</div>

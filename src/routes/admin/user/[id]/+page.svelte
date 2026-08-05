@@ -85,6 +85,7 @@
 	function kindLabel(kind: string): string {
 		const map: Record<string, string> = {
 			'joint-trust': 'Joint trust',
+			'acknowledgment-of-islamic-ownership-election': 'Acknowledgment of Islamic ownership election',
 			'pour-over-will-husband': "Husband's pour-over will",
 			'pour-over-will-wife': "Wife's pour-over will",
 			'certification-of-trust': 'Certification of trust',

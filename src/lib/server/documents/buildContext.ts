@@ -18,6 +18,10 @@ import {
 	fractionLabel,
 	type HeirTableRow,
 } from './documentFormatters';
+import {
+	FIRST_DEATH_ELECTION_DAYS_PHRASE,
+	formatTrustTitleForm,
+} from './trustDocumentConstants';
 
 /**
  * Shape that the joint trust .docx template consumes. Every key referenced in
@@ -80,7 +84,29 @@ export type JointTrustContext = {
 	/** Text fallbacks — used by the {xxxText} scalars that the :table preprocessor emits. */
 	heirsTableText: string;
 	hebaAssetsText: string;
+
+	/** True when the surviving spouse continues as sole trustee upon first death. */
+	survivorServes: boolean;
+	calculatorURL: string;
+	madhab: string;
+
+	/** Shared with T8 acknowledgment — must stay in sync with Article Three E.4. */
+	firstDeathElectionDaysPhrase: string;
+	/** Article One §A title form — shared byte-for-byte with Certification of Trust §8. */
+	trustTitleForm: string;
 };
+
+const MADHAB_LABELS: Record<string, string> = {
+	hanafi: 'Hanafi',
+	shafii: "Shafi'i",
+	maliki: 'Maliki',
+	hanbali: 'Hanbali',
+};
+
+function formatMadhab(value: string | undefined): string {
+	if (!value) return '';
+	return MADHAB_LABELS[value] ?? value;
+}
 
 type ResponseEntry = { id: string; response: unknown };
 
@@ -186,6 +212,10 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 	const bequestsResp = getResponse<NonCharitableBequestsResponse>(trust, 'non-charitable-bequests');
 	const minor = getResponse<MinorDistributionResponse>(trust, 'minor-distribution');
 	const trustName = getResponse<string>(trust, 'trust-name') ?? '';
+	const husbandFullName = husband?.name ?? '';
+	const wifeFullName = wife?.name ?? '';
+	const trusteeOnFirstDeath = getResponse<string>(trust, 'trustee-on-first-death');
+	const madhabChoice = getResponse<string>(trust, 'madhab');
 
 	const husbandCharitable = mapCharitableRows(
 		charitiesResp?.husbandInterested ? charitiesResp.husbandCharities : undefined,
@@ -213,9 +243,9 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 	return {
 		trustName,
 		trustDate: formatToday(),
-		husbandFullName: husband?.name ?? '',
+		husbandFullName,
 		county: husband?.county ?? '',
-		wifeFullName: wife?.name ?? '',
+		wifeFullName,
 		dateOfMarriage: formatDate(marriageDate),
 		childrenCount: countChildren(husbandHeirs?.namedHeirs),
 
@@ -256,5 +286,11 @@ export function buildJointTrustContext(trust: TrustLike): JointTrustContext {
 
 		heirsTableText: formatHeirsTable(husbandHeirs?.namedHeirs ?? wifeHeirs?.namedHeirs),
 		hebaAssetsText: formatHebaAssets(hebaAssetEntries),
+
+		survivorServes: trusteeOnFirstDeath === 'survivor-serves',
+		calculatorURL: 'muslimlegacyplanning.com/inheritance-calculator',
+		madhab: formatMadhab(madhabChoice),
+		firstDeathElectionDaysPhrase: FIRST_DEATH_ELECTION_DAYS_PHRASE,
+		trustTitleForm: formatTrustTitleForm(husbandFullName, wifeFullName, trustName),
 	};
 }

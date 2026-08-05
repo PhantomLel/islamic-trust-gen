@@ -342,10 +342,7 @@ export function isQuestionResponseComplete(
 		return typeof value === 'string' && value.replace(/\D/g, '').length === 10;
 	}
 	if (type === 'heba') {
-		if (value == null || typeof value !== 'object' || Array.isArray(value)) return false;
-		if (!('husbandConfirmation' in value)) return false;
-		const heba = value as { husbandConfirmation: string | null; wifeConfirmation: string | null };
-		return heba.husbandConfirmation !== null && heba.wifeConfirmation !== null;
+		return true; // explanation-only step — no stored attestation
 	}
 	if (type === 'heba-assets') {
 		return true; // optional — all heba property is jointly owned regardless of what's listed

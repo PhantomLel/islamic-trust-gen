@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { buckets, type Question, type QuestionResponseValue } from '$lib/config';
-	import { isQuestionResponseAnswered, meetsDiscountedCharityPledge } from '$lib/question-response-helpers';
+	import { isQuestionResponseComplete, meetsDiscountedCharityPledge } from '$lib/question-response-helpers';
 
 	let {
 		currentIndex,
@@ -75,11 +75,15 @@
 	let preSectionLocked = $derived(false);
 	let postSectionLocked = $derived(selectedPlan === null);
 
+	function isQuestionDone(q: Question): boolean {
+		return isQuestionResponseComplete(q.type, responses[q.id], responses, { selectedPlan });
+	}
+
 	let overallProgress = $derived(
 		allSidebarQuestions.length === 0
 			? 0
 			: Math.round(
-					(allSidebarQuestions.filter((q) => isQuestionResponseAnswered(responses[q.id])).length /
+					(allSidebarQuestions.filter((q) => isQuestionDone(q)).length /
 						allSidebarQuestions.length) *
 						100
 				)
@@ -87,7 +91,7 @@
 
 	function bucketProgress(bucket: string, questions: Question[]) {
 		const qs = questions.filter((q) => q.bucket === bucket);
-		const done = qs.filter((q) => isQuestionResponseAnswered(responses[q.id])).length;
+		const done = qs.filter((q) => isQuestionDone(q)).length;
 		return { total: qs.length, done };
 	}
 
@@ -174,7 +178,7 @@
 				<div class="ml-6 mt-1 mb-2 flex flex-col gap-0.5">
 					{#each bqs as q}
 						{@const inFlow = activeQuestions.some((aq) => aq.id === q.id)}
-						{@const answered = isQuestionResponseAnswered(responses[q.id])}
+						{@const answered = isQuestionDone(q)}
 						{@const isCurrent = q.id === currentId}
 						<button
 							type="button"
@@ -269,7 +273,7 @@
 				<div class="ml-6 mt-1 mb-2 flex flex-col gap-0.5">
 					{#each bqs as q}
 						{@const inFlow = activeQuestions.some((aq) => aq.id === q.id)}
-						{@const answered = isQuestionResponseAnswered(responses[q.id])}
+						{@const answered = isQuestionDone(q)}
 						{@const isCurrent = q.id === currentId}
 						<button
 							type="button"

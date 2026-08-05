@@ -10,7 +10,6 @@ import {
 	type HeirsCalculatorResponse,
 	type PersonalDataResponse,
 	type QuestionResponseValue,
-	type HebaResponse,
 	type AssetAllocationEntry,
 	type HebaAssetEntry,
 	type SuccessorTrusteeEntry,
@@ -336,16 +335,6 @@ import {
 			day: 'numeric',
 			year: 'numeric'
 		});
-	}
-
-	function isHebaShape(value: unknown): value is HebaResponse {
-		return (
-			value != null &&
-			typeof value === 'object' &&
-			!Array.isArray(value) &&
-			'husbandConfirmation' in value &&
-			'wifeConfirmation' in value
-		);
 	}
 
 	function isMinorDistributionShape(value: unknown): value is MinorDistributionResponse {
@@ -836,29 +825,7 @@ import {
 						<span class="text-[13px] text-navy/25">—</span>
 					{/if}
 				{:else if q.type === 'heba'}
-					{@const heba = isHebaShape(raw) ? raw : null}
-					{#if heba && (heba.husbandConfirmation !== null || heba.wifeConfirmation !== null)}
-						<div class="text-[12px] text-navy space-y-0.5">
-							<div>
-								<span class="text-navy/45">Husband</span>
-								{#if heba.husbandConfirmation !== null}
-									<span class="text-emerald-600 font-medium ml-1">Confirmed</span>
-								{:else}
-									<span class="text-amber-500 ml-1">Pending</span>
-								{/if}
-							</div>
-							<div>
-								<span class="text-navy/45">Wife</span>
-								{#if heba.wifeConfirmation !== null}
-									<span class="text-emerald-600 font-medium ml-1">Confirmed</span>
-								{:else}
-									<span class="text-amber-500 ml-1">Pending</span>
-								{/if}
-							</div>
-						</div>
-					{:else}
-						<span class="text-[13px] text-navy/25">—</span>
-					{/if}
+					<span class="text-[13px] text-navy/45 italic">Explanation only</span>
 				{:else if q.type === 'assets'}
 					{@const assets = Array.isArray(raw) ? (raw as AssetAllocationEntry[]) : []}
 					{#if assets.length > 0}

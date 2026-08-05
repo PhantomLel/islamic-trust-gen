@@ -135,6 +135,7 @@ export type PersonalDataResponse = {
 };
 
 export type HebaResponse = {
+	/** @deprecated Legacy spousal attestation — no longer collected. */
 	husbandConfirmation: string | null;
 	wifeConfirmation: string | null;
 };

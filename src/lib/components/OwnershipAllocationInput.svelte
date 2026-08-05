@@ -115,7 +115,7 @@
 
 <InfoPopout open={hebaPopout} onclose={() => (hebaPopout = false)} title="What is a Mutual Gift (Heba)?" dismissLabel="Understood">
 	<p>In Islamic law, this type of gift is called a <span class="font-medium text-navy/80">heba</span>. It is a lifetime gift — not a provision in a will. It takes effect the moment you sign your trust.</p>
-	<p class="mt-3">It is <span class="font-medium text-navy/80">irrevocable</span>, meaning it cannot be taken back for any reason, including divorce. This is a serious commitment. We will ask you to confirm that you understand this before proceeding.</p>
+	<p class="mt-3">It is <span class="font-medium text-navy/80">irrevocable</span>, meaning it cannot be taken back for any reason, including divorce. This is a serious commitment.</p>
 	<p class="mt-3">If you have questions, please speak with an imam or attorney.</p>
 </InfoPopout>
 
