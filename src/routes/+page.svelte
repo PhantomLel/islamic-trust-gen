@@ -221,6 +221,7 @@
 				<!-- <a href="#learn" class="text-navy/55 text-sm transition-colors hover:text-navy">Learn</a> -->
 				<a href="#about" class="text-navy/55 text-sm transition-colors hover:text-navy">About</a>
 				<a href="/free-islamic-will" class="text-navy/55 text-sm transition-colors hover:text-navy">Free Islamic Will</a>
+				<a href="/inheritance-calculator" class="text-navy/55 text-sm transition-colors hover:text-navy">Inheritance Calculator</a>
 				<a href="/trust" class="text-emerald-accent text-sm font-medium transition-colors hover:text-emerald-light">GoodTree Trust</a>
 				{#if data.user}
 					<a href="/dashboard" class="text-navy/55 text-sm transition-colors hover:text-navy">Dashboard</a>
@@ -272,6 +273,7 @@
 				<!-- <a href="#learn" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Learn</a> -->
 				<a href="#about" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">About</a>
 				<a href="/free-islamic-will" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Free Islamic Will</a>
+				<a href="/inheritance-calculator" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Inheritance Calculator</a>
 				<a href="/trust" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm font-medium text-emerald-accent rounded-xl hover:bg-emerald-accent/8">GoodTree Trust</a>
 				<div class="h-px bg-navy/8 my-1 mx-2"></div>
 				{#if data.user}
@@ -378,6 +380,30 @@
 					</article>
 				{/each}
 			</div>
+		</div>
+	</section>
+
+	<!-- ═══════════════════ INHERITANCE CALCULATOR TEASER ═══════════════════ -->
+	<section class="px-6">
+		<div use:revealOnScroll class="scroll-reveal max-w-7xl mx-auto -mt-12 md:-mt-16 relative z-10">
+			<a
+				href="/inheritance-calculator"
+				class="group flex flex-col md:flex-row md:items-center gap-5 md:gap-8 rounded-2xl bg-white border border-navy/10 p-6 md:p-8
+					   shadow-[0_16px_40px_-20px_rgba(30,42,58,0.16)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_-18px_rgba(30,42,58,0.2)] hover:border-emerald-accent/30"
+			>
+				<div class="w-11 h-11 rounded-xl bg-emerald-accent/10 flex items-center justify-center shrink-0">
+					<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" /></svg>
+				</div>
+				<div class="flex-1">
+					<div class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase font-medium mb-1">Free Tool</div>
+					<h3 class="text-lg md:text-xl text-navy tracking-tight">Curious what your family's Islamic inheritance shares would be?</h3>
+					<p class="text-navy/50 text-sm mt-1">Enter your surviving heirs and get an instant, itemized breakdown of the Qur'anic shares (farāʾiḍ).</p>
+				</div>
+				<span class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy shrink-0 transition-all group-hover:bg-navy-light">
+					Try the Calculator
+					<svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+				</span>
+			</a>
 		</div>
 	</section>
 
@@ -872,6 +898,7 @@
 					<a href="/trust" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">GoodTree Trust</a>
 					<a href="#products" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Legacy Plan</a>
 					<a href="/which-plan" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Which plan is right?</a>
+					<a href="/inheritance-calculator" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Inheritance Calculator</a>
 				</div>
 
 				<!-- Learn section — uncomment when pages are ready

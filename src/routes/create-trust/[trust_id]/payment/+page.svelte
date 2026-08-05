@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { siteName, consultationBookingUrl } from '$lib/config';
-	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 	import { authClient } from '$lib/auth-client';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
-	import { fade, slide } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 	import type { WarningAgreementData } from '$lib/loe';
 	import { WARNING_AGREEMENT_VERSION } from '$lib/loe';
 
@@ -288,19 +287,7 @@
 			<p class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium mb-3">Payment</p>
 			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-2">Complete your trust preparation</h1>
 			<p class="text-sm text-navy/45 font-light leading-relaxed">
-				Watch the short video below to learn about wasiyyah, then complete your payment.
-			</p>
-		</div>
-
-		<!-- Wasiyyah video -->
-		<div class="space-y-3">
-			<VideoPlayer
-				src="https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10rT8uaA1glaJLmwS73iTIo6AeUxsZvfNkH4BC"
-				title="Your Wasiyyah is a commitment to charity"
-			/>
-			<p class="text-[13px] text-navy/50 font-light leading-relaxed">
-				Before any money is distributed to your heirs, you can bequest up to 1/3 of your wealth to almost any cause.
-				You will select where to donate later in the questionnaire.
+				Review your order below and complete payment to continue your trust preparation.
 			</p>
 		</div>
 
