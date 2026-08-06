@@ -4,6 +4,7 @@
 	import { consultationBookingUrl, notarizationBookingUrl, siteName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import HouseDeedUploadCard from '$lib/components/HouseDeedUploadCard.svelte';
+	import ShippingAddressCard from '$lib/components/ShippingAddressCard.svelte';
 	import HelpLauncher from '$lib/components/help/HelpLauncher.svelte';
 
 	let { data } = $props();
@@ -97,6 +98,11 @@
 					desc: data.fundingSummary.label,
 					progress: data.fundingSummary.pct,
 				},
+			t.complete && !t.shippingAddress && {
+				label: 'Enter your shipping address to get your legacy binder',
+				href: '#shipping-address',
+				desc: "We'll mail you a printed binder with all your documents and instructions in one place",
+			},
 		].filter(Boolean) as { label: string; href: string; desc: string; external?: boolean; progress?: number }[]
 	);
 
@@ -486,6 +492,10 @@
 						existingUrl={t.houseDeedUrl}
 						title="Upload Your House Deed"
 					/>
+				{/if}
+
+				{#if t.complete}
+					<ShippingAddressCard trustId={t.id} existingAddress={t.shippingAddress} />
 				{/if}
 
 				<!-- document list (read-only) -->

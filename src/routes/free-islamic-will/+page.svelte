@@ -876,6 +876,7 @@
 					{:else if currentStep.type === 'wasiyyah'}
 						<WillWasiyyahInput
 							value={(responses[currentStep.id] ?? null) as WillWasiyyahResponse | null}
+							stateCode={(responses['state'] as string) ?? ''}
 							onresponse={(v) => setResponse(v as WillResponseValue)}
 						/>
 					{/if}

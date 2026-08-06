@@ -1,14 +1,16 @@
 <script lang="ts">
 	import MasajidBequestPicker from '$lib/components/MasajidBequestPicker.svelte';
-	import { isMasjidId } from '$lib/masajid';
+	import { hasMasajidCatalog, isMasjidId } from '$lib/masajid';
 	import { WILL_WASIYYAH_CAP, type WillWasiyyahEntry, type WillWasiyyahResponse, type WillResponseValue } from '$lib/free-will/config';
 
 	let {
 		value,
 		onresponse,
+		stateCode = '',
 	}: {
 		value: WillResponseValue;
 		onresponse: (val: WillResponseValue) => void;
+		stateCode?: string;
 	} = $props();
 
 	function isWasiyyahShape(v: unknown): v is WillWasiyyahResponse {
@@ -41,6 +43,19 @@
 	$effect(() => {
 		if (value == null || value === undefined) {
 			onresponse(emptyState());
+		}
+	});
+
+	let showMasjidPicker = $derived(hasMasajidCatalog(stateCode));
+
+	// Drop catalog masjid selections when the user's state has no regional list.
+	$effect(() => {
+		const code = stateCode;
+		if (hasMasajidCatalog(code)) return;
+		const current = parse(value);
+		const withoutMasajids = current.bequests.filter((b) => !isMasjidId(b.charityId));
+		if (withoutMasajids.length !== current.bequests.length) {
+			onresponse({ ...current, bequests: withoutMasajids });
 		}
 	});
 
@@ -163,14 +178,17 @@
 				</p>
 			{/if}
 
-			<MasajidBequestPicker
-				idPrefix="will-masjid"
-				selectedIds={masjidIds()}
-				getPercentage={(id) => data.bequests.find((b) => b.charityId === id)?.percentage ?? 0}
-				onselect={(id) => togglePreset(id)}
-				onremove={(id) => togglePreset(id)}
-				onPercentageChange={updatePercentage}
-			/>
+			{#if showMasjidPicker}
+				<MasajidBequestPicker
+					idPrefix="will-masjid"
+					stateCode={stateCode}
+					selectedIds={masjidIds()}
+					getPercentage={(id) => data.bequests.find((b) => b.charityId === id)?.percentage ?? 0}
+					onselect={(id) => togglePreset(id)}
+					onremove={(id) => togglePreset(id)}
+					onPercentageChange={updatePercentage}
+				/>
+			{/if}
 
 			<!-- Custom charities / recipients -->
 			<div class="rounded-xl border border-navy/10 bg-navy/2 p-4">

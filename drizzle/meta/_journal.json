@@ -43,6 +43,13 @@
       "when": 1783825319298,
       "tag": "0005_drop_help_dead_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783825319299,
+      "tag": "0006_add_shipping_address",
+      "breakpoints": true
     }
   ]
 }

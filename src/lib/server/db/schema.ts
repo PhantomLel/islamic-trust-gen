@@ -130,6 +130,15 @@ export type UserFile = {
 /** Keys match `screeningQuestions` ids in config; values are Yes (true) / No (false). */
 export type TrustScreeningAnswers = Record<string, boolean>;
 
+/** Physical mailing address collected after intake so we can mail a printed legacy binder. */
+export type ShippingAddress = {
+	street: string;
+	unit?: string | null;
+	city: string;
+	state: string;
+	zip: string;
+};
+
 export type { LoeAgreementData, LoeCheckboxes, WarningAgreementData, WarningCheckboxes } from '../../loe';
 export { LOE_AGREEMENT_VERSION, WARNING_AGREEMENT_VERSION } from '../../loe';
 import type { LoeAgreementData, WarningAgreementData } from '../../loe';
@@ -212,6 +221,9 @@ export const trust = pgTable('trust', {
 	warningAcceptedAt: timestamp('warning_accepted_at'),
 	/** Full Planning Warning agreement record (version, checkbox states, client timestamp, user-entered date). */
 	warningAgreementData: jsonb('warning_agreement_data').$type<WarningAgreementData | null>(),
+	// ── Legacy binder shipping ──────────────────────────────────────────
+	/** Mailing address collected after intake completion for shipping the printed legacy binder. */
+	shippingAddress: jsonb('shipping_address').$type<ShippingAddress | null>(),
 });
 
 /**

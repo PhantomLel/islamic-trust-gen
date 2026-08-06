@@ -150,6 +150,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			loeAgreementData: (t.loeAgreementData ?? null) as LoeAgreementData | null,
 			warningAcceptedAt: t.warningAcceptedAt?.toISOString() ?? null,
 			warningAgreementData: (t.warningAgreementData ?? null) as WarningAgreementData | null,
+			shippingAddress: t.shippingAddress ?? null,
 		})),
 		fundingByTrust: await Promise.all(
 			trusts.map(async (t) => {

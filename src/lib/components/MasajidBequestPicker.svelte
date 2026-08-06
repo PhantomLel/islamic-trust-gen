@@ -4,6 +4,7 @@
 		formatMasjidSublabel,
 		getMasjidById,
 		isMasjidId,
+		masajidRegionLabel,
 		searchMasajid,
 	} from '$lib/masajid';
 
@@ -31,6 +32,7 @@
 	let listEl = $state<HTMLUListElement | null>(null);
 
 	let selectedSet = $derived(new Set(selectedIds));
+	let regionLabel = $derived(masajidRegionLabel(stateCode));
 
 	let available = $derived(
 		searchMasajid(query, stateCode).filter((m) => !selectedSet.has(m.id)).slice(0, 50),
@@ -91,7 +93,7 @@
 
 <div class="rounded-xl border border-navy/10 bg-navy/[0.02] p-4 space-y-3">
 	<div>
-		<h3 class="text-sm font-medium text-navy">Texas masajid</h3>
+		<h3 class="text-sm font-medium text-navy">{regionLabel}</h3>
 		<p class="text-xs text-navy/55 mt-0.5 leading-relaxed">
 			Search by name, city, or region to add a local masjid to your wasiyyah.
 		</p>
@@ -110,7 +112,7 @@
 				aria-haspopup="listbox"
 				aria-activedescendant={activeIndex >= 0 ? `${idPrefix}-opt-${activeIndex}` : undefined}
 				value={query}
-				placeholder="Search Texas masajid…"
+				placeholder="Search {regionLabel.toLowerCase()}…"
 				class="w-full px-4 py-3 rounded-xl bg-white border border-navy/10 text-sm text-navy
 					placeholder:text-navy/30 outline-none transition-all pr-10
 					focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
@@ -131,7 +133,7 @@
 				bind:this={listEl}
 				id="{idPrefix}-listbox"
 				role="listbox"
-				aria-label="Texas masajid"
+				aria-label={regionLabel}
 				class="absolute z-50 mt-1.5 w-full max-h-60 overflow-y-auto rounded-xl border border-navy/10 bg-white shadow-lg shadow-navy/8 py-1"
 			>
 				{#each available as masjid, i}

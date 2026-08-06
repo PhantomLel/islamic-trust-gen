@@ -937,6 +937,35 @@
 				</div>
 			{/if}
 
+			<!-- Legacy binder shipping address -->
+			{#if trust}
+				<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6 md:p-7 mb-6">
+					<div class="flex items-center justify-between mb-4">
+						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium">Legacy Binder Shipping Address</p>
+						{#if trust.shippingAddress}
+							<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-accent/10 text-emerald-accent border border-emerald-accent/25">
+								<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+								Provided
+							</span>
+						{:else}
+							<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-navy/[0.05] text-navy/50 border border-navy/10">
+								Not yet provided
+							</span>
+						{/if}
+					</div>
+					{#if trust.shippingAddress}
+						<p class="text-[13px] text-navy/80 leading-relaxed">
+							{trust.shippingAddress.street}{trust.shippingAddress.unit ? `, ${trust.shippingAddress.unit}` : ''}<br />
+							{trust.shippingAddress.city}, {trust.shippingAddress.state} {trust.shippingAddress.zip}
+						</p>
+					{:else}
+						<p class="text-[13px] text-navy/45 leading-relaxed">
+							The client has not yet entered a shipping address for their legacy binder.
+						</p>
+					{/if}
+				</div>
+			{/if}
+
 			<AdminQuestionResponses {trust} />
 		{:else}
 			<div class="rounded-2xl bg-white/60 border border-navy/[0.06] p-12 text-center mb-6">

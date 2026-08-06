@@ -5,7 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { stopLead } from '$lib/server/drip/stop';
 import { getIntakeQuestionnaireProgress } from '$lib/question-response-helpers';
 import { TrustStatus } from '$lib/server/db/schema';
-import type { UserFile } from '$lib/server/db/schema';
+import type { UserFile, ShippingAddress } from '$lib/server/db/schema';
 import { UTApi } from 'uploadthing/server';
 import { env } from '$env/dynamic/private';
 import { isFundingAccessible, computeFundingProgress, getNextUp } from '$lib/funding/logic';
@@ -163,6 +163,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			notarizationBookedAt: notarizationBookedAt?.toISOString() ?? null,
 			notarizationStartTime: notarizationStartTime?.toISOString() ?? null,
 			notarizationEndTime: notarizationEndTime?.toISOString() ?? null,
+			shippingAddress: existing.shippingAddress ?? null,
 		},
 	};
 };
@@ -210,6 +211,44 @@ export const actions: Actions = {
 		await db
 			.update(trust)
 			.set({ house_deed_url: houseDeedUrl })
+			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
+
+		return { saved: true };
+	},
+	saveShippingAddress: async ({ request, locals }) => {
+		if (!locals.user) throw redirect(302, '/login');
+
+		const formData = await request.formData();
+		const trustId = Number(formData.get('trustId'));
+		const raw = formData.get('shippingAddress');
+
+		if (Number.isNaN(trustId) || typeof raw !== 'string' || !raw) {
+			return { saved: false };
+		}
+
+		let parsed: ShippingAddress;
+		try {
+			parsed = JSON.parse(raw);
+		} catch {
+			return { saved: false };
+		}
+
+		const street = String(parsed.street ?? '').trim();
+		const city = String(parsed.city ?? '').trim();
+		const state = String(parsed.state ?? '').trim();
+		const zip = String(parsed.zip ?? '').trim();
+		const unit = parsed.unit ? String(parsed.unit).trim() : null;
+
+		if (!street || !city || !state || !/^\d{5}(-\d{4})?$/.test(zip)) {
+			return { saved: false };
+		}
+
+		await db
+			.update(trust)
+			.set({
+				shippingAddress: { street, unit, city, state, zip },
+				updatedAt: new Date(),
+			})
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
 		return { saved: true };
