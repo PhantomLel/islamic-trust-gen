@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
+	import { consultationBookingUrl, defaultPrepFee, formatUsd, jabalFoundationUrl } from '$lib/config';
 	import { slide } from 'svelte/transition';
 	import { authClient } from '$lib/auth-client';
 
@@ -437,7 +437,7 @@
 					</div>
 
 					<ul class="flex flex-col gap-2">
-						{#each ['Attorney-drafted trust templates', 'Shariah-compliant distribution logic', 'Deed preparation & recording', 'WhatsApp & email attorney access'] as feat}
+						{#each ['Attorney-drafted trust templates', 'Shariah-compliant distribution logic', 'Deed preparation & recording', 'Email attorney access'] as feat}
 							<li class="flex items-start gap-2 text-sm text-navy/65">
 								<svg class="w-3 h-3 shrink-0 mt-1 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 								{feat}
@@ -505,6 +505,33 @@
 				<span>Not sure which plan fits your situation? <a href="/which-plan" class="underline underline-offset-2 hover:text-navy/60 transition-colors">Take the two-minute routing quiz →</a></span>
 				<span class="hidden sm:inline w-px h-3 bg-navy/15"></span>
 				<a href="/plans" class="hover:text-navy/60 transition-colors">View all five plans →</a>
+			</div>
+		</div>
+	</section>
+
+	<!-- ═══════════════════ WE'RE THE WAQF GUYS (short) ═══════════════════ -->
+	<section class="px-6">
+		<div use:revealOnScroll class="scroll-reveal max-w-7xl mx-auto -mt-4 mb-4">
+			<div class="rounded-2xl bg-white border border-navy/10 p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-5 md:gap-8
+				shadow-[0_16px_40px_-20px_rgba(30,42,58,0.12)]">
+				<div class="w-11 h-11 rounded-xl bg-emerald-accent/10 flex items-center justify-center shrink-0">
+					<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+				</div>
+				<div class="flex-1">
+					<div class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase font-medium mb-1">We're the waqf guys</div>
+					<p class="text-navy/60 text-sm leading-relaxed">
+						You choose your own charitable bequests from a neutral, alphabetical list — we deliberately don't recommend one. As proof: attorney Leonard McDaniel personally serves as Secretary of the Board of Jabal Foundation, and 5% of every GoodTree Trust purchase is donated to Jabal Foundation's Legacy Waqf the same day you buy.
+					</p>
+				</div>
+				<a
+					href={jabalFoundationUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-flex items-center gap-1.5 text-emerald-accent text-sm font-medium hover:text-emerald-light transition-colors shrink-0 whitespace-nowrap"
+				>
+					Learn more about Jabal
+					<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+				</a>
 			</div>
 		</div>
 	</section>

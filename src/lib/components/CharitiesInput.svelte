@@ -13,7 +13,9 @@
 		WASIYYAH_THIRD_PERCENT,
 	} from '$lib/question-response-helpers';
 	import MasajidBequestPicker from '$lib/components/MasajidBequestPicker.svelte';
+	import NationalCharitiesPicker from '$lib/components/NationalCharitiesPicker.svelte';
 	import { isMasjidId } from '$lib/masajid';
+	import { isNationalCharityId } from '$lib/nationalCharities';
 
 	let {
 		value,
@@ -120,6 +122,14 @@
 
 	function wifeMasjidIds(): string[] {
 		return data.wifeCharities.filter((c) => isMasjidId(c.charityId)).map((c) => c.charityId);
+	}
+
+	function husbandNationalCharityIds(): string[] {
+		return data.husbandCharities.filter((c) => isNationalCharityId(c.charityId)).map((c) => c.charityId);
+	}
+
+	function wifeNationalCharityIds(): string[] {
+		return data.wifeCharities.filter((c) => isNationalCharityId(c.charityId)).map((c) => c.charityId);
 	}
 
 	// ── Wife charity helpers ─────────────────────────────────────────────────
@@ -231,6 +241,15 @@
 						Charitable allocations exceed the one-third limit. Please reduce them.
 					</p>
 				{/if}
+
+				<NationalCharitiesPicker
+					idPrefix="h-national-charity"
+					selectedIds={husbandNationalCharityIds()}
+					getPercentage={(id) => data.husbandCharities.find((c) => c.charityId === id)?.percentage ?? 0}
+					onselect={(id) => toggleHusbandCharity(id)}
+					onremove={(id) => toggleHusbandCharity(id)}
+					onPercentageChange={updateHusbandCharityPercentage}
+				/>
 
 				<MasajidBequestPicker
 					idPrefix="h-masjid"
@@ -368,6 +387,15 @@
 						Charitable allocations exceed the one-third limit. Please reduce them.
 					</p>
 				{/if}
+
+				<NationalCharitiesPicker
+					idPrefix="w-national-charity"
+					selectedIds={wifeNationalCharityIds()}
+					getPercentage={(id) => data.wifeCharities.find((c) => c.charityId === id)?.percentage ?? 0}
+					onselect={(id) => toggleWifeCharity(id)}
+					onremove={(id) => toggleWifeCharity(id)}
+					onPercentageChange={updateWifeCharityPercentage}
+				/>
 
 				<MasajidBequestPicker
 					idPrefix="w-masjid"

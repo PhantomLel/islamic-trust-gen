@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private';
 import { Resend } from 'resend';
-import { postPaymentEntryQuestionId, siteName } from '$lib/config';
+import { defaultPrepFee, postPaymentEntryQuestionId, siteName } from '$lib/config';
 import { db } from '$lib/server/db';
 import { invoice, trust, TrustStatus } from '$lib/server/db/schema';
 import { paymentReceivedEmail, type PaymentPlanId } from '$lib/server/emails/paymentReceived';
@@ -84,6 +84,10 @@ export async function promoteTrustAfterPayment(params: PromoteTrustParams): Prom
 
 	if (customerEmail && resend && env.FROM_EMAIL) {
 		try {
+			// Trust fee actually charged (excludes the deed add-on) — drives the Jabal
+			// Foundation giving-program figure below. Read live off the trust row so it
+			// always reflects the price the customer actually paid, never a hardcoded amount.
+			const trustFeeAmountUsd = trustWithUser?.customPrice ?? defaultPrepFee;
 			await resend.emails.send({
 				from: env.FROM_EMAIL,
 				to: customerEmail,
@@ -93,6 +97,7 @@ export async function promoteTrustAfterPayment(params: PromoteTrustParams): Prom
 					selectedPlan,
 					deedRetrievalRequested,
 					amountTotalCents,
+					trustFeeAmountUsd,
 					continueUrl: `${env.ORIGIN}/create-trust/${trustId}#${postPaymentEntryQuestionId}`,
 				}),
 			});

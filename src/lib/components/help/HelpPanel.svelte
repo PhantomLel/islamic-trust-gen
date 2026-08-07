@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import type { HelpRenderedResponse } from '$lib/server/db/help.schema';
+	import { hasSeenHelpStep, HELP_STEP_IDLE_MS, markHelpStepSeen } from '$lib/help/nudges';
 	import HelpCtaRow from './HelpCtaRow.svelte';
 
 	let {
@@ -38,8 +39,20 @@
 	let nextId = 0;
 	let scrollEl = $state<HTMLDivElement | null>(null);
 	let textareaEl = $state<HTMLTextAreaElement | null>(null);
+	let firstVisitNudgeVisible = $state(false);
+	let idleNudgeVisible = $state(false);
+	let stepEnteredAt = $state(0);
 
 	const stepBlocked = $derived(stepKey ? blockedStepKeys.includes(stepKey) : false);
+	const activeNudge = $derived(
+		!open && !embedded && stepKey
+			? firstVisitNudgeVisible
+				? ('first_visit' as const)
+				: idleNudgeVisible
+					? ('idle' as const)
+					: null
+			: null,
+	);
 
 	// Trust builder (and funding on mobile) have a bottom nav bar — keep the launcher above it.
 	const launcherBottomClass = $derived(
@@ -83,12 +96,54 @@
 		}
 	});
 
+	function dismissNudges(markSeen = false, openingChat = false) {
+		if (markSeen && stepKey) markHelpStepSeen(stepKey);
+		const wasFirstVisit = firstVisitNudgeVisible;
+		firstVisitNudgeVisible = false;
+		idleNudgeVisible = false;
+		if (
+			wasFirstVisit &&
+			stepKey &&
+			!openingChat &&
+			Date.now() - stepEnteredAt >= HELP_STEP_IDLE_MS
+		) {
+			idleNudgeVisible = true;
+		}
+	}
+
 	function openPanel() {
+		dismissNudges(firstVisitNudgeVisible, true);
 		open = true;
 		if (messages.length === 0) resetConversation();
 		scrollToBottom();
 		tick().then(() => textareaEl?.focus());
 	}
+
+	$effect(() => {
+		if (embedded || !stepKey) {
+			firstVisitNudgeVisible = false;
+			idleNudgeVisible = false;
+			return;
+		}
+
+		const key = stepKey;
+		let idleNudgeDismissed = false;
+
+		stepEnteredAt = Date.now();
+		firstVisitNudgeVisible = !hasSeenHelpStep(key);
+		idleNudgeVisible = false;
+
+		const timer = setTimeout(() => {
+			if (idleNudgeDismissed || open) return;
+			// Show idle nudge only when the first-visit banner is not still up.
+			if (!firstVisitNudgeVisible) idleNudgeVisible = true;
+		}, HELP_STEP_IDLE_MS);
+
+		return () => {
+			clearTimeout(timer);
+			idleNudgeDismissed = true;
+		};
+	});
 
 	function autoGrow() {
 		if (!textareaEl) return;
@@ -158,21 +213,56 @@
 		{@render panelContents(false)}
 	</div>
 {:else if !open}
-	<button
-		type="button"
-		class="fixed right-6 z-[70] flex items-center gap-2.5 rounded-full bg-navy px-5 py-3.5 text-sm font-medium text-cream shadow-lg shadow-navy/20 transition-all hover:bg-navy-light hover:shadow-xl hover:shadow-navy/25 cursor-pointer {launcherBottomClass}"
-		onclick={openPanel}
-		aria-haspopup="dialog"
-	>
-		<svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-			/>
-		</svg>
-		Need help?
-	</button>
+	<div class="fixed right-4 z-[70] flex max-w-[min(20rem,calc(100vw-2rem))] flex-col items-end gap-3 sm:right-6 {launcherBottomClass}">
+		{#if activeNudge}
+			<div
+				class="w-full rounded-2xl border border-navy/10 bg-white px-4 py-3.5 shadow-lg shadow-navy/10"
+				role="status"
+			>
+				<div class="flex items-start gap-3">
+					<p class="flex-1 text-[13px] leading-snug text-navy">
+						{#if activeNudge === 'first_visit'}
+							Questions tend to come up on this step. Ask the Help Assistant first if you have any confusion.
+						{:else}
+							Still deciding? Ask a question.
+						{/if}
+					</p>
+					<button
+						type="button"
+						class="shrink-0 rounded-full p-1 text-navy/40 transition-colors hover:bg-navy/5 hover:text-navy/70 cursor-pointer"
+						onclick={() => dismissNudges(activeNudge === 'first_visit')}
+						aria-label="Dismiss"
+					>
+						<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+				<button
+					type="button"
+					class="mt-2.5 text-[12.5px] font-medium text-emerald-accent transition-colors hover:text-emerald-accent/80 cursor-pointer"
+					onclick={openPanel}
+				>
+					Ask the Help Assistant →
+				</button>
+			</div>
+		{/if}
+		<button
+			type="button"
+			class="flex items-center gap-2.5 rounded-full bg-navy px-5 py-3.5 text-sm font-medium text-cream shadow-lg shadow-navy/20 transition-all hover:bg-navy-light hover:shadow-xl hover:shadow-navy/25 cursor-pointer"
+			onclick={openPanel}
+			aria-haspopup="dialog"
+		>
+			<svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+				/>
+			</svg>
+			Ask before you decide
+		</button>
+	</div>
 {:else}
 	<div
 		class="fixed inset-x-4 bottom-4 top-16 z-[80] flex flex-col overflow-hidden rounded-3xl border border-navy/10 bg-cream shadow-2xl shadow-navy/20 sm:inset-x-auto sm:top-auto sm:right-6 sm:h-[36rem] sm:w-[400px] sm:max-h-[calc(100vh-3rem)] {panelBottomClass}"

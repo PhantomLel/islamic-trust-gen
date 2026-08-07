@@ -7,7 +7,9 @@ import {
 	allIntakeQuestions,
 	prePaymentQuestions,
 	screeningQuestions,
-	isEligibleForOnlineTrustFromScreening
+	isEligibleForOnlineTrustFromScreening,
+	defaultPrepFee,
+	formatJabalDonation
 } from '$lib/config';
 import type { TrustScreeningAnswers, LoeAgreementData } from '$lib/server/db/schema';
 import { LOE_AGREEMENT_VERSION } from '$lib/server/db/schema';
@@ -132,6 +134,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	}
 
 	const hasPaidInvoice = existing.selectedPlan !== null;
+	// Trust fee actually charged (excludes the deed add-on) — drives the post-purchase
+	// Jabal Foundation giving-program figure. Read live off the trust row rather than
+	// a hardcoded amount so it always tracks the price this trust actually paid.
+	const jabalDonationAmount = formatJabalDonation(existing.customPrice ?? defaultPrepFee);
 
 	const helpBlockedSteps = await loadHelpBlockedStepsForUser(locals.user.id, 'create_trust');
 
@@ -161,6 +167,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		userEmail: locals.user.email,
 		userCounty: countyRow?.county?.trim() || null,
 		hasPaidInvoice,
+		jabalDonationAmount,
 		helpBlockedSteps,
 	};
 };

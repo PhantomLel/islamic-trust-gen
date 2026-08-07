@@ -190,7 +190,7 @@
 							'Digital document delivery',
 							'Deed preparation and recording',
 							'Homestead exemption guidance',
-							'WhatsApp and email attorney access throughout'
+							'Email attorney access throughout'
 						] as item}
 							<li class="flex items-start gap-3 text-sm text-navy/68">
 								<svg class="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -265,7 +265,7 @@
 							{ label: 'Certification of trust and notarization of all documents', sub: null },
 							{ label: 'Homestead exemption guidance and county-specific filing instructions', sub: null },
 							{ label: 'Physical binder shipped to your door', sub: null },
-							{ label: 'Unlimited WhatsApp and email attorney access', sub: 'From strategy session through final delivery.' }
+							{ label: 'Unlimited email attorney access', sub: 'From strategy session through final delivery.' }
 						] as item}
 							<li class="flex items-start gap-3 text-sm text-cream/68">
 								<svg class="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-light/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">

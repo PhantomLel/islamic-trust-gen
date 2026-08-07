@@ -1,6 +1,8 @@
 <script lang="ts">
 	import MasajidBequestPicker from '$lib/components/MasajidBequestPicker.svelte';
+	import NationalCharitiesPicker from '$lib/components/NationalCharitiesPicker.svelte';
 	import { hasMasajidCatalog, isMasjidId } from '$lib/masajid';
+	import { isNationalCharityId } from '$lib/nationalCharities';
 	import { WILL_WASIYYAH_CAP, type WillWasiyyahEntry, type WillWasiyyahResponse, type WillResponseValue } from '$lib/free-will/config';
 
 	let {
@@ -127,6 +129,10 @@
 		return data.bequests.filter((b) => isMasjidId(b.charityId)).map((b) => b.charityId);
 	}
 
+	function nationalCharityIds(): string[] {
+		return data.bequests.filter((b) => isNationalCharityId(b.charityId)).map((b) => b.charityId);
+	}
+
 	let totalPct = $derived(data.bequests.reduce((s, b) => s + (b.percentage || 0), 0));
 	let overCap = $derived(totalPct > WILL_WASIYYAH_CAP + 0.01);
 </script>
@@ -177,6 +183,15 @@
 					Total wasiyyah exceeds the one-third limit. Please reduce your allocations.
 				</p>
 			{/if}
+
+			<NationalCharitiesPicker
+				idPrefix="will-national-charity"
+				selectedIds={nationalCharityIds()}
+				getPercentage={(id) => data.bequests.find((b) => b.charityId === id)?.percentage ?? 0}
+				onselect={(id) => togglePreset(id)}
+				onremove={(id) => togglePreset(id)}
+				onPercentageChange={updatePercentage}
+			/>
 
 			{#if showMasjidPicker}
 				<MasajidBequestPicker

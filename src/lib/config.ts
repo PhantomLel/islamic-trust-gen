@@ -18,6 +18,27 @@ export function formatUsd(amountUsd: number): string {
 	return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amountUsd);
 }
 
+// ── Jabal Foundation giving program ──────────────────────────────────────────
+// 5% of the app-tier trust preparation fee (never the deed add-on, never a
+// hardcoded dollar figure) is donated to Jabal Foundation's Legacy Waqf the
+// same day the sale happens. Leonard McDaniel serves as Secretary of Jabal
+// Foundation's board — that role is disclosed by name everywhere this program
+// is described.
+export const jabalGivingRate = 0.05;
+export const jabalFoundationUrl = 'https://www.jabalfoundation.org/';
+
+/** 5% of the trust preparation fee actually charged (excludes the deed retrieval add-on). */
+export function computeJabalDonation(trustFeeAmountUsd: number): number {
+	return Math.round(trustFeeAmountUsd * jabalGivingRate * 100) / 100;
+}
+
+/** Format a donation amount for display (e.g. 74.95 → "$74.95"). */
+export function formatJabalDonation(trustFeeAmountUsd: number): string {
+	return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+		computeJabalDonation(trustFeeAmountUsd)
+	);
+}
+
 
 export type ScreeningQuestion = {
 	id: string;

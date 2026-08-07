@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName, consultationBookingUrl } from '$lib/config';
+	import { siteName, consultationBookingUrl, jabalFoundationUrl, formatJabalDonation } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
@@ -299,6 +299,10 @@
 			</div>
 			<p class="text-[13px] text-navy/50 leading-relaxed mt-2">
 				One-time fee for attorney-supervised trust preparation and document drafting.
+			</p>
+			<p class="text-[12.5px] text-emerald-accent/90 leading-relaxed mt-3 pt-3 border-t border-navy/6">
+				{formatJabalDonation(fullPrice)} — 5% of this fee — will be donated to Jabal Foundation's Legacy Waqf the same day you pay. Leonard serves as Secretary of Jabal's board.
+				<a href={jabalFoundationUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-emerald-light">Learn more</a>
 			</p>
 		</div>
 

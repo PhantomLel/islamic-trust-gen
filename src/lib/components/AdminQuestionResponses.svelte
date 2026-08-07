@@ -23,8 +23,7 @@ import {
 		isPersonalDataShape,
 		isQuestionResponseAnswered
 	} from '$lib/question-response-helpers';
-	import { resolveCharityName } from '$lib/charityLookup';
-	import { isMasjidId } from '$lib/masajid';
+	import { isKnownCharityId, resolveCharityName } from '$lib/charityLookup';
 
 	type TrustResponse = { id: string; response: unknown };
 	type TrustDetails = {
@@ -528,7 +527,7 @@ import {
 									</div>
 									{#if ecr.husbandInterested}
 										<div class="space-y-1.5">
-											{#each ecr.husbandCharities.filter((c) => isMasjidId(c.charityId)) as ch}
+											{#each ecr.husbandCharities.filter((c) => isKnownCharityId(c.charityId)) as ch}
 												<div class="rounded-md border border-emerald-accent/30 bg-emerald-accent/5 p-2 flex items-center gap-2">
 													<span class="text-[11px] font-medium text-navy flex-1">{resolveCharityName(ch.charityId)}</span>
 													<input type="number" min="0" max="100" step="0.1" value={ch.percentage}
@@ -581,7 +580,7 @@ import {
 									</div>
 									{#if ecr.wifeInterested}
 										<div class="space-y-1.5">
-											{#each ecr.wifeCharities.filter((c) => isMasjidId(c.charityId)) as ch}
+											{#each ecr.wifeCharities.filter((c) => isKnownCharityId(c.charityId)) as ch}
 												<div class="rounded-md border border-emerald-accent/30 bg-emerald-accent/5 p-2 flex items-center gap-2">
 													<span class="text-[11px] font-medium text-navy flex-1">{resolveCharityName(ch.charityId)}</span>
 													<input type="number" min="0" max="100" step="0.1" value={ch.percentage}

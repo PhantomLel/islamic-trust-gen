@@ -7,6 +7,7 @@
 		postPaymentEntryQuestionId,
 		buckets,
 		isEligibleForOnlineTrustFromScreening,
+		jabalFoundationUrl,
 		type QuestionResponseValue
 	} from '$lib/config';
 	import {
@@ -18,11 +19,12 @@
 	import { authClient } from '$lib/auth-client';
 	import { page } from '$app/stores';
 	import { invalidateAll, goto } from '$app/navigation';
+	import { fade } from 'svelte/transition';
 	import QuestionInput from '$lib/components/QuestionInput.svelte';
 	import QuestionnaireSidebar from '$lib/components/QuestionnaireSidebar.svelte';
 	import ScreeningStep from '$lib/components/ScreeningStep.svelte';
 	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
-	import WhatsAppHelpLink from '$lib/components/WhatsAppHelpLink.svelte';
+	import AttorneyHelpLink from '$lib/components/AttorneyHelpLink.svelte';
 	import HelpLauncher from '$lib/components/help/HelpLauncher.svelte';
 
 	/** Set to `true` to show the individual vs joint trust picker again. */
@@ -40,6 +42,11 @@
 	/** After Stripe checkout, jump to property questions once (see payment-return $effects). */
 	let paymentReturnHandled = $state(false);
 	let returningFromPayment = $derived($page.url.searchParams.get('payment') === 'success');
+	/** Post-purchase Jabal Foundation impact banner — shown once confirmed, dismissible, then stays hidden. */
+	let showJabalBanner = $state(false);
+	$effect(() => {
+		if (hasPaidInvoice && returningFromPayment) showJabalBanner = true;
+	});
 	// After payment, include pre-payment questions in the active flow so the user
 	// can navigate back to them freely from the sidebar.
 	let intakeQuestions = $derived(
@@ -426,6 +433,42 @@
 		style="background: radial-gradient(ellipse 80% 60% at 60% 40%, rgba(74,124,111,0.05) 0%, transparent 70%);">
 	</div>
 
+	{#if showJabalBanner}
+		<!-- ─── JABAL FOUNDATION IMPACT MESSAGE (WI-3) — one-time, dismissible ─── -->
+		<div
+			transition:fade={{ duration: 150 }}
+			class="fixed top-3 inset-x-0 z-50 flex justify-center px-4"
+		>
+			<div class="w-full max-w-lg rounded-2xl border border-emerald-accent/25 bg-white shadow-[0_12px_32px_-12px_rgba(31,42,55,0.25)] p-5 flex gap-4 items-start">
+				<div class="shrink-0 w-9 h-9 rounded-full bg-emerald-accent/10 flex items-center justify-center mt-0.5">
+					<svg class="w-4.5 h-4.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+				</div>
+				<div class="flex-1 min-w-0">
+					<p class="text-sm text-navy leading-relaxed">
+						As part of your purchase today, <strong class="font-semibold">{data.jabalDonationAmount}</strong> — 5% of your plan — was donated to Jabal Foundation's Legacy Waqf, which funds orphan development and ongoing meal distribution. Leonard serves as Secretary of Jabal's board and personally oversees how these funds are used.
+					</p>
+					<a
+						href={jabalFoundationUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center gap-1.5 text-emerald-accent text-[13px] font-medium hover:text-emerald-light transition-colors mt-2"
+					>
+						Learn more about Jabal Foundation
+						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+					</a>
+				</div>
+				<button
+					type="button"
+					onclick={() => (showJabalBanner = false)}
+					class="shrink-0 -mr-1 -mt-1 p-1.5 rounded-lg text-navy/35 hover:text-navy hover:bg-navy/6 transition-colors cursor-pointer"
+					aria-label="Dismiss"
+				>
+					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+				</button>
+			</div>
+		</div>
+	{/if}
+
 	<nav
 		class="relative z-10 shrink-0 flex items-center justify-between px-6 md:px-8 pt-[max(1.25rem,env(safe-area-inset-top,0px))] pb-5 border-b border-navy/[0.06]"
 	>
@@ -531,7 +574,7 @@
 								<p class="text-[13px] text-navy/60 mb-3">
 									Not sure how to fill out this question? 
 								</p>
-								<WhatsAppHelpLink />
+								<AttorneyHelpLink />
 							</div>
 						</div>
 					</div>
@@ -578,7 +621,7 @@
 								<p class="text-[13px] text-navy/60 mb-3">
 									Not sure how to fill out this question? 
 								</p>
-								<WhatsAppHelpLink />
+								<AttorneyHelpLink />
 							</div>
 						</div>
 					</div>

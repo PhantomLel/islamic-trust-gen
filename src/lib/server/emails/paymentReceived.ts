@@ -1,4 +1,5 @@
 import { amanaEmailDocument, escapeHtmlAttr, escapeHtmlText } from './layout';
+import { formatJabalDonation, jabalFoundationUrl } from '$lib/config';
 
 export type PaymentPlanId = 'full' | 'discounted';
 
@@ -9,6 +10,8 @@ export type PaymentReceivedEmailInput = {
 	/** Stripe `amount_total` in cents; omit if unknown */
 	amountTotalCents?: number | null;
 	continueUrl: string;
+	/** Trust preparation fee actually charged, in whole USD (excludes the deed add-on). Drives the Jabal Foundation giving-program figure below — always derived live, never hardcoded. */
+	trustFeeAmountUsd: number;
 };
 
 function planTitle(_plan: PaymentPlanId): string {
@@ -50,6 +53,9 @@ export function paymentReceivedEmail(input: PaymentReceivedEmailInput): string {
             </table>`
 		: '';
 
+	const donationAmountText = escapeHtmlText(formatJabalDonation(input.trustFeeAmountUsd));
+	const jabalHref = escapeHtmlAttr(jabalFoundationUrl);
+
 	const mainRows = `
           <tr>
             <td style="padding:40px 24px 12px 24px;text-align:center;">
@@ -75,6 +81,24 @@ export function paymentReceivedEmail(input: PaymentReceivedEmailInput): string {
                     <p style="margin:0 0 10px 0;font-size:16px;font-weight:600;color:#1e3a3a;">${planName}</p>
                     <p style="margin:0;font-size:14px;color:#3a4e48;line-height:1.7;">${planDetail}</p>
                     ${receiptSection}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:32px 24px 0 24px;">
+              <p style="margin:0 0 6px 0;font-size:11px;letter-spacing:3px;color:#5a9e8f;text-transform:uppercase;font-weight:600;">Your purchase gives back</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f0eb;border-radius:10px;border:1px solid #e2dbd3;margin-top:14px;">
+                <tr>
+                  <td style="padding:22px 24px;">
+                    <p style="margin:0;font-size:14px;color:#1e3a3a;line-height:1.7;">
+                      As part of your purchase today, <strong>${donationAmountText}</strong> — 5% of your plan — was donated to Jabal Foundation's Legacy Waqf, which funds orphan development and ongoing meal distribution. Leonard serves as Secretary of Jabal's board and personally oversees how these funds are used.
+                    </p>
+                    <p style="margin:14px 0 0 0;font-size:13px;">
+                      <a href="${jabalHref}" style="color:#5a9e8f;text-decoration:underline;">Learn more about Jabal Foundation →</a>
+                    </p>
                   </td>
                 </tr>
               </table>

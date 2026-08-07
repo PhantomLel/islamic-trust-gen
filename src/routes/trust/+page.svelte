@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName, defaultPrepFee, formatUsd } from '$lib/config';
+	import { siteName, defaultPrepFee, formatUsd, jabalFoundationUrl } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { slide } from 'svelte/transition';
 
@@ -126,6 +126,7 @@
 			<div class="justify-self-center flex items-center gap-7">
 				<a href="#how" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">How It Works</a>
 				<a href="#included" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">What's Included</a>
+				<a href="#giving" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">Giving Back</a>
 				<a href="#eligibility" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">Eligibility</a>
 				<a href="#concerns" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">FAQ</a>
 				{#if data.user}
@@ -176,6 +177,7 @@
 			<div class="flex flex-col p-3 gap-1">
 				<a href="#how" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 hover:text-emerald-accent">How it works</a>
 				<a href="#included" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 hover:text-emerald-accent">What's included</a>
+				<a href="#giving" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 hover:text-emerald-accent">Giving back</a>
 				<a href="#eligibility" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 hover:text-emerald-accent">Eligibility</a>
 				<a href="#concerns" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 hover:text-emerald-accent">FAQ</a>
 				<a href="/" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/50 rounded-xl hover:bg-navy/5">McDaniel Estate Planning ↗</a>
@@ -314,6 +316,41 @@
 					</li>
 				{/each}
 			</ol>
+		</div>
+	</section>
+
+	<!-- ═══════════════════ WE'RE THE WAQF GUYS ═══════════════════ -->
+	<section id="giving" class="py-20 md:py-28 px-6 scroll-mt-24 relative overflow-hidden">
+		<div class="absolute inset-0 pointer-events-none"
+			style="background: radial-gradient(ellipse 55% 55% at 85% 20%, rgba(74,124,111,0.10) 0%, transparent 70%);">
+		</div>
+
+		<div use:revealOnScroll class="scroll-reveal max-w-4xl mx-auto relative">
+			<div class="flex items-center gap-4 mb-5">
+				<span class="w-8 h-px bg-emerald-accent/60"></span>
+				<span class="text-emerald-accent text-[11px] tracking-[0.3em] uppercase font-medium">Giving back</span>
+			</div>
+			<h2 class="text-3xl md:text-4xl tracking-tight text-navy leading-tight text-balance mb-8">
+				We're the waqf guys.
+			</h2>
+
+			<div class="rounded-2xl border border-navy/8 bg-white/60 backdrop-blur p-7 md:p-10 space-y-5">
+				<p class="text-navy/70 text-base md:text-[17px] leading-relaxed">
+					We believe every Muslim family should build a waqf of their own — or leave a bequest to one that already exists. When you build your plan with us, you choose your own charitable bequests from a neutral, alphabetical list. We deliberately don't recommend one.
+				</p>
+				<p class="text-navy/70 text-base md:text-[17px] leading-relaxed">
+					Here's proof we mean it: attorney <strong class="font-semibold text-navy">Leonard McDaniel</strong> personally serves as <strong class="font-semibold text-navy">Secretary of the Board of Jabal Foundation</strong>, a real waqf that funds orphan development and meal distribution. <strong class="font-semibold text-navy">5% of every Good Tree Trust App purchase is donated to Jabal Foundation's Legacy Waqf</strong> — the same day you buy.
+				</p>
+				<a
+					href={jabalFoundationUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-flex items-center gap-2 text-emerald-accent text-sm font-medium hover:text-emerald-light transition-colors"
+				>
+					Learn more about Jabal Foundation
+					<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+				</a>
+			</div>
 		</div>
 	</section>
 
@@ -530,6 +567,7 @@
 					<div class="text-navy/35 text-[10px] tracking-[0.25em] uppercase mb-1.5">The product</div>
 					<a href="#how" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">How it works</a>
 					<a href="#included" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">What's included</a>
+					<a href="#giving" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Giving back</a>
 					<a href="#eligibility" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Eligibility</a>
 					<a href="#concerns" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">FAQ</a>
 				</div>
