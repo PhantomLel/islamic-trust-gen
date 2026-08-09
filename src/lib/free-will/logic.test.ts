@@ -2,13 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { isFullLegalName } from './validation';
 import {
 	computeLeadTags,
+	freeWillOfferLadder,
 	getActiveSteps,
 	getEmailFlags,
 	getStepValidationMessage,
 	heirsCalculatorAllResponses,
+	isAppRecommended,
 	isMarriedSpouseExcluded,
 	isStepAnswered,
 	normalizeWillPersonName,
+	recommendPlan,
 	type EmailFlag,
 } from './logic';
 import { willSteps, type WillResponses } from './config';
@@ -199,5 +202,54 @@ describe('wasiyyah validation (C3)', () => {
 describe('normalizeWillPersonName (C6)', () => {
 	it('dedupes repeated name segments', () => {
 		expect(normalizeWillPersonName('Ahmad Khan Ahmad Khan')).toBe('Ahmad Khan');
+	});
+});
+
+describe('honest recommendation tiers (packet R1/R3)', () => {
+	const zeroFlags: WillResponses = { state: 'TX' };
+
+	it('zero-flag user: no app recommendation, empty ladder, null plan', () => {
+		expect(isAppRecommended(zeroFlags)).toBe(false);
+		expect(freeWillOfferLadder(zeroFlags)).toEqual([]);
+		expect(recommendPlan(zeroFlags).plan).toBeNull();
+	});
+
+	it('business ownership only: GoodTree first, Legacy second, attorney note', () => {
+		const responses: WillResponses = { ...zeroFlags, business_ownership: true };
+		expect(isAppRecommended(responses)).toBe(true);
+		expect(freeWillOfferLadder(responses)).toEqual(['goodtree-trust', 'legacy-plan']);
+		expect(recommendPlan(responses).plan).toBe('goodtree-trust');
+		expect(recommendPlan(responses).attorneyReviewNote).toBe(true);
+	});
+
+	it('blended family only: GoodTree first, Legacy second, attorney note', () => {
+		const responses: WillResponses = { ...zeroFlags, blended_family: true };
+		expect(isAppRecommended(responses)).toBe(true);
+		expect(freeWillOfferLadder(responses)).toEqual(['goodtree-trust', 'legacy-plan']);
+		expect(recommendPlan(responses).plan).toBe('goodtree-trust');
+		expect(recommendPlan(responses).attorneyReviewNote).toBe(true);
+	});
+
+	it('homeowner only: GoodTree first, Legacy second, no attorney note', () => {
+		const responses: WillResponses = { ...zeroFlags, own_home: true };
+		expect(isAppRecommended(responses)).toBe(true);
+		expect(freeWillOfferLadder(responses)).toEqual(['goodtree-trust', 'legacy-plan']);
+		expect(recommendPlan(responses).plan).toBe('goodtree-trust');
+		expect(recommendPlan(responses).attorneyReviewNote).toBe(false);
+	});
+
+	it('never returns Legacy Plan alone in the ladder', () => {
+		const cases: WillResponses[] = [
+			zeroFlags,
+			{ ...zeroFlags, business_ownership: true },
+			{ ...zeroFlags, blended_family: true },
+			{ ...zeroFlags, own_home: true },
+			{ ...zeroFlags, retirement_accounts: true },
+			{ ...zeroFlags, strict_faraid: true },
+			{ ...zeroFlags, avoid_probate: 'yes' },
+		];
+		for (const responses of cases) {
+			expect(freeWillOfferLadder(responses)).not.toEqual(['legacy-plan']);
+		}
 	});
 });

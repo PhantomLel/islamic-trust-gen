@@ -394,6 +394,8 @@ export const postPaymentQuestions: Question[] = [
 	{
 		id: "minor-distribution",
 		text: "How should your children receive their inheritance?",
+		subtext:
+			"Regardless of which option you choose, your trustee may distribute a child's inheritance to them at any time if they believe the child has rushd — the maturity and sound judgment to manage their inheritance responsibly.",
 		type: 'minor-distribution',
 		required: true,
 		bucket: 'trust',

@@ -67,7 +67,6 @@ export async function processFundingFlags(): Promise<number> {
 		if (!readyAt) continue;
 
 		const statusOf = (key: string) => dash.milestones.find((m) => m.key === key)?.status;
-		const checklistOf = (key: string) => dash.milestones.find((m) => m.key === key)?.checklist ?? {};
 		const trustSigned = dash.trust?.status === TrustStatus.Completed;
 		const isHomeowner = dash.isHomeowner !== false;
 
@@ -89,14 +88,6 @@ export async function processFundingFlags(): Promise<number> {
 				'no_activity_7d',
 				'attention',
 				'Documents ready but no funding dashboard activity in the last 7 days',
-			);
-		}
-
-		if (readyAt <= daysAgo(5) && checklistOf('download_review').downloaded !== true) {
-			await raise(
-				'docs_not_downloaded',
-				'attention',
-				'Documents ready more than 5 days ago and still not marked downloaded',
 			);
 		}
 

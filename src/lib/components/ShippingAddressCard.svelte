@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { usStates } from '$lib/free-will/config';
 	import type { ShippingAddress } from '$lib/server/db/schema';
@@ -26,6 +27,20 @@
 	let saving = $state(false);
 	let error = $state('');
 	let saved = $state(false);
+	let highlighted = $state(false);
+	let streetInput = $state<HTMLInputElement | null>(null);
+	let highlightTimeout: ReturnType<typeof setTimeout> | undefined;
+
+	export function highlight() {
+		highlighted = true;
+		clearTimeout(highlightTimeout);
+		highlightTimeout = setTimeout(() => {
+			highlighted = false;
+		}, 2000);
+		if (editing) {
+			tick().then(() => streetInput?.focus({ preventScroll: true }));
+		}
+	}
 
 	let isValid = $derived(
 		street.trim().length > 0 &&
@@ -87,7 +102,11 @@
 	}
 </script>
 
-<div {id} class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6 scroll-mt-24">
+<div
+	{id}
+	class="rounded-2xl bg-white/70 backdrop-blur-sm border p-6 scroll-mt-24 transition-all duration-300
+		{highlighted ? 'border-emerald-accent/40 ring-2 ring-emerald-accent/25 shadow-md' : 'border-navy/[0.06]'}"
+>
 	<div class="flex items-center justify-between mb-1">
 		<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium">Legacy Binder Shipping Address</p>
 		{#if !editing}
@@ -109,6 +128,7 @@
 			<input
 				type="text"
 				autocomplete="address-line1"
+				bind:this={streetInput}
 				bind:value={street}
 				placeholder="Street address"
 				class="w-full px-4 py-3 rounded-xl border border-navy/12 bg-white text-navy text-[14px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"

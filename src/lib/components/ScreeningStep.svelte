@@ -3,7 +3,6 @@
 	import { authClient } from '$lib/auth-client';
 	import { slide, fade } from 'svelte/transition';
 	import CountySelector from './CountySelector.svelte';
-	import AttorneyHelpLink from './AttorneyHelpLink.svelte';
 	import type { LoeAgreementData } from '$lib/loe';
 	import { LOE_AGREEMENT_VERSION } from '$lib/loe';
 
@@ -469,13 +468,6 @@
 									{opt.label}
 								</button>
 							{/each}
-						</div>
-
-						<div class="mb-8 flex flex-col gap-3 sm:items-start">
-							<p class="text-[13px] text-navy/60">
-								Not sure how to fill out this question? 
-							</p>
-							<AttorneyHelpLink />
 						</div>
 
 						<!-- S Corp sub-question (shown when business_ownership = Yes) -->

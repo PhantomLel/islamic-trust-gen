@@ -76,7 +76,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			selectedPlan: true,
 			generated_files: true,
 			user_files: true,
-			file_urls: true,
 			notarizationLinkUrl: true,
 			joint: true,
 			responses: true,
@@ -170,24 +169,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		};
 	});
 
-	const docs = [
-		...((t.user_files ?? []) as { filename: string; url: string; kind: string }[]).map((f) => ({
-			name: f.filename,
-			label: f.kind,
-			url: f.url,
-		})),
-		...((t.generated_files ?? []) as { filename: string; url: string; kind: string }[]).map((f) => ({
-			name: f.filename,
-			label: f.kind,
-			url: f.url,
-		})),
-		...((t.file_urls ?? []) as string[]).map((url, i) => ({
-			name: `Document ${i + 1}`,
-			label: 'Document',
-			url,
-		})),
-	];
-
 	return {
 		trustId: t.id,
 		trustStatus: t.status,
@@ -225,7 +206,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		milestones: milestoneViews,
 		listedAssets,
 		showAssetOwners: t.joint === true && listedAssets.some((a) => a.owner !== null),
-		documents: docs,
 		copy: {
 			disclaimer: FUNDING_DISCLAIMER,
 			subtitle: FUNDING_SUBTITLE,

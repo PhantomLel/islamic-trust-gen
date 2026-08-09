@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
+	import BoldUnderIslamicLawText from '$lib/components/BoldUnderIslamicLawText.svelte';
 	import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
 
 	/* ─── Questions ─────────────────────────────────────────────────────── */
@@ -104,34 +105,40 @@
 	}
 
 	/* ─── Routing logic ─────────────────────────────────────────────────── */
-	type Tier = 'free-will' | 'goodtree' | 'legacy';
-	type Rec = { tier: Tier; waqf: boolean; reason: string };
+	type Tier = 'free-will' | 'goodtree';
+	type Rec = { tier: Tier; waqf: boolean; attorneyReviewSuggested: boolean; reason: string };
 
 	function computeRec(a: (boolean | null)[]): Rec {
 		const [home, married, blended, business, assets, heba] = a;
-		const complex = blended || business || assets || heba;
+		const hasComplexitySignal = !!(blended || business || assets || heba);
 
-		if (complex) {
-			return {
-				tier: 'legacy',
-				waqf: !!(business || assets),
-				reason:
-					'Based on your answers, your situation may benefit from attorney guidance. The Legacy Plan includes a dedicated strategy session where your attorney works through these questions with you personally.'
-			};
-		}
-		if (home || married) {
+		if (home || married || hasComplexitySignal) {
 			return {
 				tier: 'goodtree',
-				waqf: false,
-				reason:
-					'Your situation — a home or married status with a straightforward family structure — is a strong fit for the GoodTree Trust. You can build your shariah-compliant trust online at your own pace, with attorney access throughout.'
+				waqf: !!(business || assets),
+				attorneyReviewSuggested: hasComplexitySignal,
+				reason: hasComplexitySignal
+					? 'Your situation has enough going on — business ownership, a blended '
+						+ 'family, larger assets, or more complex giving — that GoodTree Trust '
+						+ 'is the right starting point, with attorney access built in as you '
+						+ 'build it. Given what you shared, it may also be worth a quick word '
+						+ 'with an attorney; you can book a free consult any time.'
+					: 'Your situation — a home or married status with a straightforward '
+						+ 'family structure — is a strong fit for the GoodTree Trust. You can '
+						+ 'build your shariah-compliant trust online at your own pace, with '
+						+ 'attorney access throughout.'
 			};
 		}
 		return {
 			tier: 'free-will',
 			waqf: false,
-			reason:
-				'The free Islamic will is the right starting point for your situation. It costs nothing and takes less than ten minutes to complete.'
+			attorneyReviewSuggested: false,
+			reason: 'Based on what you shared, you likely don\u2019t need more than the '
+				+ 'free Islamic will right now — so that\u2019s genuinely our recommendation. '
+				+ 'It costs nothing and takes less than ten minutes. If your situation '
+				+ 'changes — you buy a home, get married, start a business, or anything '
+				+ 'else shifts — come back and we\u2019ll help you figure out the next step '
+				+ 'then.'
 		};
 	}
 
@@ -240,7 +247,7 @@
 
 				<!-- Question — updates in place, no transition wrapper -->
 				<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-3">
-					{questions[step].text}
+					<BoldUnderIslamicLawText text={questions[step].text} />
 				</h2>
 				{#if questions[step].sub}
 					<p class="text-sm text-navy/55 leading-relaxed mb-8">
@@ -316,10 +323,8 @@
 					<h1 class="text-3xl md:text-4xl tracking-tight text-navy text-balance mb-4">
 						{#if rec.tier === 'free-will'}
 							Start with the free Islamic will.
-						{:else if rec.tier === 'goodtree'}
-							The GoodTree Trust fits your situation.
 						{:else}
-							The Legacy Plan is right for you.
+							The GoodTree Trust fits your situation.
 						{/if}
 					</h1>
 
@@ -373,7 +378,7 @@
 
 			<!-- Primary recommendation card -->
 			<div class="rounded-2xl overflow-hidden border mb-5
-				{rec.tier === 'goodtree' || rec.tier === 'legacy'
+				{rec.tier === 'goodtree'
 					? 'bg-navy border-navy'
 					: 'bg-emerald-accent border-emerald-accent'}"
 			>
@@ -408,6 +413,18 @@
 					</div>
 				</div>
 
+				{#if rec.attorneyReviewSuggested}
+					<p class="text-center mb-5">
+						<a
+							href={consultationBookingUrl}
+							class="text-emerald-accent text-sm hover:text-emerald-light transition-colors underline underline-offset-2"
+						>
+							Book a free consultation
+						</a>
+					</p>
+				{/if}
+
+				{#if rec.tier === 'goodtree'}
 				<!-- Waqf card (when flagged) -->
 				{#if rec.waqf}
 					<div class="rounded-2xl border border-navy/12 bg-white/60 p-7 mb-5">
@@ -475,6 +492,11 @@
 					<a href="/plans" class="text-navy/45 text-xs hover:text-navy/70 transition-colors underline underline-offset-2">
 						View all five plans in detail
 					</a>
+				</div>
+				{/if}
+
+				<!-- Restart -->
+				<div class="text-center flex flex-col items-center gap-3 mt-3">
 					<button
 						onclick={restart}
 						class="text-navy/30 text-xs hover:text-navy/55 transition-colors cursor-pointer"

@@ -127,7 +127,19 @@ export function freeWillReadyEmailV2(input: FreeWillReadyV2Input): string {
   </td></tr>`
 		: '';
 
-	const offersHtml = input.offers.map(offerCardHtml).join('');
+	const offersHtml =
+		input.offers.length > 0
+			? input.offers.map(offerCardHtml).join('')
+			: `
+  <tr><td style="padding:16px 24px 0 24px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF; border:1px solid #E3DDCF; border-radius:10px;">
+      <tr><td style="padding:22px 24px;">
+        <div style="font-family:Georgia, serif; font-size:15px; line-height:22px; color:#3E4A44;">
+          Based on what you shared, your situation is fairly straightforward. Most people in your position don&#8217;t need anything beyond this will right now. If that changes down the road &#8212; you buy a home, open a retirement account, start a business, get married &#8212; come back and we&#8217;ll help you figure out the next step then.
+        </div>
+      </td></tr>
+    </table>
+  </td></tr>`;
 	const consultUrl = escapeHtmlAttr(input.consultUrl);
 
 	return `<!DOCTYPE html>

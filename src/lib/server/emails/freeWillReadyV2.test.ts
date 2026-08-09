@@ -61,6 +61,16 @@ describe('freeWillReadyEmailV2', () => {
 		expect((html.match(/&#8226;/g) ?? []).length).toBe(2);
 	});
 
+	it('renders reassurance copy when offers is empty (zero-complexity user)', () => {
+		const html = freeWillReadyEmailV2({ ...baseInput, offers: [] });
+		expect(html).toContain('your situation is fairly straightforward');
+		expect(html).not.toContain('RECOMMENDED FOR YOUR SITUATION');
+		expect(html).not.toContain('PREMIUM OPTION');
+		expect(html).not.toContain('GoodTree Trust');
+		expect(html).not.toContain('Start your trust');
+		expect(html).not.toContain('From $3,500');
+	});
+
 	it('renders the GoodTree app card above the Legacy Plan card when APP_RECOMMENDED', () => {
 		const html = freeWillReadyEmailV2({ ...baseInput, offers: [goodTreeOffer, legacyOffer] });
 		expect(html.indexOf('GoodTree Trust')).toBeLessThan(html.indexOf('>Legacy Plan<'));
@@ -68,11 +78,13 @@ describe('freeWillReadyEmailV2', () => {
 		expect(html).toContain('Learn more');
 	});
 
-	it('renders only the Legacy Plan card when not app-recommended', () => {
-		const html = freeWillReadyEmailV2(baseInput);
+	it('renders no offer cards when not app-recommended', () => {
+		const html = freeWillReadyEmailV2({ ...baseInput, offers: [] });
 		expect(html).not.toContain('GoodTree Trust');
 		expect(html).not.toContain('Start your trust');
-		expect(html).toContain('Legacy Plan');
+		expect(html).not.toContain('PREMIUM OPTION');
+		expect(html).not.toContain('From $3,500');
+		expect(html).toContain('your situation is fairly straightforward');
 	});
 
 	it('uses the non-Texas signing step and generic state note outside Texas', () => {

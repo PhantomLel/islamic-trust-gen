@@ -140,24 +140,18 @@ describe('funding logic', () => {
 		);
 	});
 
-	it('next up starts at download_review', () => {
+	it('next up starts at find_your_stuff', () => {
 		const next = getNextUp(baseFlags, [], { fundingUnlockedAt: null });
-		expect(next?.milestoneKey).toBe('download_review');
+		expect(next?.milestoneKey).toBe('find_your_stuff');
 	});
 
-	it('marks prepare progress when download checklist done', () => {
+	it('marks prepare progress when find your stuff is done', () => {
 		const milestones: MilestoneRow[] = [
 			{
-				key: 'download_review',
+				key: 'find_your_stuff',
 				phase: 'prepare',
 				status: 'complete',
-				checklist: {
-					downloaded: true,
-					reviewed_names: true,
-					reviewed_trustees: true,
-					reviewed_signing: true,
-					no_edit: true,
-				},
+				checklist: {},
 				naReason: null,
 				completedAt: new Date(),
 			},
@@ -165,7 +159,7 @@ describe('funding logic', () => {
 		const progress = computeFundingProgress(baseFlags, milestones, { fundingUnlockedAt: null });
 		expect(progress.prepare.done).toBeGreaterThanOrEqual(1);
 		const next = getNextUp(baseFlags, milestones, { fundingUnlockedAt: null });
-		expect(next?.milestoneKey).not.toBe('download_review');
+		expect(next?.milestoneKey).not.toBe('find_your_stuff');
 	});
 
 	it('hides the home cards only when the user says they do not own a home', () => {

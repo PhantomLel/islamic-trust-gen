@@ -21,7 +21,7 @@ const MASJID_REGION_LABELS: Record<string, string> = {
 /** Display label for masajid search UI (e.g. "Texas masajid"). */
 export function masajidRegionLabel(stateCode: string): string {
 	const code = stateCode.trim();
-	return MASJID_REGION_LABELS[code] ? `${MASJID_REGION_LABELS[code]} masajid` : 'Local masajid';
+	return MASJID_REGION_LABELS[code] ? `${MASJID_REGION_LABELS[code]} Masajid` : 'Local masajid';
 }
 
 const masjidById = new Map<string, RegionalMasjid>(

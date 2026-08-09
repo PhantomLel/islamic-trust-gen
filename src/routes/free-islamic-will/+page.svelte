@@ -148,11 +148,8 @@
 			href: consultationBookingUrl
 		}
 	};
-	let recommendedCard = $derived(
-		recommendation.plan ? planCards[recommendation.plan] : null
-	);
-	// Ordered upsell ladder (ticket A2): GoodTree Trust App first when app-recommended,
-	// Legacy Plan always present — one source of truth shared with the delivery email.
+	// Ordered upsell ladder (packet R1): GoodTree Trust App first when app-recommended,
+	// Legacy Plan second as secondary option — one source of truth shared with the delivery email.
 	let offerLadder = $derived(freeWillOfferLadder(responses));
 	let offerCards = $derived(offerLadder.map((key) => ({ key, ...planCards[key] })));
 
@@ -1301,12 +1298,6 @@
 										<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 									</a>
 								{/if}
-								{#if recommendedCard}
-									<a href={recommendedCard.href} class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
-										Explore {recommendedCard.title}
-										<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-									</a>
-								{/if}
 								<a href={consultationBookingUrl} class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
 									Book an attorney review
 									<svg class="w-4 h-4 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -1315,43 +1306,52 @@
 						</div>
 					{/if}
 
-					<!-- Upsell ladder (ticket A2): GoodTree card above Legacy Plan when app-recommended -->
-					{#each offerCards as card, i}
-						{#if i === 0}
-							<div class="rounded-2xl bg-navy overflow-hidden mb-5">
-								<div class="p-7">
-									<span class="text-emerald-light/70 text-[10px] tracking-[0.28em] uppercase font-medium">Recommended for your situation</span>
-									<h3 class="text-cream text-xl md:text-2xl tracking-tight mt-2 mb-2">{card.title}</h3>
-									<p class="text-cream/60 text-sm leading-relaxed mb-3">{card.tagline}</p>
-									{#if recommendation.attorneyReviewNote}
-										<p class="text-cream/45 text-xs leading-relaxed mb-5">Given the size of your estate, we recommend attorney review to make sure nothing is missed.</p>
-									{/if}
-									<div class="flex items-center justify-between gap-4 mt-5">
-										<span class="text-cream/50 text-sm">{card.price}</span>
-										<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cream text-navy text-sm font-medium transition-all duration-200 hover:bg-white">
-											Learn more
-											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-										</a>
+					<!-- Upsell ladder (packet R1): GoodTree card above Legacy Plan when app-recommended -->
+					{#if offerCards.length === 0}
+						<div class="rounded-2xl border border-navy/10 bg-white/70 p-7 mb-5">
+							<h3 class="text-navy font-medium text-[15px] mb-3">Where things stand for you</h3>
+							<p class="text-navy/60 text-sm leading-relaxed">
+								Based on what you told us, your situation is straightforward — most people in a similar position don't need anything beyond this will right now. If that changes (you buy a home, open a retirement account, start a business, get married, or anything else shifts), come back and update your will, and we'll help you figure out whether more planning is worth it then.
+							</p>
+						</div>
+					{:else}
+						{#each offerCards as card}
+							{#if card.key === 'goodtree-trust'}
+								<div class="rounded-2xl bg-navy overflow-hidden mb-5">
+									<div class="p-7">
+										<span class="text-emerald-light/70 text-[10px] tracking-[0.28em] uppercase font-medium">Recommended for your situation</span>
+										<h3 class="text-cream text-xl md:text-2xl tracking-tight mt-2 mb-2">{card.title}</h3>
+										<p class="text-cream/60 text-sm leading-relaxed mb-3">{card.tagline}</p>
+										{#if recommendation.attorneyReviewNote}
+											<p class="text-cream/45 text-xs leading-relaxed mb-5">Given what you shared, it may also be worth a quick word with an attorney; you can book a free consult any time.</p>
+										{/if}
+										<div class="flex items-center justify-between gap-4 mt-5">
+											<span class="text-cream/50 text-sm">{card.price}</span>
+											<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cream text-navy text-sm font-medium transition-all duration-200 hover:bg-white">
+												Learn more
+												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+											</a>
+										</div>
 									</div>
 								</div>
-							</div>
-						{:else}
-							<div class="rounded-2xl border border-navy/10 bg-white/70 overflow-hidden mb-5">
-								<div class="p-7">
-									<span class="text-navy/40 text-[10px] tracking-[0.28em] uppercase font-medium">Premium option</span>
-									<h3 class="text-navy text-xl md:text-2xl tracking-tight mt-2 mb-2">{card.title}</h3>
-									<p class="text-navy/60 text-sm leading-relaxed mb-5">{card.tagline}</p>
-									<div class="flex items-center justify-between gap-4">
-										<span class="text-navy/45 text-sm">{card.price}</span>
-										<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy text-cream text-sm font-medium transition-all duration-200 hover:bg-navy-light">
-											Learn more
-											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-										</a>
+							{:else}
+								<div class="rounded-2xl border border-navy/10 bg-white/70 overflow-hidden mb-5">
+									<div class="p-7">
+										<span class="text-navy/40 text-[10px] tracking-[0.28em] uppercase font-medium">Premium option</span>
+										<h3 class="text-navy text-xl md:text-2xl tracking-tight mt-2 mb-2">{card.title}</h3>
+										<p class="text-navy/60 text-sm leading-relaxed mb-5">{card.tagline}</p>
+										<div class="flex items-center justify-between gap-4">
+											<span class="text-navy/45 text-sm">{card.price}</span>
+											<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy text-cream text-sm font-medium transition-all duration-200 hover:bg-navy-light">
+												Learn more
+												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+											</a>
+										</div>
 									</div>
 								</div>
-							</div>
-						{/if}
-					{/each}
+							{/if}
+						{/each}
+					{/if}
 
 					<div class="text-center">
 						<a href="/plans" class="text-navy/45 text-sm hover:text-navy/70 transition-colors">Explore all plans →</a>

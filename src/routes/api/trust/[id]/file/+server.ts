@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { trust } from '$lib/server/db/schema';
+import { trust, TrustStatus } from '$lib/server/db/schema';
 import {
 	collectTrustFileUrls,
 	isHttpUrl,
@@ -22,6 +22,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
 	const row = await db.query.trust.findFirst({
 		where: and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)),
 		columns: {
+			status: true,
 			house_deed_url: true,
 			file_urls: true,
 			generated_files: true,
@@ -29,6 +30,15 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
 		},
 	});
 	if (!row) throw error(404, 'Trust not found');
+
+	// House deed uploads are the user's own file and reviewable anytime; every other trust
+	// document stays hidden from preview/download until notarization is fully complete.
+	if (row.status !== TrustStatus.Completed) {
+		const houseDeedOnly = new Set(row.house_deed_url ? [row.house_deed_url] : []);
+		if (!houseDeedOnly.has(fileUrl)) {
+			throw error(403, 'Documents are not available for download until notarization is complete');
+		}
+	}
 
 	const allowed = new Set(collectTrustFileUrls(row));
 	if (!allowed.has(fileUrl)) throw error(403, 'URL not allowed for this trust');

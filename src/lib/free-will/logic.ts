@@ -366,7 +366,7 @@ export type PlanKey = 'goodtree-trust' | 'legacy-plan' | 'family-waqf' | null;
 
 export type PlanRecommendation = {
 	plan: PlanKey;
-	/** Whether to surface the "attorney review recommended" note (assets > $1M). */
+	/** Whether to surface the "attorney review recommended" note (complexity or assets > $1M). */
 	attorneyReviewNote: boolean;
 };
 
@@ -375,24 +375,13 @@ export function recommendPlan(responses: WillResponses): PlanRecommendation {
 	const floor = assetRangeFloor(
 		assetRanges.find((r) => r.label === responses['asset_range'])?.id,
 	);
-	const homeowner = responses['own_home'] === true;
-
-	const attorneyReviewNote = floor >= 1_000_000;
-
-	// Most complex situations route to the Legacy Plan.
-	if (tags.has('business_owner') || tags.has('blended_family') || tags.has('special_needs_heir')) {
-		return { plan: 'legacy-plan', attorneyReviewNote };
-	}
-	if (attorneyReviewNote) {
-		return { plan: 'legacy-plan', attorneyReviewNote: true };
-	}
-	if (tags.has('waqf_interest') || tags.has('charitable_intent')) {
-		return { plan: 'family-waqf', attorneyReviewNote };
-	}
-	if (homeowner || floor >= 250_000) {
-		return { plan: 'goodtree-trust', attorneyReviewNote };
-	}
-	return { plan: null, attorneyReviewNote };
+	const attorneyReviewNote =
+		floor >= 1_000_000 ||
+		tags.has('business_owner') ||
+		tags.has('blended_family') ||
+		tags.has('special_needs_heir');
+	if (!isAppRecommended(responses)) return { plan: null, attorneyReviewNote };
+	return { plan: 'goodtree-trust', attorneyReviewNote };
 }
 
 // ─── Will-delivery email flags & upsell ladder (ticket A2) ────────────────────
@@ -445,31 +434,27 @@ export function getEmailFlags(responses: WillResponses): EmailFlag[] {
 }
 
 /**
- * APP_RECOMMENDED (ticket A2): true when flags include probate avoidance,
- * homeowner, strict faraid, retirement accounts, or life insurance. Drives
- * whether the GoodTree Trust App card renders above the always-present
- * Legacy Plan card in both the will-delivery email and the completion page.
+ * True when the user's answers show any planning complexity at all —
+ * homeowner, retirement accounts, life insurance, business ownership,
+ * blended family, special-needs heir, an out-of-state home, wanting to
+ * avoid probate, or caring about strict faraid compliance. Any one of
+ * these is enough: business owners and blended families are included
+ * here now, not routed to Legacy Plan by default (see packet R1, Aug 2026).
  */
 export function isAppRecommended(responses: WillResponses): boolean {
-	const flags = new Set(getEmailFlags(responses));
-	return (
-		flags.has('avoid_probate') ||
-		flags.has('homeowner') ||
-		flags.has('strict_faraid') ||
-		flags.has('retirement_accounts') ||
-		flags.has('life_insurance')
-	);
+	return getEmailFlags(responses).length > 0;
 }
 
 export type OfferKey = 'goodtree-trust' | 'legacy-plan';
 
 /**
- * Ordered upsell ladder for the will-delivery email and completion screen
- * (ticket A2) — one source of truth so both surfaces render the same order:
- * GoodTree Trust App first when `isAppRecommended`, Legacy Plan always present.
+ * Ordered recommendation for the will-delivery email and completion screen.
+ * No flags → no offer at all (see the reassurance copy in packet R1).
+ * Any flag → GoodTree Trust App first, Legacy Plan second as the always-
+ * available secondary option. Legacy Plan is never returned alone.
  */
 export function freeWillOfferLadder(responses: WillResponses): OfferKey[] {
-	return isAppRecommended(responses) ? ['goodtree-trust', 'legacy-plan'] : ['legacy-plan'];
+	return isAppRecommended(responses) ? ['goodtree-trust', 'legacy-plan'] : [];
 }
 
 // ─── Inheritance calculator mapping ───────────────────────────────────────────

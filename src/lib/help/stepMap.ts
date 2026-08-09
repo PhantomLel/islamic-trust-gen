@@ -21,7 +21,6 @@ export const STEP_TO_CATEGORIES: Record<string, string[]> = {
 	heba: ['C13'],
 	'ownership-allocation': ['C13'],
 	// Funding milestones
-	download_review: ['C4', 'C5'],
 	prepare_sign_trust: ['C4'],
 	will_signing: ['C4'],
 	forms_bank: ['C6'],

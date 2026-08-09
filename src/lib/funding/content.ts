@@ -16,7 +16,6 @@ export type FundingModuleId =
 	| 'protect_share';
 
 export type FundingMilestoneKey =
-	| 'download_review'
 	| 'find_your_stuff'
 	| 'funding_explainer'
 	| 'webinar'
@@ -345,7 +344,7 @@ export const FUNDING_MODULES: FundingModuleContent[] = [
 		phase: 'prepare',
 		title: 'Get Oriented',
 		shortLabel: 'Orient',
-		milestoneKeys: ['download_review', 'find_your_stuff', 'funding_explainer', 'webinar'],
+		milestoneKeys: ['find_your_stuff', 'funding_explainer', 'webinar'],
 	},
 	{
 		id: 'get_ready_to_sign',
@@ -394,25 +393,6 @@ export const FUNDING_MODULES: FundingModuleContent[] = [
 ];
 
 export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
-	{
-		key: 'download_review',
-		moduleId: 'get_oriented',
-		phase: 'prepare',
-		title: 'Download and Review Documents',
-		body: 'Download your documents and review them carefully before signing. Check every name and spelling, trustee and guardian choices, inheritance information, and signing instructions. If something looks wrong, contact us before signing; corrections are easier now than later.',
-		warning:
-			'Do not change the documents yourself. If something is wrong, contact our office and we will correct and reissue the documents.',
-		checklist: [
-			{ id: 'downloaded', label: 'Downloaded my documents' },
-			{ id: 'reviewed_names', label: 'Reviewed names and spellings' },
-			{ id: 'reviewed_trustees', label: 'Reviewed trustee and guardian choices' },
-			{ id: 'reviewed_signing', label: 'Reviewed signing instructions' },
-			{
-				id: 'no_edit',
-				label: 'I understand I should not edit, retype, or hand-mark the documents myself',
-			},
-		],
-	},
 	{
 		key: 'find_your_stuff',
 		moduleId: 'get_oriented',

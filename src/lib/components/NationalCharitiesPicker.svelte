@@ -45,7 +45,7 @@
 
 <div class="rounded-xl border border-navy/10 bg-navy/[0.02] p-4 space-y-3">
 	<div>
-		<h3 class="text-sm font-medium text-navy">Suggested charities</h3>
+		<h3 class="text-sm font-medium text-navy">Muslim Charities in Texas</h3>
 		<p class="text-xs text-navy/55 mt-0.5 leading-relaxed">
 			A few well-regarded Islamic charities you may want to consider. Visit their websites to learn more, then select any you'd like to include.
 		</p>
@@ -84,7 +84,7 @@
 			<ul
 				id="{idPrefix}-listbox"
 				role="listbox"
-				aria-label="Suggested charities"
+				aria-label="Muslim Charities in Texas"
 				aria-multiselectable="true"
 				class="absolute z-50 mt-1.5 w-full max-h-80 overflow-y-auto rounded-xl border border-navy/10 bg-white shadow-lg shadow-navy/8 py-1"
 			>

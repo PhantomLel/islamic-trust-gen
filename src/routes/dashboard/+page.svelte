@@ -100,11 +100,37 @@
 				},
 			t.complete && !t.shippingAddress && {
 				label: 'Enter your shipping address to get your legacy binder',
-				href: '#shipping-address',
+				scrollTo: 'shipping-address',
 				desc: "We'll mail you a printed binder with all your documents and instructions in one place",
 			},
-		].filter(Boolean) as { label: string; href: string; desc: string; external?: boolean; progress?: number }[]
+		].filter(Boolean) as { label: string; href?: string; scrollTo?: string; desc: string; external?: boolean; progress?: number }[]
 	);
+
+	let shippingAddressCard = $state<{ highlight: () => void } | undefined>();
+
+	function isSectionInView(el: Element): boolean {
+		const rect = el.getBoundingClientRect();
+		const offset = 96; // matches scroll-mt-24
+		return rect.top >= offset && rect.top <= window.innerHeight * 0.6;
+	}
+
+	function scrollToSection(id: string) {
+		const el = document.getElementById(id);
+		if (!el) return;
+
+		const highlight = () => {
+			if (id === 'shipping-address') shippingAddressCard?.highlight();
+		};
+
+		if (isSectionInView(el)) {
+			highlight();
+			return;
+		}
+
+		el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		window.addEventListener('scrollend', highlight, { once: true });
+		setTimeout(highlight, 700);
+	}
 
 	const KIND_LABELS: Record<string, string> = {
 		'trust-document': 'Trust Document',
@@ -459,28 +485,63 @@
 						<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-4">Action Required</p>
 						<div class="space-y-3">
 							{#each actions as action}
-								<a href={action.href}
-									target={action.external ? '_blank' : undefined}
-									rel={action.external ? 'noopener noreferrer' : undefined}
-									class="flex items-center justify-between px-4 py-3.5 rounded-xl border border-navy/[0.07] bg-white/50
-										   hover:bg-white hover:border-emerald-accent/20 hover:shadow-sm transition-all group">
-									<div class="flex-1 min-w-0">
-										<span class="text-sm font-medium text-navy group-hover:text-emerald-accent transition-colors">{action.label}</span>
-										<p class="text-[11px] text-navy/35 mt-0.5">{action.desc}</p>
-										{#if action.progress != null}
-											<div class="mt-2.5 flex items-center gap-2.5">
-												<div class="flex-1 h-1.5 rounded-full bg-navy/[0.06] overflow-hidden">
-													<div class="h-full rounded-full bg-emerald-accent transition-all duration-500" style="width: {action.progress}%"></div>
+								{#if action.scrollTo}
+									<button
+										type="button"
+										onclick={() => scrollToSection(action.scrollTo!)}
+										class="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-navy/[0.07] bg-white/50
+											   hover:bg-white hover:border-emerald-accent/20 hover:shadow-sm transition-all group text-left cursor-pointer"
+									>
+										<div class="flex-1 min-w-0">
+											<span class="text-sm font-medium text-navy group-hover:text-emerald-accent transition-colors">{action.label}</span>
+											<p class="text-[11px] text-navy/35 mt-0.5">{action.desc}</p>
+										</div>
+										<svg class="w-4 h-4 text-navy/20 group-hover:text-emerald-accent transition-colors shrink-0 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+										</svg>
+									</button>
+								{:else}
+									<a href={action.href}
+										target={action.external ? '_blank' : undefined}
+										rel={action.external ? 'noopener noreferrer' : undefined}
+										class="flex items-center justify-between px-4 py-3.5 rounded-xl border border-navy/[0.07] bg-white/50
+											   hover:bg-white hover:border-emerald-accent/20 hover:shadow-sm transition-all group">
+										<div class="flex-1 min-w-0">
+											<span class="text-sm font-medium text-navy group-hover:text-emerald-accent transition-colors">{action.label}</span>
+											<p class="text-[11px] text-navy/35 mt-0.5">{action.desc}</p>
+											{#if action.progress != null}
+												<div class="mt-2.5 flex items-center gap-2.5">
+													<div class="flex-1 h-1.5 rounded-full bg-navy/[0.06] overflow-hidden">
+														<div class="h-full rounded-full bg-emerald-accent transition-all duration-500" style="width: {action.progress}%"></div>
+													</div>
+													<span class="text-[10px] text-navy/30 shrink-0">{action.progress}%</span>
 												</div>
-												<span class="text-[10px] text-navy/30 shrink-0">{action.progress}%</span>
-											</div>
-										{/if}
-									</div>
-									<svg class="w-4 h-4 text-navy/20 group-hover:text-emerald-accent transition-colors shrink-0 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-									</svg>
-								</a>
+											{/if}
+										</div>
+										<svg class="w-4 h-4 text-navy/20 group-hover:text-emerald-accent transition-colors shrink-0 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+										</svg>
+									</a>
+								{/if}
 							{/each}
+						</div>
+					</div>
+				{/if}
+
+				{#if t.hasPendingDocuments}
+					<div class="rounded-2xl bg-white/70 backdrop-blur-sm border border-navy/[0.06] p-6">
+						<div class="flex items-start gap-3.5">
+							<div class="shrink-0 w-9 h-9 rounded-lg bg-navy/5 flex items-center justify-center mt-0.5">
+								<svg class="w-4 h-4 text-navy/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+								</svg>
+							</div>
+							<div class="min-w-0">
+								<p class="text-[11px] text-navy/35 tracking-wider uppercase font-medium mb-1">Your Documents</p>
+								<p class="text-sm text-navy/70 leading-relaxed">
+									Your documents are being finalized and will unlock for viewing and download once your notarization is complete.
+								</p>
+							</div>
 						</div>
 					</div>
 				{/if}
@@ -495,7 +556,7 @@
 				{/if}
 
 				{#if t.complete}
-					<ShippingAddressCard trustId={t.id} existingAddress={t.shippingAddress} />
+					<ShippingAddressCard bind:this={shippingAddressCard} trustId={t.id} existingAddress={t.shippingAddress} />
 				{/if}
 
 				<!-- document list (read-only) -->

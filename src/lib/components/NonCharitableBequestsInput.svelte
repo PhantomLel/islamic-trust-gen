@@ -415,7 +415,7 @@
 
 <InfoPopout open={blockedPopout} onclose={() => (blockedPopout = false)} title="Not entitled to an Islamic inheritance share">
 	<p>
-		Under Islamic law, certain relatives are blocked from inheriting because a closer relative takes priority. For example, grandchildren are blocked if their parent — your child — is still alive. A bequest allows you to provide for them outside the inheritance system, up to the one-third limit.
+		<strong class="font-semibold">Under Islamic law</strong>, certain relatives are blocked from inheriting because a closer relative takes priority. For example, grandchildren are blocked if their parent — your child — is still alive. A bequest allows you to provide for them outside the inheritance system, up to the one-third limit.
 	</p>
 </InfoPopout>
 

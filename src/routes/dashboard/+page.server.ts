@@ -135,6 +135,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	}
 
+	// Documents (trust, wills, etc.) stay hidden — no listing, no download links — until
+	// notarization is fully complete. Before then we only surface whether files exist at all,
+	// never their URLs, so the client cannot download them early even by inspecting page data.
+	const documentsUnlocked = trustStatus === TrustStatus.Completed;
+	const hasPendingDocuments =
+		(existing.user_files?.length ?? 0) +
+			(existing.generated_files?.length ?? 0) +
+			(existing.file_urls?.length ?? 0) >
+		0;
+
 	return {
 		userId: locals.user.id,
 		userName: locals.user.name,
@@ -151,14 +161,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 			complete: existing.complete,
 			status: trustStatus,
 			approved: existing.approved,
-			fileUrls: existing.file_urls ?? [],
+			fileUrls: documentsUnlocked ? (existing.file_urls ?? []) : [],
 			houseDeedUrl: existing.house_deed_url,
 			hasHouse,
 			questionnaireProgress,
 			awaitingPayment,
 			intakeUnderReview,
-			userFiles: (existing.user_files ?? []) as UserFile[],
-			generatedFiles: existing.generated_files ?? [],
+			userFiles: documentsUnlocked ? ((existing.user_files ?? []) as UserFile[]) : [],
+			generatedFiles: documentsUnlocked ? (existing.generated_files ?? []) : [],
+			documentsUnlocked,
+			hasPendingDocuments: !documentsUnlocked && hasPendingDocuments,
 			notarizationLinkUrl,
 			notarizationBookedAt: notarizationBookedAt?.toISOString() ?? null,
 			notarizationStartTime: notarizationStartTime?.toISOString() ?? null,

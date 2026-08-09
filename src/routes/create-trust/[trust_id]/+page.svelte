@@ -24,7 +24,6 @@
 	import QuestionnaireSidebar from '$lib/components/QuestionnaireSidebar.svelte';
 	import ScreeningStep from '$lib/components/ScreeningStep.svelte';
 	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
-	import AttorneyHelpLink from '$lib/components/AttorneyHelpLink.svelte';
 	import HelpLauncher from '$lib/components/help/HelpLauncher.svelte';
 
 	/** Set to `true` to show the individual vs joint trust picker again. */
@@ -570,12 +569,6 @@
 								</button>
 							</div>
 
-							<div class="mt-8 pt-6 border-t border-navy/10">
-								<p class="text-[13px] text-navy/60 mb-3">
-									Not sure how to fill out this question? 
-								</p>
-								<AttorneyHelpLink />
-							</div>
 						</div>
 					</div>
 				{:else}
@@ -617,12 +610,6 @@
 								deedRetrievalRequested={data.trust.deedRetrievalRequested}
 							/>
 
-							<div class="mt-8 pt-6 border-t border-navy/10">
-								<p class="text-[13px] text-navy/60 mb-3">
-									Not sure how to fill out this question? 
-								</p>
-								<AttorneyHelpLink />
-							</div>
 						</div>
 					</div>
 				{/if}

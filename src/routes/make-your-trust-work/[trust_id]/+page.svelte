@@ -761,22 +761,6 @@
 												</div>
 											{/if}
 
-											{#if m.key === 'download_review' && data.documents.length}
-												<div class="mb-4 space-y-2">
-													{#each data.documents as doc}
-														<a
-															href={doc.url}
-															target="_blank"
-															rel="noopener noreferrer"
-															class="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border border-navy/8 bg-white text-sm text-navy hover:border-emerald-accent/30 transition-colors"
-														>
-															<span class="truncate">{doc.name}</span>
-															<span class="text-[11px] text-emerald-accent shrink-0">Download</span>
-														</a>
-													{/each}
-												</div>
-											{/if}
-
 											{#if m.key === 'prepare_sign_trust' && data.trustStatus !== 'completed'}
 												<a
 													href={data.notarizationLinkUrl ?? notarizationBookingUrl}
