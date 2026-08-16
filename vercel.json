@@ -4,5 +4,19 @@
       "path": "/api/cron/drip",
       "schedule": "*/15 * * * *"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "freemuslimwill.org" }],
+      "destination": "https://www.muslimlegacyplanning.com/free-islamic-will",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.freemuslimwill.org" }],
+      "destination": "https://www.muslimlegacyplanning.com/free-islamic-will",
+      "permanent": true
+    }
   ]
 }
