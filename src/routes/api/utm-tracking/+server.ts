@@ -1,5 +1,5 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { db } from '$lib/server/db/db';
+import { db } from '$lib/server/db';
 import { utmTrackingEvent, type UtmEventType } from '$lib/server/db/schema';
 
 type TrackingRequest = {
