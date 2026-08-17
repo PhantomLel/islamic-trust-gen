@@ -528,5 +528,41 @@ export const marketingEmailLogRelations = relations(marketingEmailLog, ({ one })
 	}),
 }));
 
+// ── UTM Tracking Events ───────────────────────────────────────────────────────
+
+/**
+ * UTM tracking events table — stores both "landing" and "will_completion" events
+ * with the same UTM parameters so we can calculate conversion ratios.
+ */
+export type UtmEventType = 'landing' | 'will_completion';
+
+export const utmTrackingEvent = pgTable('utm_tracking_event', {
+	id: serial('id').primaryKey(),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	
+	// Event type
+	eventType: text('event_type').$type<UtmEventType>().notNull(),
+	
+	// UTM parameters (all three stored together)
+	utmSource: text('utm_source'),
+	utmMedium: text('utm_medium'),
+	utmCampaign: text('utm_campaign'),
+	
+	// Optional linking to will or lead
+	willId: integer('will_id').references(() => freeWill.id, { onDelete: 'set null' }),
+	email: text('email'),
+	
+	// Session/visitor tracking
+	sessionId: text('session_id'),
+	
+	// Additional context
+	payload: jsonb('payload').$type<Record<string, unknown>>(),
+}, (t) => [
+	index('utm_tracking_event_type_idx').on(t.eventType),
+	index('utm_tracking_event_source_idx').on(t.utmSource),
+	index('utm_tracking_event_session_idx').on(t.sessionId),
+	index('utm_tracking_event_will_idx').on(t.willId),
+]);
+
 export * from './auth.schema';
 export * from './help.schema';

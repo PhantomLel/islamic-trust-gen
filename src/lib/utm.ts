@@ -3,10 +3,13 @@
  * first page load, stores it in `localStorage`, and is read back later so masjid
  * / campaign attribution survives across pages into the waitlist capture and the
  * free-will save actions, and ultimately into `marketing_lead` / `free_will`.
- * No redirect endpoint or QR generation yet — that is the full A7 (deferred).
+ * 
+ * Now also tracks a "landing" event to the backend so we can measure the ratio
+ * of QR scans / landing page hits to will completions.
  */
 
 const STORAGE_KEY = 'mlp:first-touch-utm';
+const SESSION_ID_KEY = 'mlp:session-id';
 
 export type UtmParams = {
 	utmSource: string | null;
@@ -15,6 +18,47 @@ export type UtmParams = {
 };
 
 const EMPTY_UTM: UtmParams = { utmSource: null, utmMedium: null, utmCampaign: null };
+
+/** Generate or retrieve a session ID for tracking purposes */
+function getOrCreateSessionId(): string {
+	if (typeof localStorage === 'undefined') return crypto.randomUUID();
+	
+	try {
+		let sessionId = localStorage.getItem(SESSION_ID_KEY);
+		if (!sessionId) {
+			sessionId = crypto.randomUUID();
+			localStorage.setItem(SESSION_ID_KEY, sessionId);
+		}
+		return sessionId;
+	} catch {
+		return crypto.randomUUID();
+	}
+}
+
+/** Send a tracking event to the backend */
+async function trackUtmEvent(
+	eventType: 'landing' | 'will_completion',
+	params: UtmParams,
+	additionalData?: { willId?: number; email?: string }
+): Promise<void> {
+	try {
+		await fetch('/api/utm-tracking', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				eventType,
+				utmSource: params.utmSource,
+				utmMedium: params.utmMedium,
+				utmCampaign: params.utmCampaign,
+				sessionId: getOrCreateSessionId(),
+				...additionalData,
+			}),
+		});
+	} catch (error) {
+		// Silent fail - don't block user experience for tracking errors
+		console.warn('[UTM Tracking] Failed to track event:', error);
+	}
+}
 
 /** Reads `utm_*` from the current URL and persists it, unless a first touch is already stored. */
 export function captureFirstTouchUtm(): void {
@@ -27,8 +71,13 @@ export function captureFirstTouchUtm(): void {
 	const utmCampaign = params.get('utm_campaign');
 	if (!utmSource && !utmMedium && !utmCampaign) return;
 
+	const utmParams = { utmSource, utmMedium, utmCampaign };
+
 	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify({ utmSource, utmMedium, utmCampaign }));
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(utmParams));
+		
+		// Track the landing event
+		trackUtmEvent('landing', utmParams);
 	} catch {
 		// ignore quota / privacy-mode errors
 	}
@@ -49,4 +98,19 @@ export function getFirstTouchUtm(): UtmParams {
 	} catch {
 		return EMPTY_UTM;
 	}
+}
+
+/** Track a will completion event with UTM parameters */
+export function trackWillCompletion(willId?: number | null, email?: string): void {
+	if (typeof window === 'undefined') return;
+	
+	const utmParams = getFirstTouchUtm();
+	
+	// Only track if there are UTM parameters
+	if (!utmParams.utmSource && !utmParams.utmMedium && !utmParams.utmCampaign) return;
+	
+	trackUtmEvent('will_completion', utmParams, { 
+		willId: willId ?? undefined, 
+		email 
+	});
 }

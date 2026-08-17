@@ -62,7 +62,7 @@
 		selfHelpDisclaimerCopy,
 		type AcknowledgmentData
 	} from '$lib/free-will/acknowledgment';
-	import { getFirstTouchUtm } from '$lib/utm';
+	import { getFirstTouchUtm, trackWillCompletion } from '$lib/utm';
 
 	let { data } = $props();
 
@@ -465,6 +465,9 @@
 		if (typeof resultData?.willId === 'number') activeWillId = resultData.willId;
 		if (resultData?.willDownload) willDownload = resultData.willDownload;
 		phase = 'complete';
+		
+		// Track will completion with UTM params
+		trackWillCompletion(activeWillId, accountEmail || data.user?.email);
 	}
 
 	async function handleCreateAccount() {
