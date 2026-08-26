@@ -10,7 +10,7 @@
 
 	let { data } = $props();
 
-	type View = 'trusts' | 'wills' | 'drip';
+	type View = 'trusts' | 'wills' | 'drip' | 'utm';
 	let view = $state<View>('trusts');
 	type DripSubView = 'sends' | 'leads';
 	let dripSubView = $state<DripSubView>('sends');
@@ -394,6 +394,17 @@
 				Marketing Drip
 				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
 					{data.dripLeads.length}
+				</span>
+			</button>
+			<button
+				type="button"
+				onclick={() => (view = 'utm')}
+				class="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer flex items-center gap-2
+					{view === 'utm' ? 'bg-white text-navy shadow-sm' : 'text-navy/45 hover:text-navy/70'}"
+			>
+				UTM Tracking
+				<span class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-navy/[0.06] text-[10px] text-navy/55 tabular-nums">
+					{data.utmCampaigns.length}
 				</span>
 			</button>
 		</div>
@@ -1135,6 +1146,123 @@
 					</div>
 				</div>
 			{/if}
+		{/if}
+	{:else if view === 'utm'}
+		<div class="mb-6">
+			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">UTM Tracking</h1>
+			<p class="text-navy/45 text-sm">Campaign performance and conversion metrics</p>
+		</div>
+
+		<!-- Summary stats -->
+		<div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+			<div class="rounded-xl bg-white/70 border border-navy/[0.06] p-5">
+				<p class="text-[11px] uppercase tracking-wider text-navy/40 font-medium mb-2">Total Campaigns</p>
+				<p class="text-3xl font-semibold text-navy tabular-nums">{data.utmCampaigns.length}</p>
+			</div>
+			<div class="rounded-xl bg-white/70 border border-navy/[0.06] p-5">
+				<p class="text-[11px] uppercase tracking-wider text-navy/40 font-medium mb-2">Total Landings</p>
+				<p class="text-3xl font-semibold text-navy tabular-nums">
+					{data.utmCampaigns.reduce((sum, c) => sum + c.landings, 0)}
+				</p>
+			</div>
+			<div class="rounded-xl bg-white/70 border border-navy/[0.06] p-5">
+				<p class="text-[11px] uppercase tracking-wider text-navy/40 font-medium mb-2">Total Completions</p>
+				<p class="text-3xl font-semibold text-navy tabular-nums">
+					{data.utmCampaigns.reduce((sum, c) => sum + c.completions, 0)}
+				</p>
+			</div>
+		</div>
+
+		<!-- Campaign conversion table -->
+		{#if data.utmCampaigns.length === 0}
+			<div class="rounded-xl bg-white/60 border border-navy/[0.06] p-12 text-center space-y-2">
+				<p class="text-navy/50 text-sm font-medium">No UTM tracking data yet.</p>
+				<p class="text-navy/35 text-xs max-w-md mx-auto leading-relaxed">
+					Events appear when users arrive with UTM parameters or complete their will.
+				</p>
+			</div>
+		{:else}
+			<div class="mb-6">
+				<h2 class="text-lg font-semibold text-navy tracking-tight mb-3">Campaign Performance</h2>
+				<div class="rounded-xl border border-navy/[0.06] overflow-hidden bg-white/70">
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm text-left">
+							<thead>
+								<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
+									<th class="px-4 py-3 font-medium">Campaign</th>
+									<th class="px-4 py-3 font-medium">Source</th>
+									<th class="px-4 py-3 font-medium">Medium</th>
+									<th class="px-4 py-3 font-medium text-right">Landings</th>
+									<th class="px-4 py-3 font-medium text-right">Completions</th>
+									<th class="px-4 py-3 font-medium text-right">Conversion %</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each data.utmCampaigns as campaign}
+									{@const conversionRate = campaign.landings > 0 ? ((campaign.completions / campaign.landings) * 100).toFixed(1) : '0.0'}
+									<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
+										<td class="px-4 py-3 font-medium text-navy">{campaign.campaign}</td>
+										<td class="px-4 py-3 text-navy/65">{campaign.source ?? '—'}</td>
+										<td class="px-4 py-3 text-navy/65">{campaign.medium ?? '—'}</td>
+										<td class="px-4 py-3 text-right tabular-nums text-navy/65">{campaign.landings}</td>
+										<td class="px-4 py-3 text-right tabular-nums">
+											<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-accent/10 text-emerald-accent border border-emerald-accent/20">
+												{campaign.completions}
+											</span>
+										</td>
+										<td class="px-4 py-3 text-right tabular-nums font-medium text-navy">{conversionRate}%</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<!-- Recent events table -->
+			<div>
+				<h2 class="text-lg font-semibold text-navy tracking-tight mb-3">Recent Events</h2>
+				<div class="rounded-xl border border-navy/[0.06] overflow-hidden bg-white/70">
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm text-left">
+							<thead>
+								<tr class="border-b border-navy/[0.06] text-[11px] uppercase tracking-wider text-navy/40">
+									<th class="px-4 py-3 font-medium">Time</th>
+									<th class="px-4 py-3 font-medium">Event</th>
+									<th class="px-4 py-3 font-medium">Campaign</th>
+									<th class="px-4 py-3 font-medium">Source</th>
+									<th class="px-4 py-3 font-medium">Medium</th>
+									<th class="px-4 py-3 font-medium">Email</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each data.utmRecentEvents as event}
+									<tr class="border-b border-navy/[0.04] hover:bg-navy/[0.02] transition-colors">
+										<td class="px-4 py-3 text-[12px] text-navy/55 whitespace-nowrap">
+											{timeAgo(event.createdAt)}
+										</td>
+										<td class="px-4 py-3">
+											{#if event.eventType === 'landing'}
+												<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200/70">
+													Landing
+												</span>
+											{:else}
+												<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-accent/10 text-emerald-accent border border-emerald-accent/20">
+													Completion
+												</span>
+											{/if}
+										</td>
+										<td class="px-4 py-3 text-navy/65 text-[12px]">{event.utmCampaign ?? '—'}</td>
+										<td class="px-4 py-3 text-navy/65 text-[12px]">{event.utmSource ?? '—'}</td>
+										<td class="px-4 py-3 text-navy/65 text-[12px]">{event.utmMedium ?? '—'}</td>
+										<td class="px-4 py-3 text-navy/40 text-[11px] break-all">{event.email ?? '—'}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
 		{/if}
 	{/if}
 	</div>

@@ -1,8 +1,8 @@
 import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { invoice, trust, adminNote, freeWill, marketingLead, marketingEmailLog } from '$lib/server/db/schema';
+import { invoice, trust, adminNote, freeWill, marketingLead, marketingEmailLog, utmTrackingEvent } from '$lib/server/db/schema';
 import type { GeneratedFile } from '$lib/server/db/schema';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -84,6 +84,53 @@ export const load: PageServerLoad = async ({ locals }) => {
 		for (const l of extraLeads) {
 			leadById.set(l.id, l);
 			dripByEmail.set(l.email.toLowerCase(), l);
+		}
+	}
+
+	// UTM tracking data
+	let utmEvents: Array<{
+		id: number;
+		createdAt: Date;
+		eventType: 'landing' | 'will_completion';
+		utmSource: string | null;
+		utmMedium: string | null;
+		utmCampaign: string | null;
+		willId: number | null;
+		email: string | null;
+		sessionId: string | null;
+		payload: Record<string, unknown> | null;
+	}> = [];
+	
+	try {
+		utmEvents = await db
+			.select()
+			.from(utmTrackingEvent)
+			.orderBy(desc(utmTrackingEvent.createdAt))
+			.limit(200);
+	} catch (error) {
+		console.error('[Admin] Failed to fetch UTM tracking events:', error);
+		// Continue with empty array if table doesn't exist yet
+	}
+
+	// Calculate conversion metrics by campaign
+	const campaignMetrics = new Map<string, { landings: number; completions: number; campaign: string; source: string | null; medium: string | null }>();
+	
+	for (const event of utmEvents) {
+		const campaign = event.utmCampaign || '(no campaign)';
+		if (!campaignMetrics.has(campaign)) {
+			campaignMetrics.set(campaign, {
+				campaign,
+				source: event.utmSource,
+				medium: event.utmMedium,
+				landings: 0,
+				completions: 0,
+			});
+		}
+		const metrics = campaignMetrics.get(campaign)!;
+		if (event.eventType === 'landing') {
+			metrics.landings++;
+		} else if (event.eventType === 'will_completion') {
+			metrics.completions++;
 		}
 	}
 
@@ -189,6 +236,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 					},
 				};
 			}),
+		utmCampaigns: Array.from(campaignMetrics.values()).sort((a, b) => b.landings - a.landings),
+		utmRecentEvents: utmEvents.slice(0, 50).map((e) => ({
+			id: e.id,
+			createdAt: e.createdAt.toISOString(),
+			eventType: e.eventType,
+			utmSource: e.utmSource,
+			utmMedium: e.utmMedium,
+			utmCampaign: e.utmCampaign,
+			email: e.email,
+			willId: e.willId,
+		})),
 	};
 };
 
