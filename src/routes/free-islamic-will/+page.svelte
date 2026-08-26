@@ -246,6 +246,18 @@
 				savedToAccount = true;
 				if (data.willDownload) willDownload = data.willDownload;
 				phase = 'complete';
+				
+				// Track completion if we haven't already (returning from magic link/Google)
+				// Use localStorage to ensure we only track each will completion once ever
+				const trackingKey = `mlp:tracked-completion-${data.savedWill.id}`;
+				const alreadyTracked = localStorage.getItem(trackingKey);
+				if (!alreadyTracked) {
+					console.log('[Will] First time showing completion for will', data.savedWill.id, '- tracking event');
+					trackWillCompletion(data.savedWill.id, data.user.email);
+					localStorage.setItem(trackingKey, new Date().toISOString());
+				} else {
+					console.log('[Will] Already tracked completion for will', data.savedWill.id, 'at', alreadyTracked);
+				}
 			} else {
 				// A4 — the flow is no longer locked to a single will: a genuinely
 				// returning user who already has a finished will on file gets a
@@ -467,7 +479,9 @@
 		phase = 'complete';
 		
 		// Track will completion with UTM params
-		trackWillCompletion(activeWillId, accountEmail || data.user?.email);
+		const email = accountEmail.trim() || data.user?.email || undefined;
+		console.log('[Will] Tracking completion - Will ID:', activeWillId, 'Email:', email);
+		trackWillCompletion(activeWillId, email);
 	}
 
 	async function handleCreateAccount() {

@@ -41,19 +41,32 @@ async function trackUtmEvent(
 	params: UtmParams,
 	additionalData?: { willId?: number; email?: string }
 ): Promise<void> {
+	const payload = {
+		eventType,
+		utmSource: params.utmSource,
+		utmMedium: params.utmMedium,
+		utmCampaign: params.utmCampaign,
+		sessionId: getOrCreateSessionId(),
+		...additionalData,
+	};
+	
+	console.log('[UTM Tracking] Sending event:', payload);
+	
 	try {
-		await fetch('/api/utm-tracking', {
+		const response = await fetch('/api/utm-tracking', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				eventType,
-				utmSource: params.utmSource,
-				utmMedium: params.utmMedium,
-				utmCampaign: params.utmCampaign,
-				sessionId: getOrCreateSessionId(),
-				...additionalData,
-			}),
+			body: JSON.stringify(payload),
 		});
+		
+		if (!response.ok) {
+			const error = await response.json();
+			console.error('[UTM Tracking] Server error:', error);
+			return;
+		}
+		
+		const result = await response.json();
+		console.log('[UTM Tracking] Success:', result);
 	} catch (error) {
 		// Silent fail - don't block user experience for tracking errors
 		console.warn('[UTM Tracking] Failed to track event:', error);
@@ -102,13 +115,22 @@ export function getFirstTouchUtm(): UtmParams {
 
 /** Track a will completion event with UTM parameters */
 export function trackWillCompletion(willId?: number | null, email?: string): void {
-	if (typeof window === 'undefined') return;
+	if (typeof window === 'undefined') {
+		console.log('[UTM Tracking] Skipping completion tracking - not in browser');
+		return;
+	}
 	
 	const utmParams = getFirstTouchUtm();
+	console.log('[UTM Tracking] Retrieved UTM params for completion:', utmParams);
+	console.log('[UTM Tracking] Will ID:', willId, 'Email:', email);
 	
 	// Only track if there are UTM parameters
-	if (!utmParams.utmSource && !utmParams.utmMedium && !utmParams.utmCampaign) return;
+	if (!utmParams.utmSource && !utmParams.utmMedium && !utmParams.utmCampaign) {
+		console.log('[UTM Tracking] No UTM parameters found - skipping completion tracking');
+		return;
+	}
 	
+	console.log('[UTM Tracking] Calling trackUtmEvent for will_completion');
 	trackUtmEvent('will_completion', utmParams, { 
 		willId: willId ?? undefined, 
 		email 
