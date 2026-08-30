@@ -24,6 +24,7 @@ import { verifyTopEntry } from '$lib/server/help/verify';
 import { persistEscalationAndBlocks } from '$lib/server/help/escalate';
 import { assertHelpProvidersReadyForProduction } from '$lib/server/help/contracts';
 import { checkHelpRateLimit } from '$lib/server/help/rateLimit';
+import { notifyHelpQuestion } from '$lib/server/help/notify';
 
 export type HelpQueryRequest = {
 	userId: string;
@@ -189,6 +190,16 @@ export async function processHelpQuery(req: HelpQueryRequest): Promise<HelpQuery
 		triggers: allTriggers,
 		rendered,
 		sensitiveData: redacted.hadSensitiveData,
+	});
+
+	void notifyHelpQuestion({
+		queryId: queryRow.id,
+		conversationId: conversationId!,
+		userId: req.userId,
+		surface: req.surface,
+		stepKey: req.stepKey ?? null,
+		questionText: redacted.text,
+		responseKind: rendered.kind,
 	});
 
 	return {

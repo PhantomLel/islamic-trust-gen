@@ -3,9 +3,53 @@ import { Resend } from 'resend';
 import { siteName } from '$lib/config';
 import { listActiveAdminEmails } from '$lib/server/help/contracts';
 import { getHelpSettings } from '$lib/server/help/settings';
+import { adminUserUrl } from '$lib/server/notifyAdmins';
 import { db } from '$lib/server/db';
 import { helpEscalation } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
+
+export async function notifyHelpQuestion(input: {
+	queryId: number;
+	conversationId: number;
+	userId: string;
+	surface: string;
+	stepKey: string | null;
+	questionText: string;
+	responseKind: string;
+}): Promise<void> {
+	if (process.env.NODE_ENV !== 'production') return;
+	if (!env.RESEND_API_KEY?.trim() || !env.FROM_EMAIL?.trim()) return;
+
+	const admins = await listActiveAdminEmails();
+	if (admins.length === 0) return;
+
+	const origin = (env.ORIGIN ?? '').replace(/\/$/, '');
+	const conversationUrl = origin
+		? `${origin}/admin/help/conversations/${input.conversationId}`
+		: `/admin/help/conversations/${input.conversationId}`;
+
+	const resend = new Resend(env.RESEND_API_KEY);
+	try {
+		await resend.emails.send({
+			from: env.FROM_EMAIL,
+			to: admins,
+			subject: `[${siteName}] Help Assistant question`,
+			text: [
+				'A user asked the Help Assistant a question.',
+				`User: ${adminUserUrl(input.userId)}`,
+				`Surface: ${input.surface}`,
+				input.stepKey ? `Step: ${input.stepKey}` : '',
+				`Response kind: ${input.responseKind}`,
+				`Question: ${input.questionText}`,
+				`Conversation: ${conversationUrl}`,
+			]
+				.filter(Boolean)
+				.join('\n'),
+		});
+	} catch (err) {
+		console.error('[notifyHelpQuestion]', err);
+	}
+}
 
 export async function notifyHelpEscalation(input: {
 	escalationId: number;
