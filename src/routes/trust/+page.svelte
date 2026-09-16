@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName, defaultPrepFee, formatUsd, jabalFoundationUrl } from '$lib/config';
+	import { siteName, defaultPrepFee, formatUsd, jabalFoundationUrl, jabalProPublicaUrl } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { slide } from 'svelte/transition';
 
@@ -339,7 +339,8 @@
 					We believe every Muslim family should build a waqf of their own — or leave a bequest to one that already exists. When you build your plan with us, you choose your own charitable bequests from a neutral, alphabetical list. We deliberately don't recommend one.
 				</p>
 				<p class="text-navy/70 text-base md:text-[17px] leading-relaxed">
-					Here's proof we mean it: attorney <strong class="font-semibold text-navy">Leonard McDaniel</strong> personally serves as <strong class="font-semibold text-navy">Secretary of the Board of Jabal Foundation</strong>, a real waqf that funds orphan development and meal distribution. <strong class="font-semibold text-navy">5% of every Good Tree Trust App purchase is donated to Jabal Foundation's Legacy Waqf</strong> — the same day you buy.
+					Here's proof we mean it: attorney <strong class="font-semibold text-navy">Leonard McDaniel</strong> serves as treasurer of Jabal Foundation's board and personally oversees its finances. Leonard receives <strong class="font-semibold text-navy">zero</strong> compensation for this, as do all of Jabal Foundation's board members.
+					<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>. Jabal Foundation is a real waqf that funds orphan development and meal distribution. <strong class="font-semibold text-navy">5% of every Good Tree Trust App purchase is donated to Jabal Foundation's Legacy Waqf</strong> — the same day you buy.
 				</p>
 				<a
 					href={jabalFoundationUrl}

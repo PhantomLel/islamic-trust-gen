@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { consultationBookingUrl, defaultPrepFee, formatUsd, jabalFoundationUrl } from '$lib/config';
+	import {
+		consultationBookingUrl,
+		defaultPrepFee,
+		formatUsd,
+		jabalFoundationUrl,
+		jabalProPublicaUrl
+	} from '$lib/config';
 	import { slide } from 'svelte/transition';
 	import { authClient } from '$lib/auth-client';
 
@@ -520,7 +526,8 @@
 				<div class="flex-1">
 					<div class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase font-medium mb-1">We're the waqf guys</div>
 					<p class="text-navy/60 text-sm leading-relaxed">
-						You choose your own charitable bequests from a neutral, alphabetical list — we deliberately don't recommend one. As proof: attorney Leonard McDaniel personally serves as Secretary of the Board of Jabal Foundation, and 5% of every GoodTree Trust purchase is donated to Jabal Foundation's Legacy Waqf the same day you buy.
+						You choose your own charitable bequests from a neutral, alphabetical list — we deliberately don't recommend one. As proof: attorney Leonard McDaniel serves as treasurer of Jabal Foundation's board and personally oversees its finances. Leonard receives <strong class="font-semibold">zero</strong> compensation for this, as do all of Jabal Foundation's board members.
+						<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>. 5% of every GoodTree Trust purchase is donated to Jabal Foundation's Legacy Waqf the same day you buy.
 					</p>
 				</div>
 				<a

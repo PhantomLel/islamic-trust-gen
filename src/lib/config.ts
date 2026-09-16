@@ -21,11 +21,13 @@ export function formatUsd(amountUsd: number): string {
 // ── Jabal Foundation giving program ──────────────────────────────────────────
 // 5% of the app-tier trust preparation fee (never the deed add-on, never a
 // hardcoded dollar figure) is donated to Jabal Foundation's Legacy Waqf the
-// same day the sale happens. Leonard McDaniel serves as Secretary of Jabal
-// Foundation's board — that role is disclosed by name everywhere this program
-// is described.
+// same day the sale happens. Leonard McDaniel serves as treasurer of Jabal
+// Foundation's board (zero compensation) — disclosed by name wherever this
+// program is described.
 export const jabalGivingRate = 0.05;
 export const jabalFoundationUrl = 'https://www.jabalfoundation.org/';
+export const jabalProPublicaUrl =
+	'https://projects.propublica.org/nonprofits/organizations/923844405';
 
 /** 5% of the trust preparation fee actually charged (excludes the deed retrieval add-on). */
 export function computeJabalDonation(trustFeeAmountUsd: number): number {

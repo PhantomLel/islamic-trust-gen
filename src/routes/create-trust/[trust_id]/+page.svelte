@@ -8,6 +8,7 @@
 		buckets,
 		isEligibleForOnlineTrustFromScreening,
 		jabalFoundationUrl,
+		jabalProPublicaUrl,
 		type QuestionResponseValue
 	} from '$lib/config';
 	import {
@@ -444,7 +445,8 @@
 				</div>
 				<div class="flex-1 min-w-0">
 					<p class="text-sm text-navy leading-relaxed">
-						As part of your purchase today, <strong class="font-semibold">{data.jabalDonationAmount}</strong> — 5% of your plan — was donated to Jabal Foundation's Legacy Waqf, which funds orphan development and ongoing meal distribution. Leonard serves as Secretary of Jabal's board and personally oversees how these funds are used.
+						As part of your purchase today, <strong class="font-semibold">{data.jabalDonationAmount}</strong> — 5% of your plan — was donated to Jabal Foundation's Legacy Waqf, which funds orphan development and ongoing meal distribution. Leonard serves as treasurer of Jabal Foundation's board and personally oversees its finances. Leonard receives <strong class="font-semibold">zero</strong> compensation for this, as do all of Jabal Foundation's board members.
+						<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>.
 					</p>
 					<a
 						href={jabalFoundationUrl}
