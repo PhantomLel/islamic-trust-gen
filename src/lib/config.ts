@@ -266,8 +266,6 @@ export const prePaymentQuestions: Question[] = [
 		type: 'personal-data',
 		required: true,
 		bucket: 'personal',
-		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10mFr7q0dnzlcbr6eI10ZaOgjXxYfTdUkiNvD9',
-		videoTitle: 'Let\'s get started with some easy questions.',
 	},
 	{
 		id: "wife-data",
@@ -293,8 +291,6 @@ export const prePaymentQuestions: Question[] = [
 		type: 'heirs-calculator',
 		required: true,
 		bucket: 'family',
-		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10IAIp6MPeFonb5wydHU6i2TYhqrPZDOkXj3RJ',
-		videoTitle: 'Now we need to know who will inherit your estate.'
 	},
 	{
 		id: 'wife-heirs',
@@ -404,8 +400,6 @@ export const postPaymentQuestions: Question[] = [
 		type: 'minor-distribution',
 		required: true,
 		bucket: 'trust',
-		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10nJllLYDNQrS24zUAo7hYkq0V6PBGpLRuJayO',
-		videoTitle: 'Children\'s inheritance distribution'
 	},
 	{
 		id: "madhab",
@@ -431,8 +425,6 @@ export const postPaymentQuestions: Question[] = [
 		type: 'pour-over-representatives',
 		required: true,
 		bucket: 'will',
-		videoUrl: 'https://xpxx9c4eks.ufs.sh/f/xrmNhsKgUH10yXz3q1Ncb63rAR8KDBn2h140uEaitxHCSkwQ',
-		videoTitle: 'Pour-Over Will'
 	},
 	{
 		id: "husband-guardians",
