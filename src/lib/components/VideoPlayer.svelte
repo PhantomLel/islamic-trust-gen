@@ -8,11 +8,13 @@
 		title = '',
 		autoplay = false,
 		onended = undefined,
+		onerror = undefined,
 	}: {
 		src: string;
 		title?: string;
 		autoplay?: boolean;
 		onended?: () => void;
+		onerror?: () => void;
 	} = $props();
 
 	let videoEl: HTMLVideoElement;
@@ -54,6 +56,10 @@
 
 		if (onended) {
 			player.on('ended', onended);
+		}
+
+		if (onerror) {
+			player.on('error', onerror);
 		}
 
 		const syncAspectFromVideo = () => {
