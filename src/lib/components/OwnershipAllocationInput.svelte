@@ -19,7 +19,7 @@
 </script>
 
 <div class="flex w-full min-w-0 flex-col gap-3 sm:gap-4">
-<!-- Option 1 — Recommended -->
+<!-- Option 1 — Heba -->
 <button
 	type="button"
 	onclick={() => { onresponse('heba'); onnext(); }}
@@ -28,19 +28,7 @@
 			? 'border-emerald-accent bg-white shadow-md shadow-emerald-accent/10'
 			: 'border-emerald-accent/30 bg-emerald-accent/2 hover:border-emerald-accent/60 hover:bg-white'}"
 >
-	<!-- Mobile: badge in document flow so body text can use full width -->
-	<div class="mb-3 md:hidden">
-		<span class="inline-block text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-accent/10 text-emerald-accent">
-			Recommended for most families
-		</span>
-	</div>
-	<div class="absolute top-3.5 right-4 hidden md:block">
-		<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-accent/10 text-emerald-accent">
-			Recommended for most families
-		</span>
-	</div>
-
-	<div class="flex items-start gap-3 sm:gap-4 min-w-0 md:pr-44">
+	<div class="flex items-start gap-3 sm:gap-4 min-w-0">
 		<div class="mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors
 			{selected === 'heba' ? 'border-emerald-accent' : 'border-navy/25'}">
 			{#if selected === 'heba'}
@@ -51,9 +39,6 @@
 			<div class="text-sm font-semibold text-navy mb-1.5">Heba - 50/50 Mutual Gift</div>
 			<p class="text-[13px] text-navy/55 leading-relaxed text-pretty wrap-break-word">
 				Each spouse gives the other half of everything earned during the marriage. You each end up owning exactly 50% of all marital property. The Islamic shares are then applied to each spouse's 50%.
-			</p>
-			<p class="text-[13px] text-navy/55 leading-relaxed mt-1.5 text-pretty wrap-break-word">
-				This is the simpler option and works well for the majority of families.
 			</p>
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
