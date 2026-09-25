@@ -95,6 +95,7 @@
 				</div>
 				<p class="text-navy font-medium text-sm">Check your email</p>
 				<p class="text-navy/50 text-xs mt-1">We sent a sign-in link to <strong class="text-navy/70">{email}</strong></p>
+				<p class="text-navy/45 text-xs mt-2">If you don't see it, check your spam or junk folder.</p>
 				<button
 					onclick={() => { magicLinkSent = false; email = ''; }}
 					class="mt-4 text-xs text-emerald-accent hover:text-emerald-light transition-colors cursor-pointer"
