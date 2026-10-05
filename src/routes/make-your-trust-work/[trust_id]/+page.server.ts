@@ -1,4 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { willSigningInstructionsFor } from '$lib/free-will/signing';
+import { normalizeJurisdiction } from '$lib/loeAgreement';
 import { and, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { trust, invoice, TrustStatus } from '$lib/server/db/schema';
@@ -79,6 +81,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			notarizationLinkUrl: true,
 			joint: true,
 			responses: true,
+			jurisdiction: true,
 		},
 	});
 	if (!t) throw error(404, 'Trust not found');
@@ -149,6 +152,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			title: content.title,
 			body: content.body,
 			warning: content.warning ?? null,
+			willSigning: content.showWillSigningInstructions
+				? willSigningInstructionsFor(normalizeJurisdiction(t.jurisdiction))
+				: null,
 			checklist: content.checklist,
 			videoUrl: content.videoUrl ?? null,
 			allowNa: !!content.allowNa,

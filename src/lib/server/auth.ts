@@ -3,6 +3,9 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { magicLink } from 'better-auth/plugins/magic-link';
 import { admin } from 'better-auth/plugins/admin';
+import { twoFactor } from 'better-auth/plugins/two-factor';
+import { APIError } from 'better-auth/api';
+import { contentSessionPathAllowed, isContentStaffRole, CONTENT_SESSION_IDLE_MS } from '$lib/content/permissions';
 import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 import { db } from '$lib/server/db';
@@ -39,6 +42,24 @@ export const auth = betterAuth({
 		},
 		session: {
 			create: {
+				// Content staff (spec v3 §7): password sign-in plus the second factor only, and a
+				// 12-hour session. Magic links and Google sign-in skip the second factor, so they
+				// are refused for these roles.
+				before: async (created, ctx) => {
+					if (!created.userId) return;
+					const [row] = await db
+						.select({ role: user.role })
+						.from(user)
+						.where(eq(user.id, created.userId))
+						.limit(1);
+					if (!isContentStaffRole(row?.role)) return;
+					if (!contentSessionPathAllowed(ctx?.path)) {
+						throw new APIError('FORBIDDEN', {
+							message: 'Content accounts sign in with email and password, then a verification code.',
+						});
+					}
+					return { data: { ...created, expiresAt: new Date(Date.now() + CONTENT_SESSION_IDLE_MS) } };
+				},
 				after: async (created) => {
 					const ua = created.userAgent;
 					if (!created.userId || typeof ua !== 'string' || !ua.trim()) return;
@@ -51,6 +72,11 @@ export const auth = betterAuth({
 		},
 	},
 	emailAndPassword: { enabled: true },
+	session: {
+		// Sessions refresh at most this often. Content staff are signed out after 12 idle hours
+		// (checked in hooks.server.ts against the session's last refresh), so keep this short.
+		updateAge: 5 * 60,
+	},
 	socialProviders: {
 		google: {
 			clientId: env.GOOGLE_CLIENT_ID!,
@@ -64,6 +90,8 @@ export const auth = betterAuth({
 			// "admin" is the only elevated role
 			adminRoles: ['admin'],
 		}),
+		// Required for content_author and content_publisher. Enrolment happens at /admin/content/security.
+		twoFactor({ issuer: siteName }),
 		magicLink({
 			sendMagicLink: async ({ email, url }) => {
 				await resend.emails.send({

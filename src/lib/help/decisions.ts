@@ -1,5 +1,5 @@
 /**
- * Controlling product decisions for the Good Tree Help Assistant (plan §1).
+ * Controlling product decisions for the Help Assistant (plan §1).
  * Source of truth for runtime defaults; do not infer behavior beyond this file and the KB.
  */
 
@@ -24,6 +24,10 @@ export const HELP_PRODUCT_DECISIONS = {
 
 export const GENERAL_INFORMATION_FOOTER =
 	'This is general information for using the app, not individualized legal or tax advice.';
+
+/** Shown when the Help Assistant panel opens (spec v3 §12). */
+export const HELP_ASSISTANT_DISCLOSURE =
+	'Automated information assistant, not an attorney. It provides approved general information about our services and cannot advise on your situation. Please do not enter confidential information here.';
 
 export const HELP_PROVIDER_MODELS = {
 	voyageRerank: 'rerank-2.5',

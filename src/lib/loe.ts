@@ -1,5 +1,12 @@
-/** Current version of the Limited-Scope App Engagement clickwrap agreement. */
-export const LOE_AGREEMENT_VERSION = '1.0';
+/**
+ * Current version of the Limited-Scope App Engagement clickwrap agreement.
+ *
+ * 1.1 (spec v3 / Appendix A): product name, Texas Schedule A, flat-fee slot,
+ * California advance-fee clause, electronic-signature statement.
+ * Stored acceptance records keep the version they were accepted under; they are
+ * never rewritten.
+ */
+export const LOE_AGREEMENT_VERSION = '1.1';
 
 /** Current version of the Planning Warning clickwrap agreement. */
 export const WARNING_AGREEMENT_VERSION = '1.0';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName } from '$lib/config';
+	import { siteName, productName } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -330,7 +330,7 @@
 	}
 
 	const PLAN_LABELS: Record<string, string> = {
-		'goodtree-trust': 'GoodTree Trust',
+		'goodtree-trust': productName,
 		'legacy-plan': 'Legacy Plan',
 		'family-waqf': 'Family Waqf',
 	};
@@ -353,6 +353,7 @@
 			{siteName}
 		</a>
 		<div class="flex items-center gap-5">
+			<a href="/admin/content" class="text-sm text-navy/50 transition-colors hover:text-navy">Content</a>
 			<a href="/admin/help" class="text-sm text-navy/50 transition-colors hover:text-navy">Help Assistant</a>
 			<a href="/admin/email-preview" class="text-sm text-navy/50 transition-colors hover:text-navy">Email preview</a>
 			<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">Admin</span>

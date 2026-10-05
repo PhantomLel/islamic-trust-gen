@@ -115,6 +115,15 @@
 				/>
 			</label>
 			<label class="block">
+				<span class="text-sm font-medium text-navy">Published answer page (optional)</span>
+				<p class="text-[12px] text-navy/45 mt-0.5">Slug only, e.g. <code class="text-[11px]">what-is-probate</code>. Links in the Help Assistant when that page is published.</p>
+				<input
+					name="contentPageSlug"
+					class="mt-1.5 w-full rounded-md border border-navy/15 bg-white px-3 py-2 text-sm text-navy focus:outline-none focus:border-emerald-accent"
+					value={data.entry.contentPageSlug ?? ''}
+				/>
+			</label>
+			<label class="block">
 				<span class="text-sm font-medium text-navy">App meaning</span>
 				<textarea
 					name="goodTreeAppMeaning"

@@ -139,6 +139,7 @@
 		'joint-trust': 'Joint Trust',
 		'acknowledgment-of-islamic-ownership-election': 'Acknowledgment of Islamic Ownership Election',
 		'certification-of-trust': 'Certification of Trust',
+		'loe-acceptance-copy': 'Engagement Agreement (your copy)',
 		'other': 'Other',
 	};
 

@@ -8,7 +8,7 @@ import {
 	type KbClassificationBase,
 	type KbGovernanceStatus,
 } from '$lib/server/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 export function buildRerankDocument(parts: {
 	question?: string | null;
@@ -113,6 +113,17 @@ export async function snapshotEntryVersion(
 		})
 		.returning({ id: kbEntryVersion.id });
 	return version.id;
+}
+
+/** Latest snapshot for an entry (stored on each help query when an entry is served). */
+export async function getLatestEntryVersionId(entryId: number): Promise<number | null> {
+	const [row] = await db
+		.select({ id: kbEntryVersion.id })
+		.from(kbEntryVersion)
+		.where(eq(kbEntryVersion.entryId, entryId))
+		.orderBy(desc(kbEntryVersion.id))
+		.limit(1);
+	return row?.id ?? null;
 }
 
 export async function approveEntry(entryId: number, adminUserId: string): Promise<void> {
@@ -252,6 +263,7 @@ export async function updateEntryUserFacingFields(
 		userNextStep?: string | null;
 		category?: string | null;
 		alsoAnswers?: string[];
+		contentPageSlug?: string | null;
 	},
 	adminUserId: string,
 ): Promise<void> {
@@ -280,6 +292,10 @@ export async function updateEntryUserFacingFields(
 			goodTreeAppMeaning: fields.goodTreeAppMeaning ?? row.goodTreeAppMeaning,
 			userNextStep: fields.userNextStep ?? row.userNextStep,
 			category: fields.category !== undefined ? fields.category || null : row.category,
+			contentPageSlug:
+				fields.contentPageSlug !== undefined
+					? fields.contentPageSlug?.trim() || null
+					: row.contentPageSlug,
 			rerankDocument,
 			updatedAt: new Date(),
 		})

@@ -7,14 +7,6 @@
 	} from '$lib/free-will/content/heir-explainer';
 </script>
 
-<svelte:head>
-	<title>Who Counts as an Islamic Heir? | Muslim Legacy Planning</title>
-	<meta
-		name="description"
-		content="A short guide to Islamic inheritance eligibility — whom to include in the faraid calculator and why."
-	/>
-</svelte:head>
-
 <WillGuideLayout
 	title="Who Counts as an Islamic Heir?"
 	subtitle="Islamic inheritance follows defined eligibility rules. This short guide explains whom to include in the calculator and why."

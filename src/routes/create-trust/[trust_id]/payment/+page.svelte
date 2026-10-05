@@ -1,10 +1,12 @@
 <script lang="ts">
 	import {
 		siteName,
+		productName,
+		productNameMidSentence,
 		consultationBookingUrl,
 		jabalFoundationUrl,
 		jabalProPublicaUrl,
-		formatJabalDonation
+		jabalPaymentCopy
 	} from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { page } from '$app/stores';
@@ -89,7 +91,7 @@
 					<div>
 						<p class="text-[10px] tracking-[0.25em] uppercase text-amber-600 font-medium mb-1">Important Notice</p>
 						<h2 id="warning-title" class="text-lg font-semibold text-navy leading-snug">
-							The Good Tree Trust App is for simpler estates
+							{productName} is for simpler estates
 						</h2>
 					</div>
 					<button
@@ -110,7 +112,7 @@
 				{#if warningStep === 'warning'}
 					<!-- Step 1: Warning copy -->
 					<p class="text-navy/80">
-						The Good Tree Trust App was designed to help Muslim families create a basic Islamic trust plan at an accessible cost. For many families, the app is a major improvement over doing nothing or relying only on a simple will. But if your estate is larger, tax-sensitive, business-related, or likely to create family conflict, the app may not be the best planning option.
+						{productName} was designed to help Muslim families create a basic Islamic trust plan at an accessible cost. For many families, the app is a major improvement over doing nothing or relying only on a simple will. But if your estate is larger, tax-sensitive, business-related, or likely to create family conflict, the app may not be the best planning option.
 					</p>
 
 					<div>
@@ -149,7 +151,7 @@
 							<input type="checkbox" bind:checked={warningBoxes.basicPlanningOnly}
 								class="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/25 text-emerald-accent focus:ring-emerald-accent/30 cursor-pointer" />
 							<span class="text-[13px] text-navy/75 leading-relaxed group-hover:text-navy/90 transition-colors">
-								I understand that the Good Tree Trust App is designed for <strong class="font-semibold text-navy">basic, lower-to-moderate complexity</strong> Islamic trust planning.
+								I understand that {productNameMidSentence()} is designed for <strong class="font-semibold text-navy">basic, lower-to-moderate complexity</strong> Islamic trust planning.
 							</span>
 						</label>
 
@@ -307,7 +309,7 @@
 				One-time fee for attorney-supervised trust preparation and document drafting.
 			</p>
 			<p class="text-[12.5px] text-emerald-accent/90 leading-relaxed mt-3 pt-3 border-t border-navy/6">
-				{formatJabalDonation(fullPrice)} — 5% of this fee — will be donated to Jabal Foundation's Legacy Waqf the same day you pay. Leonard serves as treasurer of Jabal Foundation's board and personally oversees its finances. Leonard receives <strong class="font-semibold">zero</strong> compensation for this, as do all of Jabal Foundation's board members.
+				{jabalPaymentCopy()}
 				<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-emerald-light">See more</a>.
 				<a href={jabalFoundationUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-emerald-light">Learn more about Jabal Foundation</a>
 			</p>

@@ -54,6 +54,7 @@ export const actions: Actions = {
 				userNextStep: String(form.get('userNextStep') ?? ''),
 				category: String(form.get('category') ?? '') || null,
 				alsoAnswers: parseAlsoAnswers(String(form.get('alsoAnswers') ?? '')),
+				contentPageSlug: String(form.get('contentPageSlug') ?? '') || null,
 			},
 			locals.user!.id,
 		);

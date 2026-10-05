@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SCHEDULES, FREE_WILL_SCHEDULE, QUIZ_SCHEDULE, APP_STARTED_SCHEDULE } from './sequences';
+import { listUnsubscribeHeaders } from './marketingEmailHeaders';
 
 // ─── Template smoke renders ────────────────────────────────────────────────────
 import { freeWillEmail2 } from '$lib/server/emails/drip/freeWill/email2';
@@ -177,6 +178,14 @@ describe('XSS / HTML escaping', () => {
 });
 
 // ─── Unsubscribe link ──────────────────────────────────────────────────────────
+
+describe('List-Unsubscribe headers', () => {
+	it('includes RFC 8058 one-click headers', () => {
+		const headers = listUnsubscribeHeaders(COMMON_OPTS.unsubscribeUrl);
+		expect(headers['List-Unsubscribe']).toBe(`<${COMMON_OPTS.unsubscribeUrl}>`);
+		expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
+	});
+});
 
 describe('Unsubscribe link', () => {
 	it('all drip emails include the unsubscribe URL', () => {

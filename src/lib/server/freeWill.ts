@@ -64,6 +64,22 @@ export async function getLatestFreeWill(userId: string) {
 	});
 }
 
+/**
+ * Consent is recorded only when the visitor ticks the box. A later save that does
+ * not tick it never clears an earlier opt-in on the same row.
+ */
+function consentColumns(
+	input: { marketingConsent?: boolean },
+	existing: { marketingConsent: boolean; marketingConsentAt: Date | null } | null | undefined,
+): { marketingConsent: boolean; marketingConsentAt: Date | null } {
+	if (existing?.marketingConsent) {
+		return { marketingConsent: true, marketingConsentAt: existing.marketingConsentAt };
+	}
+	return input.marketingConsent
+		? { marketingConsent: true, marketingConsentAt: new Date() }
+		: { marketingConsent: false, marketingConsentAt: null };
+}
+
 export type SaveFreeWillInput = {
 	responses: WillResponse[];
 	state: string | null;
@@ -72,10 +88,10 @@ export type SaveFreeWillInput = {
 	recommendedPlan: string | null;
 	reviewReminders: boolean;
 	acknowledgmentData: AcknowledgmentData | null;
-	/** First-touch UTM attribution (A7 groundwork), captured client-side on first page load. */
-	utmSource?: string | null;
-	utmMedium?: string | null;
-	utmCampaign?: string | null;
+	/** Short first-party source code read from the cookie on the server (spec v3 §5.1). */
+	attributionCode?: string | null;
+	/** Account-step marketing opt-in (spec v3 §4.3). Unchecked by default. */
+	marketingConsent?: boolean;
 };
 
 /**
@@ -105,7 +121,7 @@ export async function saveFreeWillForUser(
 		: null;
 
 	// Preserve the row's original first-touch attribution across edits — only
-	// fill it in if this is the first time we've captured a UTM for this will.
+	// fill it in if this is the first time we've captured a code for this will.
 	const values = {
 		userId,
 		name,
@@ -120,9 +136,8 @@ export async function saveFreeWillForUser(
 		updatedAt: new Date(),
 		acknowledgmentAcceptedAt: new Date(),
 		acknowledgmentData: input.acknowledgmentData,
-		utmSource: existing?.utmSource ?? input.utmSource ?? null,
-		utmMedium: existing?.utmMedium ?? input.utmMedium ?? null,
-		utmCampaign: existing?.utmCampaign ?? input.utmCampaign ?? null,
+		attributionCode: existing?.attributionCode ?? input.attributionCode ?? null,
+		...consentColumns(input, existing),
 	};
 
 	if (existing) {
@@ -168,9 +183,8 @@ export async function savePendingFreeWill(
 			complete: true,
 			acknowledgmentAcceptedAt: new Date(),
 			acknowledgmentData: input.acknowledgmentData,
-			utmSource: input.utmSource ?? null,
-			utmMedium: input.utmMedium ?? null,
-			utmCampaign: input.utmCampaign ?? null,
+			attributionCode: input.attributionCode ?? null,
+			...consentColumns(input, null),
 		})
 		.returning({ id: freeWill.id });
 
@@ -178,7 +192,7 @@ export async function savePendingFreeWill(
 }
 
 /**
- * Seed values for the GoodTree Trust intake derived from a completed free will.
+ * Seed values for the Guided Trust intake derived from a completed free will.
  * The trust is joint and far more detailed, so this only pre-fills the fields
  * that overlap. It is intentionally conservative: it returns a partial map keyed
  * by trust question id that a future "start a trust from your will" flow can

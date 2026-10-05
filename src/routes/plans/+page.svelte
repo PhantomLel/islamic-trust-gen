@@ -1,14 +1,13 @@
 <script lang="ts">
-	import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
+	import {
+		consultationBookingUrl,
+		defaultPrepFee,
+		formatUsd,
+		productName,
+		productNameShortBare,
+		productAttorneyReviewSentence
+	} from '$lib/config';
 </script>
-
-<svelte:head>
-	<title>Plans — Muslim Legacy Planning</title>
-	<meta
-		name="description"
-		content="All five Islamic estate planning packages — from the free Islamic will to the Family Waqf Plan and advanced charitable structures."
-	/>
-</svelte:head>
 
 <!-- ═══ NAV ═══ -->
 <nav class="fixed top-0 inset-x-0 z-50 bg-cream/95 backdrop-blur-sm border-b border-navy/10">
@@ -82,17 +81,17 @@
 						</div>
 						<div class="text-right shrink-0">
 							<div class="text-3xl tracking-tight text-navy">Free</div>
-							<div class="text-navy/40 text-xs mt-0.5">no cost · all states</div>
+							<div class="text-navy/40 text-xs mt-0.5">no cost</div>
 						</div>
 					</div>
 
 					<p class="text-navy/60 text-sm leading-relaxed">
-						The starting point for every Muslim family. Attorney-informed and shariah-grounded — regardless of estate size, state of residence, or how much you already know about Islamic inheritance.
+						The starting point for every Muslim family. Attorney-informed and shariah-grounded — regardless of estate size or how much you already know about Islamic inheritance.
 					</p>
 
 					<div class="bg-navy/3 rounded-xl border border-navy/6 px-4 py-3">
 						<p class="text-navy/45 text-xs leading-relaxed">
-							Free. In Texas and California, this document is attorney-supervised by McDaniel Estate Planning, PLLC. In all other states, this is a self-help educational resource and does not create an attorney-client relationship.
+							Free. In Texas and California, this document is attorney-supervised by McDaniel Estate Planning, PLLC.
 						</p>
 					</div>
 
@@ -118,8 +117,7 @@
 							'Islamic distribution schedule following Qur\'anic fractions',
 							'Community property acknowledgment (where applicable)',
 							'Islamic reconciliation letter',
-							'Signing instructions and witness requirements',
-							'Valid in all 50 states as a self-help document'
+							'Signing instructions and witness requirements'
 						] as item}
 							<li class="flex items-start gap-3 text-sm text-navy/68">
 								<svg class="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -133,7 +131,7 @@
 			</div>
 		</article>
 
-		<!-- ── PLAN 2: GoodTree Trust ── -->
+		<!-- ── PLAN 2: Guided Trust ── -->
 		<article class="rounded-2xl border border-navy/12 bg-white/70 overflow-hidden shadow-sm shadow-navy/4">
 			<div class="grid lg:grid-cols-[1fr_1.1fr] divide-y lg:divide-y-0 lg:divide-x divide-navy/8">
 
@@ -142,8 +140,8 @@
 					<div class="flex items-baseline justify-between gap-4">
 						<div>
 							<span class="text-[10px] tracking-[0.28em] uppercase text-emerald-accent/70 font-medium">Plan 02 · Most popular</span>
-							<h2 class="text-2xl md:text-3xl tracking-tight text-navy mt-1">GoodTree Trust</h2>
-							<p class="text-navy/45 text-xs mt-1">Islamic Trust Builder by Muslim Legacy Planning</p>
+							<h2 class="text-2xl md:text-3xl tracking-tight text-navy mt-1">{productName}</h2>
+							<p class="text-navy/70 text-sm leading-relaxed mt-2">{productAttorneyReviewSentence}</p>
 						</div>
 						<div class="text-right shrink-0">
 							<div class="text-3xl tracking-tight text-navy">{formatUsd(defaultPrepFee)}</div>
@@ -152,7 +150,7 @@
 					</div>
 
 					<p class="text-navy/60 text-sm leading-relaxed">
-						Self-service Islamic revocable living trust for individuals and families with straightforward estates. Build at your own pace — an attorney reviews, supervises, and signs the final trust.
+						Islamic revocable living trust for individuals and families with straightforward estates. Build at your own pace — an attorney reviews, supervises, and signs the final trust.
 					</p>
 
 					<div class="bg-emerald-accent/6 rounded-xl border border-emerald-accent/15 px-4 py-3">
@@ -172,7 +170,7 @@
 							class="group inline-flex items-center gap-2 px-6 py-3 bg-navy text-cream text-sm font-medium rounded-lg
 								   transition-all duration-200 hover:bg-navy-light hover:-translate-y-0.5 active:scale-[0.98]"
 						>
-							Start Your GoodTree Trust
+							Start Your {productNameShortBare()}
 							<svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
 							</svg>
@@ -448,7 +446,7 @@
 			<div class="flex flex-wrap gap-6">
 				<a href="/" class="text-navy/45 text-xs hover:text-navy/70 transition-colors">Home</a>
 				<a href="/which-plan" class="text-navy/45 text-xs hover:text-navy/70 transition-colors">Which plan is right?</a>
-				<a href="/trust" class="text-navy/45 text-xs hover:text-navy/70 transition-colors">GoodTree Trust</a>
+				<a href="/trust" class="text-navy/45 text-xs hover:text-navy/70 transition-colors">{productNameShortBare()}</a>
 				<a href={consultationBookingUrl} class="text-navy/45 text-xs hover:text-navy/70 transition-colors">Book Consultation</a>
 			</div>
 		</div>

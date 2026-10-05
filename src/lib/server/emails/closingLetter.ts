@@ -1,4 +1,4 @@
-import { consultationBookingUrl, siteName } from '$lib/config';
+import { consultationBookingUrl, productName, siteName } from '$lib/config';
 import { amanaEmailDocument, escapeHtmlAttr, escapeHtmlText } from './layout';
 
 export type ClosingLetterEmailInput = {
@@ -246,7 +246,7 @@ export function closingLetterEmail(input: ClosingLetterEmailInput): string {
           <!-- ── Closing ── -->
           ${sectionHeading('Closing', 'Limited app engagement complete')}
           ${paragraph(
-						`<strong style="color:#2c3e3a;">Your limited Good Tree Trust App engagement is now complete.</strong> McDaniel Estate Planning is no longer representing you in this matter unless we sign a separate written engagement.`
+						`<strong style="color:#2c3e3a;">Your limited ${productName} engagement is now complete.</strong> McDaniel Estate Planning is no longer representing you in this matter unless we sign a separate written engagement.`
 					)}
           ${paragraph(
 						`We have no ongoing duty to monitor changes in your family, assets, tax situation, state of residence, beneficiary designations, homestead status, or applicable law. If you want future legal help, trust updates, funding help, or review of new assets, you must separately hire McDaniel Estate Planning or another attorney.`

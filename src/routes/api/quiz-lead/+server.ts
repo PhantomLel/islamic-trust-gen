@@ -56,6 +56,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		if (!result.enrolled) {
+			if (result.reason === 'drip_disabled') {
+				// Lead recorded; marketing sequences are switched off, so nothing is emailed.
+				return json({ success: true, emailed: false });
+			}
 			if (result.reason === 'terminal') {
 				return json(
 					{ success: false, error: 'This email is unsubscribed or no longer eligible for these emails.' },

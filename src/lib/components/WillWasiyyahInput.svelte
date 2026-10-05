@@ -80,12 +80,18 @@
 		return data.bequests.some((b) => b.charityId === charityId);
 	}
 
-	function togglePreset(charityId: string) {
+	function togglePreset(charityId: string, meta?: { confirmedAt?: string }) {
 		const exists = data.bequests.some((b) => b.charityId === charityId);
 		if (exists) {
 			emit({ ...data, bequests: data.bequests.filter((b) => b.charityId !== charityId) });
 		} else {
-			emit({ ...data, bequests: [...data.bequests, { charityId, percentage: 0 }] });
+			emit({
+				...data,
+				bequests: [
+					...data.bequests,
+					{ charityId, percentage: 0, ...(meta?.confirmedAt ? { jabalConfirmedAt: meta.confirmedAt } : {}) },
+				],
+			});
 		}
 	}
 
@@ -188,7 +194,7 @@
 				idPrefix="will-national-charity"
 				selectedIds={nationalCharityIds()}
 				getPercentage={(id) => data.bequests.find((b) => b.charityId === id)?.percentage ?? 0}
-				onselect={(id) => togglePreset(id)}
+				onselect={(id, meta) => togglePreset(id, meta)}
 				onremove={(id) => togglePreset(id)}
 				onPercentageChange={updatePercentage}
 			/>

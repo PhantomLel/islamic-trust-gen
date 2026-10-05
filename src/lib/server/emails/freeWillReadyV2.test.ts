@@ -1,95 +1,55 @@
 import { describe, expect, it } from 'vitest';
 import { freeWillReadyEmailV2, type FreeWillReadyV2Input } from './freeWillReadyV2';
-
-const legacyOffer = {
-	title: 'Legacy Plan',
-	tagline: 'Full-service estate planning designed personally by your attorney.',
-	priceLine: 'From $3,500.',
-	href: 'https://example.com/plans?utm_source=transactional&utm_medium=email&utm_campaign=will_delivery',
-	variant: 'premium' as const,
-};
-
-const goodTreeOffer = {
-	title: 'GoodTree Trust',
-	tagline: 'Build an attorney-backed Islamic living trust online.',
-	priceLine: '$1,499.00 flat fee.',
-	href: 'https://example.com/trust?utm_source=transactional&utm_medium=email&utm_campaign=will_delivery',
-	variant: 'app' as const,
-};
+import { willSigningWrapper, texasWillSigningSteps } from '$lib/free-will/signing';
+import { DRAFT_MARKER } from '$lib/free-will/draft';
+import { productName } from '$lib/config';
 
 const baseInput: FreeWillReadyV2Input = {
 	firstName: 'Yusuf',
 	stateName: 'Texas',
 	stateCode: 'TX',
 	filename: 'Yusuf-Islamic-Will.docx',
-	marriedCommunityPropertyState: false,
-	flagLines: [],
-	offers: [legacyOffer],
-	consultUrl: 'https://example.com/consult?utm_source=transactional&utm_medium=email&utm_campaign=will_delivery',
 };
 
 describe('freeWillReadyEmailV2', () => {
-	it('renders the greeting, filename, and Texas notary step', () => {
+	it('renders the greeting, filename, and draft marker', () => {
 		const html = freeWillReadyEmailV2(baseInput);
 		expect(html).toContain('Assalamu Alaikum, Yusuf');
 		expect(html).toContain('Yusuf-Islamic-Will.docx');
-		expect(html).toContain('self-proving affidavit');
+		expect(html).toContain(DRAFT_MARKER);
 		expect(html).toContain('Licensed in Texas and California');
 		expect(html).not.toContain('{{');
 	});
 
-	it('omits the MARRIED_TX and FLAGS blocks when inactive', () => {
+	it('Texas: shows the wrapper, the Appendix A 4.1 heading, and all eight steps verbatim', () => {
 		const html = freeWillReadyEmailV2(baseInput);
-		expect(html).not.toContain('A NOTE FOR MARRIED COUPLES IN TEXAS');
-		expect(html).not.toContain('RECOMMENDED NEXT STEPS');
+		expect(html).toContain(willSigningWrapper);
+		expect(html).toContain('How to sign your will in Texas');
+		expect(texasWillSigningSteps).toHaveLength(8);
+		for (const step of texasWillSigningSteps) expect(html).toContain(step);
 	});
 
-	it('renders the MARRIED_TX note when married in a community-property ack state', () => {
-		const html = freeWillReadyEmailV2({ ...baseInput, marriedCommunityPropertyState: true });
-		expect(html).toContain('A NOTE FOR MARRIED COUPLES IN TEXAS');
-		expect(html).toContain('community property law already gives each spouse half');
-	});
-
-	it('renders one FLAG_LINES bullet per active flag, no more', () => {
-		const html = freeWillReadyEmailV2({
-			...baseInput,
-			flagLines: ['Your home may pass outside your will.', 'You want to avoid probate.'],
-		});
-		expect(html).toContain('RECOMMENDED NEXT STEPS');
-		expect(html).toContain('Your home may pass outside your will.');
-		expect(html).toContain('You want to avoid probate.');
-		expect((html.match(/&#8226;/g) ?? []).length).toBe(2);
-	});
-
-	it('renders reassurance copy when offers is empty (zero-complexity user)', () => {
-		const html = freeWillReadyEmailV2({ ...baseInput, offers: [] });
-		expect(html).toContain('your situation is fairly straightforward');
-		expect(html).not.toContain('RECOMMENDED FOR YOUR SITUATION');
-		expect(html).not.toContain('PREMIUM OPTION');
-		expect(html).not.toContain('GoodTree Trust');
-		expect(html).not.toContain('Start your trust');
-		expect(html).not.toContain('From $3,500');
-	});
-
-	it('renders the GoodTree app card above the Legacy Plan card when APP_RECOMMENDED', () => {
-		const html = freeWillReadyEmailV2({ ...baseInput, offers: [goodTreeOffer, legacyOffer] });
-		expect(html.indexOf('GoodTree Trust')).toBeLessThan(html.indexOf('>Legacy Plan<'));
-		expect(html).toContain('Start your trust');
-		expect(html).toContain('Learn more');
-	});
-
-	it('renders no offer cards when not app-recommended', () => {
-		const html = freeWillReadyEmailV2({ ...baseInput, offers: [] });
-		expect(html).not.toContain('GoodTree Trust');
-		expect(html).not.toContain('Start your trust');
-		expect(html).not.toContain('PREMIUM OPTION');
-		expect(html).not.toContain('From $3,500');
-		expect(html).toContain('your situation is fairly straightforward');
-	});
-
-	it('uses the non-Texas signing step and generic state note outside Texas', () => {
+	it('California: shows the wrapper only, with no Texas steps and no draft California steps', () => {
 		const html = freeWillReadyEmailV2({ ...baseInput, stateCode: 'CA', stateName: 'California' });
-		expect(html).not.toContain('optional in Texas');
-		expect(html).toContain('for California');
+		expect(html).toContain(willSigningWrapper);
+		expect(html).not.toContain('How to sign your will in Texas');
+		expect(html).not.toContain('How to sign your will in California');
+		expect(html).not.toContain('self-proving affidavit');
+		expect(html).not.toContain('California does not require a notary');
+	});
+
+	it('is a service email: no plan card, flag list, or promotional block', () => {
+		for (const stateCode of ['TX', 'CA']) {
+			const html = freeWillReadyEmailV2({ ...baseInput, stateCode });
+			expect(html).not.toContain('RECOMMENDED FOR YOUR SITUATION');
+			expect(html).not.toContain('RECOMMENDED NEXT STEPS');
+			expect(html).not.toContain('PREMIUM OPTION');
+			expect(html).not.toContain('Start your trust');
+			expect(html).not.toMatch(/Legacy Plan(?!ning)/);
+			expect(html).not.toContain(productName);
+			expect(html).not.toContain('GoodTree');
+			expect(html).not.toContain('Book an attorney review');
+			expect(html).not.toContain('a will alone does not avoid probate');
+		}
 	});
 });

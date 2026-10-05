@@ -9,6 +9,7 @@ import { buildLinks } from './links';
 import { renderDripEmail } from './renderEmail';
 import { env } from '$env/dynamic/private';
 import { randomBytes } from 'crypto';
+import { DRIP_SENDING_ENABLED } from './config';
 
 export type { LeadType, QuizResult, AppStatus, SequenceName };
 
@@ -54,14 +55,77 @@ export type EnrollInput = {
 	firstEmailDelayHours?: number;
 	/** If true, send Email 1 immediately (quiz sequence) and schedule Email 2+. */
 	sendFirstEmailNow?: boolean;
+	/** Short first-party source code (spec v3 §5.1). Never a raw campaign string. */
+	attributionCode?: string | null;
+	/** The visitor ticked the unchecked-by-default marketing box (spec v3 §4.3). */
+	marketingConsent?: boolean;
 };
 
 export type EnrollResult =
 	| { enrolled: true }
-	| { enrolled: false; reason: 'terminal' | 'lower_priority' | 'empty_schedule' };
+	| { enrolled: false; reason: 'terminal' | 'lower_priority' | 'empty_schedule' | 'drip_disabled' };
+
+/**
+ * Record a lead without scheduling any drip email. Used while
+ * `DRIP_SENDING_ENABLED` is false so attribution and state still land on the
+ * row, but `nextEmailAt` stays null and the cron never picks it up.
+ */
+async function recordLeadWithoutSequence(input: EnrollInput): Promise<void> {
+	const email = input.email.trim().toLowerCase();
+	const now = new Date();
+	const existing = await db.query.marketingLead.findFirst({
+		where: eq(marketingLead.email, email),
+	});
+	if (existing) {
+		// Never reactivate or reschedule an existing row.
+		await db
+			.update(marketingLead)
+			.set({
+				firstName: input.firstName ?? existing.firstName,
+				userId: input.userId ?? existing.userId,
+				trustId: input.trustId ?? existing.trustId,
+				lastTouchSource: input.source ?? existing.lastTouchSource,
+				appStatus: input.appStatus ?? existing.appStatus,
+				attributionCode: existing.attributionCode ?? input.attributionCode ?? null,
+				// Opting in again never overrides an earlier unsubscribe.
+				...(input.marketingConsent && !existing.unsubscribed && !existing.marketingConsent
+					? { marketingConsent: true, marketingConsentAt: now }
+					: {}),
+				updatedAt: now,
+			})
+			.where(eq(marketingLead.email, email));
+		return;
+	}
+	await db.insert(marketingLead).values({
+		email,
+		firstName: input.firstName ?? null,
+		userId: input.userId ?? null,
+		trustId: input.trustId ?? null,
+		firstTouchSource: input.source ?? null,
+		lastTouchSource: input.source ?? null,
+		leadType: input.leadType,
+		quizResult: input.quizResult ?? null,
+		quizWaqf: input.quizWaqf ?? false,
+		complexityFlags: input.complexityFlags ?? [],
+		appStatus: input.appStatus ?? null,
+		currentSequence: null,
+		sequenceStatus: null,
+		nextEmailAt: null,
+		attributionCode: input.attributionCode ?? null,
+		marketingConsent: input.marketingConsent ?? false,
+		marketingConsentAt: input.marketingConsent ? now : null,
+		unsubscribeToken: randomBytes(24).toString('hex'),
+		updatedAt: now,
+	});
+}
 
 /** Enroll or switch a lead into a drip sequence. */
 export async function enrollLead(input: EnrollInput): Promise<EnrollResult> {
+	if (!DRIP_SENDING_ENABLED) {
+		await recordLeadWithoutSequence(input);
+		return { enrolled: false, reason: 'drip_disabled' };
+	}
+
 	const email = input.email.trim().toLowerCase();
 	const now = new Date();
 
@@ -145,6 +209,9 @@ export async function enrollLead(input: EnrollInput): Promise<EnrollResult> {
 			nextEmailIndex: nextIndex,
 			nextEmailAt: nextAt,
 			enrolledAt,
+			attributionCode: input.attributionCode ?? null,
+			marketingConsent: input.marketingConsent ?? false,
+			marketingConsentAt: input.marketingConsent ? now : null,
 			unsubscribeToken: token,
 			updatedAt: now,
 		});
@@ -205,6 +272,7 @@ export async function enrollLead(input: EnrollInput): Promise<EnrollResult> {
 				html,
 				sequence: input.sequence,
 				emailKey: emailMeta.key,
+				unsubscribeUrl: links.unsubscribeUrl,
 			});
 
 			const secondEmail = schedule[1];

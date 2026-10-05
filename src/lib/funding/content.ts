@@ -3,7 +3,12 @@
  * Non-developers edit visible legal-adjacent language here only.
  */
 
-import { consultationBookingUrl } from '$lib/config';
+import {
+	consultationBookingUrl,
+	productName,
+	productNameShortBare,
+	productNameShortCapitalized
+} from '$lib/config';
 
 export type FundingPhaseId = 'prepare' | 'complete';
 
@@ -92,6 +97,8 @@ export type FundingMilestoneContent = {
 	informational?: boolean;
 	/** Show the assets the user listed at intake that may belong to this step. */
 	assetCategories?: FundingAssetCategory[];
+	/** Show the will signing wrapper (and the Texas steps for a Texas matter) on this card (spec v3 §3.4). */
+	showWillSigningInstructions?: boolean;
 };
 
 export type FundingModuleContent = {
@@ -118,7 +125,7 @@ export type FindYourStuffQuestion = {
 };
 
 export const FUNDING_DISCLAIMER =
-	'This dashboard gives general implementation guidance for the Good Tree Trust App. It is not individualized legal, tax, or investment advice. Each bank, employer plan, custodian, insurer, and county has its own current process. Always follow the institution’s instructions and save written confirmation.';
+	`This dashboard gives general implementation guidance for ${productName}. It is not individualized legal, tax, or investment advice. Each bank, employer plan, custodian, insurer, and county has its own current process. Always follow the institution’s instructions and save written confirmation.`;
 
 export const FUNDING_SUBTITLE =
 	'Your documents are only the first step. This dashboard walks you through signing, funding, storing, and sharing the information your family may need later.';
@@ -132,7 +139,7 @@ export const COMPLETION_BANNER_BODY =
 	'You have completed the guided steps in your Make Your Trust Work dashboard. Keep your originals, confirmations, and access instructions safe, and review everything once a year or after any major life change. Completing these steps makes your plan much more likely to work smoothly, though no plan can guarantee every asset avoids court involvement.';
 
 export const NEED_HELP_MODAL_BODY =
-	'Most questions are covered in the cards or the Good Tree webinar. If your question is about your specific accounts, family, taxes, or assets, a consultation is the right move because this app cannot give individual advice.';
+	`Most questions are covered in the cards or the ${productNameShortBare()} webinar. If your question is about your specific accounts, family, taxes, or assets, a consultation is the right move because this app cannot give individual advice.`;
 
 export const PREPARE_COMPLETE_WHILE_LOCKED_COPY =
 	'You’re ready for the next chapter — after notarization you’ll unlock Update Institutions so you can submit changes to banks and insurers.';
@@ -416,7 +423,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		moduleId: 'get_oriented',
 		phase: 'prepare',
 		title: 'Funding Webinar',
-		body: 'Good Tree may offer live or recorded webinars walking through signing, funding, beneficiary designations, trustee notification, and common mistakes.',
+		body: `${productNameShortCapitalized()} may offer live or recorded webinars walking through signing, funding, beneficiary designations, trustee notification, and common mistakes.`,
 		warning: 'The webinar is general education. It does not replace individual advice.',
 		checklist: [{ id: 'registered', label: 'Registered for the next webinar or watched the replay' }],
 		excludeFromCompletion: !(webinarRegistrationUrl || webinarReplayUrl),
@@ -440,6 +447,7 @@ export const FUNDING_MILESTONES: FundingMilestoneContent[] = [
 		moduleId: 'get_ready_to_sign',
 		phase: 'prepare',
 		title: 'Prepare Your Pour-Over Will Signing',
+		showWillSigningInstructions: true,
 		body: 'Your pour-over will is different from your trust and deed. It may require in-person signing formalities, witnesses, and/or an in-person notary. Plan those steps now; confirm the signing after notarization in the Complete phase.',
 		warning:
 			'Do not treat the will as complete merely because your trust or deed was handled through an online process.',

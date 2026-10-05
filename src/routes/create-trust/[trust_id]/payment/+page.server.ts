@@ -8,8 +8,10 @@ import { and, eq } from 'drizzle-orm';
 import { stripe } from '$lib/server/stripe';
 import { promoteTrustAfterPayment } from '$lib/server/fulfillCheckout';
 import type { PageServerLoad, Actions } from './$types';
-import { defaultPrepFee, postPaymentEntryQuestionId } from '$lib/config';
-const DEED_RETRIEVAL_FEE = 35;
+import { defaultPrepFee, deedRetrievalFeeUsd, postPaymentEntryQuestionId } from '$lib/config';
+
+/** Optional service fee (Appendix A Schedule A). The county copy charge is absorbed by the Firm, never passed through. */
+const DEED_RETRIEVAL_FEE = deedRetrievalFeeUsd;
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) throw redirect(302, '/login');

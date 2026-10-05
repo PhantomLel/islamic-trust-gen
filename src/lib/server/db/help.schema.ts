@@ -32,6 +32,8 @@ export type HelpPublicationGateType =
 	| 'leonard_review'
 	| 'institution_process';
 
+export type HelpDidYouMeanItem = { title: string; href: string };
+
 export type HelpRenderedResponse = {
 	kind:
 		| 'safe_answer'
@@ -46,6 +48,10 @@ export type HelpRenderedResponse = {
 	templateId?: string;
 	shortAnswer?: string;
 	learnMore?: { appMeaning?: string; nextStep?: string };
+	/** Low-confidence retrieval: approved titles only, no stitched prose. */
+	didYouMean?: HelpDidYouMeanItem[];
+	/** Published answer page linked from the KB entry, when configured. */
+	relatedArticle?: { title: string; href: string };
 	footer: string;
 	cta?: { key: string; label: string; target: string };
 	blockedStep?: boolean;
@@ -64,6 +70,8 @@ export const kbEntry = pgTable(
 		userNextStep: text('user_next_step'),
 		/** Precomputed document text for reranker (question + aliases + answer). */
 		rerankDocument: text('rerank_document'),
+		/** When set and the page is published, served answers link to `/answers/{slug}`. */
+		contentPageSlug: text('content_page_slug'),
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at').defaultNow().notNull(),
 	},
@@ -196,6 +204,9 @@ export const helpQuery = pgTable(
 		questionText: text('question_text').notNull(),
 		matchedEntryIds: jsonb('matched_entry_ids').$type<number[]>(),
 		selectedEntryId: integer('selected_entry_id').references(() => kbEntry.id, {
+			onDelete: 'set null',
+		}),
+		kbEntryVersionId: integer('kb_entry_version_id').references(() => kbEntryVersion.id, {
 			onDelete: 'set null',
 		}),
 		resolvedTier: text('resolved_tier').$type<HelpEscalationTier | null>(),

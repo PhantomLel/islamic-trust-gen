@@ -9,6 +9,7 @@
 		isEligibleForOnlineTrustFromScreening,
 		jabalFoundationUrl,
 		jabalProPublicaUrl,
+		jabalConfirmationCopy,
 		type QuestionResponseValue
 	} from '$lib/config';
 	import {
@@ -26,6 +27,7 @@
 	import ScreeningStep from '$lib/components/ScreeningStep.svelte';
 	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 	import HelpLauncher from '$lib/components/help/HelpLauncher.svelte';
+	import IntakePrivacyNotice from '$lib/components/IntakePrivacyNotice.svelte';
 
 	/** Set to `true` to show the individual vs joint trust picker again. */
 	const showTrustTypeSelection = false;
@@ -335,7 +337,7 @@
 </script>
 
 {#if step === 'screening'}
-<ScreeningStep {firstName} {userEmail} trustId={data.trust.id} onsubmit={handleScreeningSubmit} onIneligible={handleIneligibleScreening} />
+<ScreeningStep {firstName} {userEmail} trustId={data.trust.id} flatFeeUsd={data.flatFeeUsd} jurisdiction={data.jurisdiction} onsubmit={handleScreeningSubmit} onIneligible={handleIneligibleScreening} />
 
 {:else if step === 'type'}
 <!-- ─── TRUST TYPE SELECTION (only when showTrustTypeSelection is true; otherwise joint defaults to true on server) ─── -->
@@ -445,7 +447,7 @@
 				</div>
 				<div class="flex-1 min-w-0">
 					<p class="text-sm text-navy leading-relaxed">
-						As part of your purchase today, <strong class="font-semibold">{data.jabalDonationAmount}</strong> — 5% of your plan — was donated to Jabal Foundation's Legacy Waqf, which funds orphan development and ongoing meal distribution. Leonard serves as treasurer of Jabal Foundation's board and personally oversees its finances. Leonard receives <strong class="font-semibold">zero</strong> compensation for this, as do all of Jabal Foundation's board members.
+						{jabalConfirmationCopy()}
 						<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>.
 					</p>
 					<a
@@ -588,6 +590,10 @@
 								<span class="w-4 h-px bg-navy/15"></span>
 								<span class="text-[11px] text-navy/30">{currentIndex + 1} of {activeQuestions.length}</span>
 							</div>
+
+							{#if isFirst}
+								<IntakePrivacyNotice class="mb-8" />
+							{/if}
 
 							<h2 class="text-2xl md:text-3xl font-semibold text-navy tracking-tight leading-snug mb-8">
 								{currentQuestion.text}

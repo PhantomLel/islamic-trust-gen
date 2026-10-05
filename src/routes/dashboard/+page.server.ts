@@ -141,7 +141,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const documentsUnlocked = trustStatus === TrustStatus.Completed;
 	const hasPendingDocuments =
 		(existing.user_files?.length ?? 0) +
-			(existing.generated_files?.length ?? 0) +
+			// The engagement-agreement acceptance copy is the client's own record, not a trust document.
+			(existing.generated_files?.filter((f) => f.kind !== 'loe-acceptance-copy').length ?? 0) +
 			(existing.file_urls?.length ?? 0) >
 		0;
 

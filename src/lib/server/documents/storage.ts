@@ -19,13 +19,13 @@ function utapi(): UTApi {
  */
 export async function saveGeneratedDocxBatch(opts: {
 	trustId: number;
-	files: Array<{ kind: string; buffer: Buffer; filename: string }>;
+	files: Array<{ kind: string; buffer: Buffer; filename: string; mime?: string }>;
 }): Promise<GeneratedFile[]> {
 	if (opts.files.length === 0) return [];
 
 	const entries = await Promise.all(
 		opts.files.map(async (file) => {
-			const result = await uploadBufferToUploadThing(file.buffer, file.filename, DOCX_MIME);
+			const result = await uploadBufferToUploadThing(file.buffer, file.filename, file.mime ?? DOCX_MIME);
 
 			const entry: GeneratedFile = {
 				kind: file.kind,
@@ -65,6 +65,21 @@ export async function saveGeneratedDocxBatch(opts: {
 	}
 
 	return entries;
+}
+
+/** Same as `saveGeneratedDocx` for a non-docx file (e.g. the PDF acceptance copy). */
+export async function saveGeneratedFile(opts: {
+	trustId: number;
+	kind: string;
+	buffer: Buffer;
+	filename: string;
+	mime: string;
+}): Promise<GeneratedFile> {
+	const [entry] = await saveGeneratedDocxBatch({
+		trustId: opts.trustId,
+		files: [{ kind: opts.kind, buffer: opts.buffer, filename: opts.filename, mime: opts.mime }],
+	});
+	return entry;
 }
 
 /**

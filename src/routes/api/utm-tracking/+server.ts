@@ -9,7 +9,6 @@ type TrackingRequest = {
 	utmCampaign?: string | null;
 	sessionId?: string;
 	willId?: number;
-	email?: string;
 	payload?: Record<string, unknown>;
 };
 
@@ -35,7 +34,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			utmCampaign: body.utmCampaign ?? null,
 			sessionId: body.sessionId ?? null,
 			willId: body.willId ?? null,
-			email: body.email ?? null,
+			// Email is never stored on new events (spec v3 §5). Historical rows are untouched.
+			email: null,
 			payload: body.payload ?? null,
 		});
 

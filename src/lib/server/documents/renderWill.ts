@@ -5,6 +5,7 @@ import Docxtemplater from 'docxtemplater';
 // @ts-ignore - the expressions sub-path has no shipped types
 import expressionParser from 'docxtemplater/expressions.js';
 import { buildWillDocumentContext, type WillDocumentContext } from './buildWillContext';
+import { applyDraftWatermark } from './draftWatermark';
 
 /**
  * Per-state will templates. TX runs on the v2 pipeline (`static/templates/
@@ -185,7 +186,12 @@ export async function renderFreeWill(will: FreeWillLike): Promise<RenderedDocume
 
 	doc.render(isV2 ? toTemplateDataV2(data) : toTemplateDataV1(data));
 
-	const buffer = doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' });
+	// Free-will documents are viewable and downloadable before attorney review, so
+	// every page carries "DRAFT — NOT FOR SIGNATURE" in the generated file itself
+	// (spec v3 §3.3). There is no path through this function to a clean copy.
+	const rendered = new PizZip(doc.getZip().generate({ type: 'nodebuffer', compression: 'DEFLATE' }));
+	applyDraftWatermark(rendered);
+	const buffer = rendered.generate({ type: 'nodebuffer', compression: 'DEFLATE' });
 
 	const userPart = safeFilenameFragment(data.testatorName || will.user?.name, 'will');
 	const filename = `islamic-will-${userPart}-${will.id}.docx`;

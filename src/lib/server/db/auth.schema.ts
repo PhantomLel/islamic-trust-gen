@@ -17,6 +17,8 @@ export const user = pgTable("user", {
   banExpires: timestamp("ban_expires"),
   /** User-Agent string from the client when their newest session was created (last sign-in device). */
   lastLoginUserAgent: text("last_login_user_agent"),
+  /** better-auth two-factor plugin. Required for content_author / content_publisher. */
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
   files: jsonb("files").$type<{ url: string; name: string; id: string; }[]>(),
 });
 
@@ -80,3 +82,20 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+
+/** better-auth two-factor plugin storage (TOTP secret and hashed backup codes). */
+export const twoFactor = pgTable(
+  "two_factor",
+  {
+    id: text("id").primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("twoFactor_secret_idx").on(table.secret),
+    index("twoFactor_userId_idx").on(table.userId),
+  ],
+);

@@ -90,6 +90,7 @@
 			'pour-over-will-wife': "Wife's pour-over will",
 			'certification-of-trust': 'Certification of trust',
 			'trust-document': 'Trust document',
+			'loe-acceptance-copy': 'Engagement agreement acceptance copy',
 			'other': 'Other',
 		};
 		return map[kind] ?? kind;

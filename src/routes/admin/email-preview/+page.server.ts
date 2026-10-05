@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { env } from '$env/dynamic/private';
 import { siteName } from '$lib/config';
 import { replyToEmail } from '$lib/server/config';
+import { listUnsubscribeHeaders } from '$lib/server/drip/marketingEmailHeaders';
 import { listPreviewableEmails, renderPreviewEmail, findPreviewableEmail } from '$lib/server/drip/preview';
 import type { QuizResult } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
@@ -77,6 +78,7 @@ export const actions: Actions = {
 				replyTo: replyToEmail,
 				subject: `[TEST] ${rendered.subject} — ${siteName}`,
 				html: rendered.html,
+				headers: listUnsubscribeHeaders(rendered.unsubscribeUrl),
 			});
 		} catch (err) {
 			console.error('[email-preview] Test send failed:', err);

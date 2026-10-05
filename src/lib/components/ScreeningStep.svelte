@@ -3,13 +3,19 @@
 	import { authClient } from '$lib/auth-client';
 	import { slide, fade } from 'svelte/transition';
 	import CountySelector from './CountySelector.svelte';
+	import IntakePrivacyNotice from '$lib/components/IntakePrivacyNotice.svelte';
 	import type { LoeAgreementData } from '$lib/loe';
 	import { LOE_AGREEMENT_VERSION } from '$lib/loe';
+	import { buildAgreementText, loeCheckboxItems, type Jurisdiction } from '$lib/loeAgreement';
 
-	let { firstName, userEmail, trustId, onsubmit: onsubmitProp, onIneligible }: {
+	let { firstName, userEmail, trustId, flatFeeUsd, jurisdiction = 'TX', onsubmit: onsubmitProp, onIneligible }: {
 		firstName: string;
 		userEmail: string;
 		trustId: number;
+		/** The matter's actual charge (customPrice or defaultPrepFee), rendered in the agreement. */
+		flatFeeUsd: number;
+		/** 'CA' shows the California advance-fee clause; 'TX' shows Schedule A. */
+		jurisdiction?: Jurisdiction;
 		onsubmit: (payload: { county: string; answers: Record<string, boolean>; loe: LoeAgreementData }) => void;
 		/** Called silently when a hard-stop gating question is answered Yes — records ineligibility in the DB without navigating away. */
 		onIneligible?: (payload: { county: string; answers: Record<string, boolean> }) => void;
@@ -38,10 +44,13 @@
 		homesteadGuidanceOnly: false,
 	});
 
+	let agreementText = $derived(buildAgreementText({ jurisdiction, flatFeeUsd }));
+
 	let hasCounty = $derived(county.trim().length > 0);
 
 	let allAnswered = $derived(hasCounty && screeningQuestions.every((q) => screeningAnswers[q.id] !== null));
 	let businessOwnerContinuing = $derived(screeningAnswers['business_ownership'] === true && scorp === false);
+	let checkboxItems = $derived(loeCheckboxItems({ businessOwnerContinuing }));
 	let isCountyStep = $derived(screeningIndex === 0);
 	let currentQ = $derived(isCountyStep ? null : screeningQuestions[screeningIndex - 1]);
 	let isFinalQuestionStep = $derived(screeningIndex === totalSteps - 1 && !isCountyStep);
@@ -155,7 +164,7 @@
 						<h2 id="loe-title" class="text-lg font-semibold text-navy leading-snug">
 							Limited-Scope App Engagement
 						</h2>
-						<p class="text-[12px] text-navy/45 mt-0.5">McDaniel Estate Planning, PLLC · Good Tree Trust App</p>
+						<p class="text-[12px] text-navy/45 mt-0.5">{agreementText.title}</p>
 					</div>
 					<button
 						onclick={() => showLoeModal = false}
@@ -173,158 +182,82 @@
 			<div class="flex-1 overflow-y-auto overscroll-contain px-6 py-5 space-y-5 text-[13px] text-navy/70 leading-relaxed">
 
 				<!-- Intro -->
-				<p class="text-navy/80">
-					By continuing, you are hiring <strong class="text-navy font-semibold">McDaniel Estate Planning, PLLC</strong> for a limited-scope app-based estate planning service. The Good Tree Trust App is designed to help eligible users create a basic Islamic revocable trust plan using the information they provide through the app.
-				</p>
+				<p class="text-navy/80">{agreementText.intro}</p>
 
-				<!-- What the app includes -->
-				<div>
-					<h3 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">What the app includes</h3>
-					<p>
-						Your app plan includes a basic Islamic revocable living trust, a basic pour-over will, one deed for your primary personal residence if you own a home, recording of that deed with your county of residence, general signing/notarization/funding instructions, and limited attorney review for eligibility, consistency, and obvious input issues.
-					</p>
+				{#each agreementText.sections as section}
+					<div>
+						<h3 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">{section.heading}</h3>
+						<p>{section.body}</p>
+					</div>
+				{/each}
+
+				<!-- Flat fee: the amount actually charged on this matter -->
+				<div data-testid="loe-flat-fee">
+					<h3 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">{agreementText.flatFee.heading}</h3>
+					<p class="text-navy font-semibold tabular-nums">{agreementText.flatFee.body}</p>
 				</div>
 
-				<!-- What the app does not include -->
-				<div>
-					<h3 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">What the app does not include</h3>
-					<p>
-						This is not full-service estate planning. Unless we separately agree in writing, the app does not include tax planning, financial advice, beneficiary-designation review, full trust funding, community-property or separate-property analysis, business succession planning, probate, post-death trust administration, or representation of heirs/family members.
-					</p>
-				</div>
+				<!-- Texas Schedule A (Appendix A 1.1): attaches immediately after the fee -->
+				{#if agreementText.scheduleA}
+					{@const sched = agreementText.scheduleA}
+					<div data-testid="loe-schedule-a" class="rounded-xl border border-navy/10 bg-white/60 p-4 space-y-4">
+						<h3 class="text-[12px] tracking-[0.12em] font-semibold text-navy">{sched.title}</h3>
+						<p>{sched.intro}</p>
+						<div>
+							<h4 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">Included</h4>
+							<ol class="space-y-1.5">
+								{#each sched.included as item, i}
+									<li class="flex gap-2.5"><span class="shrink-0 tabular-nums text-navy/45 w-5 text-right">{i + 1}</span><span>{item}</span></li>
+								{/each}
+							</ol>
+						</div>
+						<div>
+							<h4 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">Not included</h4>
+							<p class="text-navy/55 mb-1.5">{sched.excludedHeading}</p>
+							<ol class="space-y-1.5">
+								{#each sched.excluded as item, i}
+									<li class="flex gap-2.5"><span class="shrink-0 tabular-nums text-navy/45 w-5 text-right">{i + 1}</span><span>{item}</span></li>
+								{/each}
+							</ol>
+						</div>
+						<div>
+							<h4 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">{sched.optionalHeading}</h4>
+							<div class="flex items-start justify-between gap-4">
+								<span>{sched.optional.service}</span>
+								<span class="shrink-0 font-semibold text-navy tabular-nums">{sched.optional.fee}</span>
+							</div>
+						</div>
+					</div>
+				{/if}
 
-				<!-- Trust funding -->
-				<div>
-					<h3 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">Trust funding</h3>
-					<p>
-						A trust only works for assets that are properly connected to it. We will assist with the deed for your primary personal residence only. For other assets, we may provide instructions, but you are responsible for completing the funding steps unless you hire us separately.
-					</p>
-				</div>
-
-				<!-- Self-administered trust -->
-				<div>
-					<h3 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">Self-administered trust</h3>
-					<p>
-						The Good Tree Trust App is designed to create a self-administered trust plan. Your chosen successor trustee should be able to use the documents and instructions to begin administering the trust after death. McDaniel Estate Planning will not administer the trust after death unless separately hired.
-					</p>
-				</div>
-
-				<!-- Your documents -->
-				<div>
-					<h3 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">Your documents</h3>
-					<p>
-						You must keep your signed originals safe. Do not rely on the app or our firm as your permanent document vault. You are responsible for downloading, printing, signing, and safely storing your final documents.
-					</p>
-				</div>
-
-				<!-- Married couples -->
-				<div>
-					<h3 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">Married couples</h3>
-					<p>
-						If you are using the app as a married couple, you are asking us to represent both spouses jointly for this limited app service. We cannot take sides. Information one spouse gives us may be shared with the other spouse. If a conflict develops, we may stop work and require separate counsel.
-					</p>
-				</div>
-
-				<!-- When engagement ends -->
-				<div>
-					<h3 class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy/50 mb-2">When the engagement ends</h3>
-					<p>
-						Our limited app representation ends when the app service is complete, final documents are delivered via your portal on your account, any included deed service is completed, the file is closed for nonresponse, or we determine the app is not appropriate. After that, we have no ongoing duty to monitor changes in your family, assets, tax law, estate planning law, probate law, homestead law, or Islamic inheritance analysis.
-					</p>
-				</div>
+				<!-- California clause (Appendix A 2.1): California matters only, inside the signed agreement -->
+				{#if agreementText.californiaClause}
+					{@const clause = agreementText.californiaClause}
+					<div data-testid="loe-california-clause" class="rounded-xl border border-navy/10 bg-white/60 p-4 space-y-2">
+						<p><strong class="font-semibold text-navy">{clause.heading}</strong> {clause.body}</p>
+						<p class="font-medium text-navy/80">{clause.closing}</p>
+					</div>
+				{/if}
 
 				<!-- Divider -->
 				<div class="border-t border-navy/[0.08] pt-4">
 					<p class="text-[11px] tracking-[0.2em] uppercase font-semibold text-navy mb-4">Please confirm each of the following</p>
 
 					<div class="space-y-3.5">
-						<!-- Checkbox 1 -->
-						<label class="flex items-start gap-3 cursor-pointer group">
-							<input
-								type="checkbox"
-								bind:checked={loeCheckboxes.limitedScope}
-								class="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/25 text-emerald-accent focus:ring-emerald-accent/30 cursor-pointer"
-							/>
-							<span class="text-[13px] text-navy/75 leading-relaxed group-hover:text-navy/90 transition-colors">
-								I understand this is a <strong class="font-semibold text-navy">limited-scope app engagement</strong>, not full-service estate planning.
-							</span>
-						</label>
-
-						<!-- Checkbox 2: situationFits (varies by business owner) -->
-						<label class="flex items-start gap-3 cursor-pointer group">
-							<input
-								type="checkbox"
-								bind:checked={loeCheckboxes.situationFits}
-								class="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/25 text-emerald-accent focus:ring-emerald-accent/30 cursor-pointer"
-							/>
-							<span class="text-[13px] text-navy/75 leading-relaxed group-hover:text-navy/90 transition-colors">
-								{#if businessOwnerContinuing}
-									I own a business and confirm I may still use this online trust. I understand I should amend my bylaws and operating agreements so they work with my trust, and that Good Tree / Muslim Legacy Planning will email me about a free consultation regarding my corporate documents. I otherwise confirm this plan fits my situation (Texas resident, one primary residence, no blended-family or special needs planning beyond this trust). If my situation is more complex, I understand I should <a href={consultationBookingUrl} target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 text-emerald-accent hover:text-emerald-accent/80">schedule a consultation</a> instead.
-								{:else}
-									I confirm my situation fits this online plan (Texas resident, one primary residence, no business ownership, no blended-family or special needs planning). If my situation is more complex, I understand I should <a href={consultationBookingUrl} target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 text-emerald-accent hover:text-emerald-accent/80">schedule a consultation</a> instead.
-								{/if}
-							</span>
-						</label>
-
-						<!-- Checkbox 3 -->
-						<label class="flex items-start gap-3 cursor-pointer group">
-							<input
-								type="checkbox"
-								bind:checked={loeCheckboxes.islamicPrinciples}
-								class="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/25 text-emerald-accent focus:ring-emerald-accent/30 cursor-pointer"
-							/>
-							<span class="text-[13px] text-navy/75 leading-relaxed group-hover:text-navy/90 transition-colors">
-								I understand this trust is structured in accordance with established <strong class="font-semibold text-navy">Islamic inheritance principles</strong>. The prescribed shares are not customizable.
-							</span>
-						</label>
-
-						<!-- Checkbox 4 -->
-						<label class="flex items-start gap-3 cursor-pointer group">
-							<input
-								type="checkbox"
-								bind:checked={loeCheckboxes.noTaxPlanning}
-								class="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/25 text-emerald-accent focus:ring-emerald-accent/30 cursor-pointer"
-							/>
-							<span class="text-[13px] text-navy/75 leading-relaxed group-hover:text-navy/90 transition-colors">
-								I understand the app does not include tax planning, financial advice, beneficiary-designation review, full trust funding, or post-death trust administration. For those, or for any other legal strategy or services beyond the app scope, I understand that I can <a href={consultationBookingUrl} target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 text-emerald-accent hover:text-emerald-accent/80">book a consultation</a>.
-							</span>
-						</label>
-
-						<!-- Checkbox 5 -->
-						<label class="flex items-start gap-3 cursor-pointer group">
-							<input
-								type="checkbox"
-								bind:checked={loeCheckboxes.noHeirRepresentation}
-								class="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/25 text-emerald-accent focus:ring-emerald-accent/30 cursor-pointer"
-							/>
-							<span class="text-[13px] text-navy/75 leading-relaxed group-hover:text-navy/90 transition-colors">
-								I understand McDaniel Estate Planning will not represent my heirs, beneficiaries, trustee, executor, spouse, children, or family members unless separately hired.
-							</span>
-						</label>
-
-						<!-- Checkbox 6 -->
-						<label class="flex items-start gap-3 cursor-pointer group">
-							<input
-								type="checkbox"
-								bind:checked={loeCheckboxes.keepOriginalsSafe}
-								class="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/25 text-emerald-accent focus:ring-emerald-accent/30 cursor-pointer"
-							/>
-							<span class="text-[13px] text-navy/75 leading-relaxed group-hover:text-navy/90 transition-colors">
-								I understand I must keep my <strong class="font-semibold text-navy">signed originals safe</strong> and should not rely on the app or firm as my document vault.
-							</span>
-						</label>
-
-						<!-- Checkbox 7 -->
-						<label class="flex items-start gap-3 cursor-pointer group">
-							<input
-								type="checkbox"
-								bind:checked={loeCheckboxes.homesteadGuidanceOnly}
-								class="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/25 text-emerald-accent focus:ring-emerald-accent/30 cursor-pointer"
-							/>
-							<span class="text-[13px] text-navy/75 leading-relaxed group-hover:text-navy/90 transition-colors">
-								I understand GoodTree Trust provides detailed, attorney-prepared guidance for securing my Texas homestead exemption, but does not file the exemption application on my behalf.
-							</span>
-						</label>
+						{#each checkboxItems as item (item.key)}
+							<label class="flex items-start gap-3 cursor-pointer group">
+								<input
+									type="checkbox"
+									bind:checked={loeCheckboxes[item.key]}
+									class="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/25 text-emerald-accent focus:ring-emerald-accent/30 cursor-pointer"
+								/>
+								<span class="text-[13px] text-navy/75 leading-relaxed group-hover:text-navy/90 transition-colors">
+									{#each item.segments as seg}
+										{#if typeof seg === 'string'}{seg}{:else if 'strong' in seg}<strong class="font-semibold text-navy">{seg.strong}</strong>{:else}<a href={consultationBookingUrl} target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 text-emerald-accent hover:text-emerald-accent/80">{seg.text}</a>{/if}
+									{/each}
+								</span>
+							</label>
+						{/each}
 					</div>
 				</div>
 
@@ -348,6 +281,7 @@
 
 			<!-- Sticky footer -->
 			<div class="shrink-0 px-6 py-4 border-t border-navy/[0.08] bg-cream/90 backdrop-blur-sm rounded-b-2xl">
+				<p class="text-[11px] text-navy/60 mb-3" data-testid="loe-esign-statement">{agreementText.electronicSignature}</p>
 				{#if !allLoeChecked}
 					<p class="text-[11px] text-navy/45 mb-3">
 						Please check all {Object.values(loeCheckboxes).filter(v => !v).length} remaining box{Object.values(loeCheckboxes).filter(v => !v).length === 1 ? '' : 'es'} above to continue.
@@ -436,6 +370,10 @@
 						<div class="h-full rounded-full bg-emerald-accent transition-all duration-500 ease-out"
 							style="width: {((screeningIndex + 1) / totalSteps) * 100}%"></div>
 					</div>
+
+					{#if isCountyStep}
+						<IntakePrivacyNotice class="mb-8" />
+					{/if}
 
 					<!-- question -->
 					{#if isCountyStep}

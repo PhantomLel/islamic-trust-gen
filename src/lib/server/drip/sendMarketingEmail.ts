@@ -6,6 +6,7 @@ import { db } from '$lib/server/db';
 import { marketingEmailLog, marketingLead } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { adminUserUrl, notifyAdmins } from '$lib/server/notifyAdmins';
+import { listUnsubscribeHeaders } from './marketingEmailHeaders';
 
 export type MarketingEmailPayload = {
 	leadId: number;
@@ -14,6 +15,7 @@ export type MarketingEmailPayload = {
 	html: string;
 	sequence: string;
 	emailKey: string;
+	unsubscribeUrl: string;
 };
 
 export async function sendMarketingEmail(payload: MarketingEmailPayload): Promise<void> {
@@ -32,6 +34,7 @@ export async function sendMarketingEmail(payload: MarketingEmailPayload): Promis
 			replyTo: replyToEmail,
 			subject: `${payload.subject} — ${siteName}`,
 			html: payload.html,
+			headers: listUnsubscribeHeaders(payload.unsubscribeUrl),
 		});
 		resendId = result.data?.id ?? undefined;
 		console.log(`[drip] Sent ${payload.emailKey} to ${payload.to} (resendId=${resendId})`);

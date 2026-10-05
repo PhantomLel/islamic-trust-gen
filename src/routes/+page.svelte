@@ -4,8 +4,19 @@
 		defaultPrepFee,
 		formatUsd,
 		jabalFoundationUrl,
-		jabalProPublicaUrl
+		jabalProPublicaUrl,
+		jabalLandingCopy,
+		attorneyProfileUrl,
+		firmIdentityLine,
+		firmDescriptionLine,
+		googleReviewsUrl,
+		outOfStateExitParagraphs,
+		productName,
+		productNameShortBare,
+		productAttorneyReviewSentence
 	} from '$lib/config';
+	import TestimonialDisclaimer from '$lib/components/TestimonialDisclaimer.svelte';
+	import VideoFacade from '$lib/components/content/VideoFacade.svelte';
 	import { slide } from 'svelte/transition';
 	import { authClient } from '$lib/auth-client';
 
@@ -113,7 +124,7 @@
 		{
 			num: '02',
 			title: 'Without a trust, your home goes through probate',
-			body: 'Probate is a court process that takes control of your estate after death. It can take a year or more, cost thousands in fees, and put your family\'s affairs on public record — all while your loved ones are grieving. A properly funded trust avoids it entirely.'
+			body: 'Probate is a court process that takes control of your estate after death. It can take a year or more, cost thousands in fees, and put your family\'s affairs on public record — all while your loved ones are grieving. A properly funded trust is designed to avoid probate for the assets it holds.'
 		},
 		{
 			num: '03',
@@ -124,19 +135,9 @@
 
 	const testimonials = [
 		{
-			quote: "Brother Leonard built a comprehensive estate plan for our complex estate that will allow us to avoid probate and fulfill our shariah obligations. His knowledge of Islamic law, Texas law, and tax rules gave us real confidence.",
-			name: 'Dr. Mohammad Haque, MD',
-			where: 'Masjid Hamza · Houston, TX'
-		},
-		{
 			quote: "I have personally witnessed Brother Leonard's professionalism and integrity. His sincere concern for clients makes him a trustworthy advocate.",
 			name: 'Dr. Sh. Mamdouh Mahmoud',
 			where: 'Klein Islamic Center · Houston, TX'
-		},
-		{
-			quote: 'After my father\'s passing, Leonard guided me through probate with care. He made a difficult time genuinely easier.',
-			name: 'Aidah Aqil',
-			where: 'Atlanta, GA'
 		},
 		{
 			quote: 'As a father of four, I wanted my family secure. Leonard explained both Islamic inheritance and Texas law clearly, reduced costs where possible, and offered unmatched value.',
@@ -147,12 +148,12 @@
 
 	const faqs = [
 		{
-			q: 'What is probate and why should I avoid it?',
-			a: "Probate is a court process that takes control of your estate after you die. A judge — not your family — oversees who receives your home, accounts, and belongings. It commonly takes a year or longer, costs thousands of dollars in court and attorney fees, and everything becomes public record, all while your family is grieving. A properly funded revocable living trust avoids probate entirely: your assets pass privately and directly to your loved ones, according to Islamic inheritance, without ever going through court."
+			q: 'What is probate, and why do families plan around it?',
+			a: "Probate is a court process that takes control of your estate after you die. A judge — not your family — oversees who receives your home, accounts, and belongings. It commonly takes a year or longer, costs thousands of dollars in court and attorney fees, and everything becomes public record, all while your family is grieving."
 		},
 		{
 			q: 'What is the difference between a will and a trust?',
-			a: "A will expresses your wishes but must go through probate court before anyone receives anything — a process that can take months and is public record. A trust is a legal entity that holds your assets during your lifetime and distributes them privately and immediately when needed. For Muslim families, a trust also enforces Qur'anic shares in a way that courts cannot override."
+			a: "A will expresses your wishes but must go through probate court before anyone receives anything — a process that can take months and is public record. A trust is a legal entity that holds your assets during your lifetime and distributes them privately and immediately when needed."
 		},
 		{
 			q: 'Is the free Islamic will legally binding?',
@@ -160,40 +161,13 @@
 		},
 		{
 			q: 'Do you serve families outside Texas and California?',
-			a: 'The free Islamic will and all educational resources are available in all states. Attorney-client legal services — the GoodTree Trust and Legacy Plan — are currently limited to Texas and California, where McDaniel Estate Planning holds active bar licensure.'
+			a: outOfStateExitParagraphs.join(' ')
 		},
 		{
 			q: 'What if I cannot afford the fee?',
 			a: 'Start with the free Islamic will — it costs nothing and is the right starting point for every Muslim family. Families who qualify as zakat-eligible may qualify for free or reduced-cost services through our community program. Contact us directly to discuss your situation.'
 		}
 	];
-
-	// When videos are published, set `youtubeId` on each card and the thumbnail is
-	// pulled directly from YouTube — so updates to a video's thumbnail on YouTube
-	// appear here automatically with no code change. Placeholder used until then.
-	const videoCards: { seed: string; title: string; length: string; youtubeId?: string }[] = [
-		{
-			seed: 'vid1legal',
-			title: "What happens to your home when you die — and why your will may not help",
-			length: '11:24'
-		},
-		{
-			seed: 'vid2waqf',
-			title: "What is waqf and why does it matter for American Muslim families today",
-			length: '8:47'
-		},
-		{
-			seed: 'vid3inherit',
-			title: "Islamic inheritance under U.S. law: the conflict most families don't know about",
-			length: '14:02'
-		}
-	];
-
-	function videoThumbnail(v: { seed: string; youtubeId?: string }): string {
-		return v.youtubeId
-			? `https://i.ytimg.com/vi/${v.youtubeId}/hqdefault.jpg`
-			: `https://picsum.photos/seed/${v.seed}/800/450`;
-	}
 </script>
 
 <svelte:window onscroll={updateScroll} />
@@ -225,10 +199,10 @@
 			<div class="flex items-center gap-7 justify-center">
 				<a href="/plans" class="text-navy/55 text-sm transition-colors hover:text-navy">Plans</a>
 				<!-- <a href="#learn" class="text-navy/55 text-sm transition-colors hover:text-navy">Learn</a> -->
-				<a href="#about" class="text-navy/55 text-sm transition-colors hover:text-navy">About</a>
+				<a href={attorneyProfileUrl} class="text-navy/55 text-sm transition-colors hover:text-navy">About</a>
 				<a href="/free-islamic-will" class="text-navy/55 text-sm transition-colors hover:text-navy">Free Islamic Will</a>
 				<a href="/inheritance-calculator" class="text-navy/55 text-sm transition-colors hover:text-navy">Inheritance Calculator</a>
-				<a href="/trust" class="text-emerald-accent text-sm font-medium transition-colors hover:text-emerald-light">GoodTree Trust</a>
+				<a href="/trust" class="text-emerald-accent text-sm font-medium transition-colors hover:text-emerald-light">{productNameShortBare()}</a>
 				{#if data.user}
 					<a href="/dashboard" class="text-navy/55 text-sm transition-colors hover:text-navy">Dashboard</a>
 				{/if}
@@ -277,10 +251,10 @@
 			<div class="flex flex-col p-3 gap-1">
 				<a href="/plans" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Plans</a>
 				<!-- <a href="#learn" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Learn</a> -->
-				<a href="#about" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">About</a>
+				<a href={attorneyProfileUrl} onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">About</a>
 				<a href="/free-islamic-will" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Free Islamic Will</a>
 				<a href="/inheritance-calculator" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Inheritance Calculator</a>
-				<a href="/trust" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm font-medium text-emerald-accent rounded-xl hover:bg-emerald-accent/8">GoodTree Trust</a>
+				<a href="/trust" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm font-medium text-emerald-accent rounded-xl hover:bg-emerald-accent/8">{productNameShortBare()}</a>
 				<div class="h-px bg-navy/8 my-1 mx-2"></div>
 				{#if data.user}
 					<button onclick={() => { mobileMenuOpen = false; handleLogout(); }} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 text-left cursor-pointer">Log out</button>
@@ -321,7 +295,7 @@
 				</h1>
 
 				<p class="text-navy/60 text-base md:text-[17px] leading-relaxed max-w-[52ch] mb-9">
-					Most Muslim families in Texas have no plan to keep their home and assets out of probate court — and no plan that follows Islamic inheritance. We fix both.
+					Most Muslim families in Texas have no plan to keep their home and assets out of probate court — and no plan that follows Islamic inheritance. We help families address both.
 				</p>
 
 				<div class="flex flex-col gap-3.5 mb-8">
@@ -337,23 +311,16 @@
 
 				<div class="border-t border-navy/10 pt-6">
 					<p class="text-navy/38 text-xs leading-relaxed max-w-[44ch]">
-						Attorney-led platform. Legal services provided by McDaniel Estate Planning, PLLC — licensed in Texas and California.
+						{firmIdentityLine}
 					</p>
 				</div>
 			</div>
 		</div>
 
-		<!-- Right: Hero Image — swap the src to replace with final photography -->
-		<div class="hidden lg:block relative overflow-hidden">
-			<img
-				src="https://picsum.photos/seed/homedocuments/900/1100"
-				alt="A Muslim family reviewing estate planning documents at home"
-				class="ken-burns absolute inset-0 w-full h-full object-cover"
-				loading="eager"
-			/>
-			<!-- Overlay: left fade into cream + bottom darkening for any future caption -->
-			<div class="absolute inset-0 pointer-events-none"
-				style="background: linear-gradient(to right, rgba(250,246,240,0.45) 0%, transparent 20%), linear-gradient(to top, rgba(20,30,43,0.55) 0%, rgba(20,30,43,0.1) 45%, transparent 70%);">
+		<!-- Right: intentionally image-free until licensed photography is supplied -->
+		<div class="hidden lg:block relative overflow-hidden bg-navy" aria-hidden="true">
+			<div class="absolute inset-0"
+				style="background: radial-gradient(ellipse 80% 60% at 70% 30%, rgba(74,124,111,0.35) 0%, transparent 65%), linear-gradient(to right, rgba(250,246,240,0.45) 0%, transparent 20%);">
 			</div>
 		</div>
 	</section>
@@ -388,6 +355,26 @@
 			</div>
 		</div>
 	</section>
+
+	{#if data.featuredVideo}
+		<section class="px-6 pb-4">
+			<div use:revealOnScroll class="scroll-reveal max-w-4xl mx-auto">
+				<div class="flex items-center gap-3 mb-5">
+					<span class="w-6 h-px bg-emerald-accent/60"></span>
+					<span class="text-emerald-accent text-[11px] tracking-[0.28em] uppercase font-medium">Featured video</span>
+				</div>
+				<VideoFacade
+					youtubeId={data.featuredVideo.youtubeId}
+					title={data.featuredVideo.title}
+					thumbnailSrc={data.featuredVideo.thumbnailSrc}
+				/>
+				<p class="mt-4 text-navy text-lg tracking-tight">{data.featuredVideo.title}</p>
+				{#if data.featuredVideo.description}<p class="mt-2 text-sm text-navy/55 leading-relaxed max-w-2xl">{data.featuredVideo.description}</p>{/if}
+				{#if data.featuredVideo.isTestimonial}<div class="mt-4"><TestimonialDisclaimer /></div>{/if}
+				<a href="/videos/{data.featuredVideo.slug}" class="inline-block mt-4 text-sm text-emerald-accent underline underline-offset-2">Watch on the video page</a>
+			</div>
+		</section>
+	{/if}
 
 	<!-- ═══════════════════ INHERITANCE CALCULATOR TEASER ═══════════════════ -->
 	<section class="px-6">
@@ -431,12 +418,13 @@
 			</div>
 
 			<div use:revealStagger class="grid lg:grid-cols-2 gap-5">
-				<!-- GoodTree Trust -->
+				<!-- Guided Trust -->
 				<article class="group/spot relative isolate rounded-2xl bg-white/60 backdrop-blur border border-navy/10 p-8 md:p-9 flex flex-col gap-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-navy/6" use:spotlight>
 					<div class="spotlight-glow"></div>
 					<div>
-						<div class="text-emerald-accent/70 text-[10px] tracking-[0.28em] uppercase mb-3">Self-service · Online</div>
-						<h3 class="text-2xl tracking-tight text-navy mb-1.5">GoodTree Trust</h3>
+						<div class="text-emerald-accent/70 text-[10px] tracking-[0.28em] uppercase mb-3">Online</div>
+						<h3 class="text-2xl tracking-tight text-navy mb-1.5">{productName}</h3>
+						<p class="text-navy/70 text-sm leading-relaxed mb-2">{productAttorneyReviewSentence}</p>
 						<p class="text-navy/55 text-sm leading-relaxed">
 							Attorney-drafted Islamic revocable living trust for individuals and families with straightforward estates. Build at your own pace, with attorney access throughout.
 						</p>
@@ -463,7 +451,7 @@
 						class="group inline-flex items-center justify-center gap-2 px-6 py-3 bg-navy text-cream text-sm font-medium rounded-lg
 							   transition-all duration-200 hover:bg-navy-light hover:-translate-y-0.5 active:scale-[0.98]"
 					>
-						Start Your GoodTree Trust
+						Start Your {productNameShortBare()}
 						<svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 					</a>
 				</article>
@@ -526,8 +514,8 @@
 				<div class="flex-1">
 					<div class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase font-medium mb-1">We're the waqf guys</div>
 					<p class="text-navy/60 text-sm leading-relaxed">
-						You choose your own charitable bequests from a neutral, alphabetical list — we deliberately don't recommend one. As proof: attorney Leonard McDaniel serves as treasurer of Jabal Foundation's board and personally oversees its finances. Leonard receives <strong class="font-semibold">zero</strong> compensation for this, as do all of Jabal Foundation's board members.
-						<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>. 5% of every GoodTree Trust purchase is donated to Jabal Foundation's Legacy Waqf the same day you buy.
+						{jabalLandingCopy()}
+						<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>.
 					</p>
 				</div>
 				<a
@@ -636,7 +624,7 @@
 						Brother Leonard embraced Islam in 2014 while studying history at UCLA, graduating magna cum laude. Having come to Islam as an adult, Leonard understands firsthand how converts and lifelong Muslims alike navigate the intersection of faith, family, and American law. Inspired by a desire to serve his community with both faith and expertise, he earned his Juris Doctor at the University of Houston Law Center in 2017.
 					</p>
 					<p class="text-navy/62 text-base leading-relaxed">
-						For the last five years, he has focused on probate and estate planning — helping Muslim families protect their wealth through thoughtful legal work grounded in classical fiqh and Texas and California law.
+						Since 2022, he has focused on probate and estate planning — helping Muslim families protect their wealth through thoughtful legal work grounded in classical fiqh and Texas and California law.
 					</p>
 
 					<div use:revealStagger class="flex flex-wrap gap-7 pt-5 border-t border-navy/10 mt-2">
@@ -646,7 +634,7 @@
 						</div>
 						<div>
 							<div class="text-2xl tabular-nums text-navy tracking-tight">2017</div>
-							<div class="text-xs text-navy/40 tracking-wider uppercase mt-1">UH Law, top of class</div>
+							<div class="text-xs text-navy/40 tracking-wider uppercase mt-1">UH Law</div>
 						</div>
 						<div>
 							<div class="text-2xl tabular-nums text-navy tracking-tight">TX · CA</div>
@@ -655,7 +643,7 @@
 					</div>
 
 					<a
-						href="https://mcdanielestateplanning.com"
+						href={attorneyProfileUrl}
 						target="_blank"
 						rel="noopener noreferrer"
 						class="text-emerald-accent text-sm hover:text-emerald-light transition-colors flex items-center gap-1.5 group"
@@ -680,19 +668,10 @@
 					<h2 class="text-3xl md:text-4xl tracking-tight text-navy text-balance">
 						Trusted by families and imams across Texas.
 					</h2>
-					<a
-						href="https://g.page/r/review"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="inline-flex items-center gap-1.5 mt-3 text-emerald-accent text-sm font-medium hover:text-emerald-light transition-colors"
-					>
-						<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.92 6.26L21.6 9.27l-4.96 4.6 1.24 6.77L12 17.4l-5.88 3.24 1.24-6.77-4.96-4.6 6.68-1.01L12 2z"/></svg>
-						13 five-star Google reviews
-					</a>
 				</div>
-				<a href="https://g.page/r/review" target="_blank" rel="noopener noreferrer"
+				<a href={googleReviewsUrl} target="_blank" rel="noopener noreferrer"
 					class="text-navy/45 text-xs underline underline-offset-2 hover:text-navy/70 transition-colors whitespace-nowrap">
-					Read Google Reviews
+					Read our Google reviews.
 				</a>
 			</div>
 
@@ -716,59 +695,9 @@
 					</figure>
 				{/each}
 			</div>
+			<TestimonialDisclaimer class="mt-6 text-xs leading-relaxed text-navy/60 max-w-xl" />
 		</div>
 	</section>
-
-	<!-- ═══════════════════ VIDEO HUB ═══════════════════ -->
-	<!--
-	<section id="learn" class="py-24 md:py-32 px-6 scroll-mt-20">
-		<div use:revealOnScroll class="scroll-reveal max-w-7xl mx-auto">
-
-			<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-14">
-				<div>
-					<div class="flex items-center gap-3 mb-5">
-						<span class="w-6 h-px bg-emerald-accent/60"></span>
-						<span class="text-emerald-accent text-[11px] tracking-[0.28em] uppercase font-medium">Learn</span>
-					</div>
-					<h2 class="text-3xl md:text-4xl tracking-tight text-navy text-balance max-w-md">
-						Education is the foundation of good planning.
-					</h2>
-				</div>
-				<a href="/videos" class="text-navy/50 text-sm hover:text-navy transition-colors flex items-center gap-1.5 group">
-					View all videos
-					<svg class="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-				</a>
-			</div>
-
-			<div use:revealStagger class="grid md:grid-cols-3 gap-5">
-				{#each videoCards as v, i}
-					<a
-						href="/videos"
-						class="group block rounded-2xl overflow-hidden border border-navy/8 bg-white/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-navy/6"
-					>
-						<div class="relative aspect-video overflow-hidden">
-							<img
-								src={videoThumbnail(v)}
-								alt=""
-								class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-								loading="lazy"
-							/>
-							<div class="absolute inset-0 bg-navy/30 flex items-center justify-center transition-opacity duration-200 group-hover:bg-navy/20">
-								<div class="w-12 h-12 rounded-full bg-cream/90 flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110">
-									<svg class="w-5 h-5 text-navy ml-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-								</div>
-							</div>
-							<div class="absolute bottom-3 right-3 bg-navy/70 text-cream text-[10px] px-2 py-0.5 rounded font-mono">{v.length}</div>
-						</div>
-						<div class="p-5">
-							<p class="text-navy text-sm leading-snug font-medium">{v.title}</p>
-						</div>
-					</a>
-				{/each}
-			</div>
-		</div>
-	</section>
-	-->
 
 	<!-- ═══════════════════ EMAIL CAPTURE ═══════════════════ -->
 	<!--
@@ -919,17 +848,17 @@
 						<span class="text-navy font-semibold text-sm" style="font-family: 'Playfair Display', Georgia, serif;">Muslim Legacy Planning</span>
 					</a>
 					<p class="text-navy/45 text-sm leading-relaxed max-w-xs">
-						Attorney-led Islamic estate planning for Muslim families across the United States. Legal services provided by McDaniel Estate Planning, PLLC.
+						Attorney-led Islamic estate planning for Muslim families in Texas and California. Legal services provided by McDaniel Estate Planning, PLLC.
 					</p>
 					<p class="text-navy/30 text-xs mt-4 leading-relaxed max-w-xs">
-						Licensed in Texas and California. This site is an educational and self-help resource. Use of this site does not create an attorney-client relationship.
+						Licensed in Texas and California. {firmDescriptionLine} Use of this site does not create an attorney-client relationship.
 					</p>
 				</div>
 
 				<div class="flex flex-col gap-2.5">
 					<div class="text-navy/30 text-[10px] tracking-[0.25em] uppercase mb-1.5">Plans</div>
 					<a href="/free-islamic-will" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Free Islamic Will</a>
-					<a href="/trust" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">GoodTree Trust</a>
+					<a href="/trust" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">{productNameShortBare()}</a>
 					<a href="#products" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Legacy Plan</a>
 					<a href="/which-plan" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Which plan is right?</a>
 					<a href="/inheritance-calculator" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Inheritance Calculator</a>

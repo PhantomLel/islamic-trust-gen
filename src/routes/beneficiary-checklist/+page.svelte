@@ -1,6 +1,6 @@
 <script lang="ts">
 	import WillGuideLayout from '$lib/components/WillGuideLayout.svelte';
-	import { consultationBookingUrl } from '$lib/config';
+	import { consultationBookingUrl, productName } from '$lib/config';
 	import {
 		beneficiaryChecklistDisclaimer,
 		beneficiaryChecklistIntro,
@@ -9,14 +9,6 @@
 		beneficiaryWillScope,
 	} from '$lib/free-will/content/beneficiary-checklist';
 </script>
-
-<svelte:head>
-	<title>Review Your Beneficiary Designations | Muslim Legacy Planning</title>
-	<meta
-		name="description"
-		content="A checklist to review retirement, insurance, and payable-on-death beneficiary forms so they support your Islamic estate plan."
-	/>
-</svelte:head>
 
 <WillGuideLayout
 	title="Review Your Beneficiary Designations"
@@ -92,7 +84,7 @@
 					href="/trust"
 					class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-navy bg-cream transition-all hover:bg-white"
 				>
-					Explore the GoodTree Trust App
+					Explore {productName}
 				</a>
 				<a
 					href={consultationBookingUrl}

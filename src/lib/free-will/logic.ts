@@ -49,7 +49,18 @@ export function toWillResponses(
 
 // ─── Active steps (dependency-aware) ─────────────────────────────────────────
 
+/**
+ * Spec v3 §3.1: state is the first question, and nothing about the person, family,
+ * assets or heirs is asked unless the state is Texas or California. For any
+ * other (or not yet chosen) state the only active step is `state` itself, so
+ * those questions are hidden, not merely blocked by validation.
+ */
+export function isStateGateOpen(responses: WillResponses): boolean {
+	return isWillAvailableState(responses['state'] as string | undefined);
+}
+
 export function isStepActive(step: WillStep, responses: WillResponses): boolean {
+	if (step.id !== 'state' && !isStateGateOpen(responses)) return false;
 	if (step.depends && responses[step.depends.field] !== step.depends.eq) return false;
 	if (step.showIf && !step.showIf(responses)) return false;
 	if (step.stage === 'assets' && areAssetQuestionsSkipped(responses)) return false;
@@ -226,26 +237,12 @@ export type WillLimitationReason =
 	| 'life_insurance'
 	| 'strict_faraid';
 
-export const willLimitationWarningIntro =
-	'A will alone may not fully implement Islamic inheritance in your situation.';
-
-export const willLimitationReasonLabels: Record<WillLimitationReason, string> = {
-	married:
-		'Married couples may have property rights between spouses that pass outside a will.',
-	homeowner:
-		'Homes can pass outside your will depending on how title is held and state law.',
-	out_of_state_home:
-		'Your home is in a different state than where you live — that may require ancillary probate or extra review.',
-	retirement_accounts:
-		'Retirement accounts such as 401(k)s and IRAs typically pass by beneficiary designation, not your will.',
-	life_insurance:
-		'Life insurance proceeds typically pass by beneficiary designation, not your will.',
-	strict_faraid:
-		'You indicated that strict faraid compliance is important to you.',
-};
-
-export const willLimitationWarningOutro =
-	'Additional planning \u2014 such as a trust or a beneficiary designation review \u2014 may be needed to align your estate with faraid.';
+/**
+ * Spec v3 §4.5 — the only user-facing flag copy. A flag states a product boundary;
+ * it never tells the user what they need or assesses their legal position.
+ */
+export const willFlagBoundaryCopy =
+	'This tool does not handle the situation you selected. That does not establish that you need a trust or a paid service from us. Please consult an attorney about your options; you may contact our firm or another attorney.';
 
 /** Returns the active limitation reasons for this user\u2019s responses. */
 export function getWillLimitationReasons(responses: WillResponses): WillLimitationReason[] {
@@ -386,7 +383,11 @@ export function recommendPlan(responses: WillResponses): PlanRecommendation {
 
 // ─── Will-delivery email flags & upsell ladder (ticket A2) ────────────────────
 
-/** Attorney-review flags surfaced as bullets in the will-delivery email's "Recommended next steps" block. */
+/**
+ * Situation flags. They drive internal lead tagging and whether any paid offer is
+ * shown on the completion screen. They are never rendered as user-facing labels
+ * (spec v3 §4.5) and never appear in the delivery email.
+ */
 export type EmailFlag =
 	| 'homeowner'
 	| 'retirement_accounts'
@@ -397,24 +398,6 @@ export type EmailFlag =
 	| 'strict_faraid'
 	| 'avoid_probate'
 	| 'out_of_state_home';
-
-export const emailFlagLabels: Record<EmailFlag, string> = {
-	homeowner: 'Your home may pass outside your will depending on how title is held.',
-	retirement_accounts:
-		'Retirement accounts such as 401(k)s and IRAs pass by beneficiary designation, not your will \u2014 review yours.',
-	life_insurance:
-		'Life insurance proceeds pass by beneficiary designation, not your will \u2014 review yours.',
-	business_owner: 'Business ownership often needs succession planning beyond a will.',
-	blended_family:
-		'Blended families benefit from extra planning to reduce disputes between children from different relationships.',
-	special_needs:
-		'A child with special needs may need a supplemental needs trust to protect their eligibility for benefits.',
-	strict_faraid: 'You told us strict faraid compliance matters to you \u2014 a will alone may not fully achieve this.',
-	avoid_probate:
-		'You told us you want to keep your family out of probate court \u2014 a will alone does not avoid probate.',
-	out_of_state_home:
-		'Your home is in a different state than where you live \u2014 an attorney can review whether ancillary probate applies.',
-};
 
 /** Active email flags for this user's answers, in a fixed display order. */
 export function getEmailFlags(responses: WillResponses): EmailFlag[] {
@@ -450,7 +433,7 @@ export type OfferKey = 'goodtree-trust' | 'legacy-plan';
 /**
  * Ordered recommendation for the will-delivery email and completion screen.
  * No flags → no offer at all (see the reassurance copy in packet R1).
- * Any flag → GoodTree Trust App first, Legacy Plan second as the always-
+ * Any flag → the Guided Trust first, Legacy Plan second as the always-
  * available secondary option. Legacy Plan is never returned alone.
  */
 export function freeWillOfferLadder(responses: WillResponses): OfferKey[] {

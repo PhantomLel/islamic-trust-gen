@@ -4,7 +4,7 @@
  * The free will is the platform's lead magnet (see dev brief). It collects
  * structured family and asset data with no account required up front, then
  * persists everything once the user creates an account at the end so the data
- * can be reused by the GoodTree Trust generator later.
+ * can be reused by the Guided Trust generator later.
  *
  * Storage shape mirrors the trust flow: a flat `{ id, response }[]` array
  * (see `WillResponse`) so the same downstream patterns as
@@ -179,6 +179,8 @@ export type WillWasiyyahEntry = {
 	customEin?: string;
 	/** C3 — user will supply EIN later; still allows proceeding. */
 	einDeferred?: boolean;
+	/** ISO timestamp of the explicit Jabal Foundation confirmation (Appendix A §3.2). Set only on the Jabal entry. */
+	jabalConfirmedAt?: string;
 };
 
 export type WillWasiyyahResponse = {
@@ -261,7 +263,7 @@ export const willSteps: WillStep[] = [
 		stage: 'location',
 		type: 'state',
 		question: 'Which state do you live in?',
-		help: 'Free wills are currently available in California and Texas. Other states are coming soon.',
+		help: 'We currently prepare wills only for Texas and California matters.',
 	},
 	{
 		id: 'county',
@@ -454,13 +456,13 @@ export const willSteps: WillStep[] = [
 		stage: 'goals',
 		type: 'yes-no-unsure',
 		question: 'Are you interested in keeping your family out of probate court?',
-		help: 'Probate can be slow and public. A trust is the usual way to avoid it.',
+		help: 'Probate can be slow and public.',
 	},
 	{
 		id: 'attorney_review',
 		stage: 'goals',
 		type: 'yes-no',
-		question: 'Would you like to learn whether your situation may need attorney review?',
+		question: 'Would you like to book a consultation to discuss attorney review before you finish?',
 	},
 	{
 		id: 'strict_faraid',

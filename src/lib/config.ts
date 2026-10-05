@@ -7,6 +7,8 @@ export const consultationBookingUrl = 'https://mcdaniel.cliogrow.com/book/504611
 export const notarizationBookingUrl = 'https://calendly.com/sumayya-mcdanielestateplanning/30min';
 /** Default trust preparation fee in whole USD (e.g. 1499 → $1,499.00). */
 export const defaultPrepFee = 1499;
+/** Optional house-deed retrieval service fee in whole USD (Appendix A Schedule A). A service fee, not a pass-through cost. */
+export const deedRetrievalFeeUsd = 35;
 
 /** CAN-SPAM physical mailing address required in all marketing emails. */
 export const firmMailingAddress = 'McDaniel Estate Planning, PLLC · 3800 N Lamar Blvd, Ste 200 · Austin, TX 78756';
@@ -21,28 +23,146 @@ export function formatUsd(amountUsd: number): string {
 	return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amountUsd);
 }
 
-// ── Jabal Foundation giving program ──────────────────────────────────────────
-// 5% of the app-tier trust preparation fee (never the deed add-on, never a
-// hardcoded dollar figure) is donated to Jabal Foundation's Legacy Waqf the
-// same day the sale happens. Leonard McDaniel serves as treasurer of Jabal
-// Foundation's board (zero compensation) — disclosed by name wherever this
-// program is described.
-export const jabalGivingRate = 0.05;
+// ── Product name (spec v3 §2.1–2.2) ──────────────────────────────────────────
+// The single source of the product name. Never hard-code any of these strings
+// in a page, component, email, document template, or help answer. Internal keys
+// (`goodtree-trust`, `goodtree_fit`, Calendly `utm_source=goodtree`) are stored
+// data / webhook contracts and intentionally keep their historical spelling.
+
+/** Full name — used as the tier name and wherever the product is named as an offer or heading. */
+export const productName = 'The Muslim Legacy Planning Guided Trust';
+/** Approved short form for running sentences. */
+export const productNameShort = 'the Guided Trust';
+/** Second approved short form for running sentences. */
+export const productNameRunning = 'our guided trust plan';
+/** Required sentence rendered in the same view whenever the full name is a tier, offer, or heading. */
+export const productAttorneyReviewSentence =
+	'Complete the guided interview online or with our assistance; an attorney reviews your information and documents before finalization.';
+
+export type ProductNames = {
+	productName: string;
+	productNameShort: string;
+	productNameRunning: string;
+};
+
+export const productNames: ProductNames = { productName, productNameShort, productNameRunning };
+
+/** Lower-case a leading "The " so the full name can sit mid-sentence ("…built the Muslim Legacy Planning Guided Trust…"). */
+export function productNameMidSentence(names: ProductNames = productNames): string {
+	return names.productName.replace(/^The /, 'the ');
+}
+
+/** The short form without its article ("the Guided Trust" → "Guided Trust"), for "For every Guided Trust purchased". */
+export function productNameShortBare(names: ProductNames = productNames): string {
+	return names.productNameShort.replace(/^the /i, '');
+}
+
+/** Upper-case the first character, for a short form that opens a sentence. */
+export function productNameShortCapitalized(names: ProductNames = productNames): string {
+	const s = names.productNameShort;
+	return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Replace `{{productName}}`, `{{productNameShort}}`, `{{productNameRunning}}` tokens at render time.
+ * Used by help answers, CMS bodies and transcripts so a rename never needs a re-edit or re-approval.
+ */
+export function renderProductTokens(text: string, names: ProductNames = productNames): string {
+	return text
+		.replaceAll('{{productNameShort}}', names.productNameShort)
+		.replaceAll('{{productNameRunning}}', names.productNameRunning)
+		.replaceAll('{{productName}}', names.productName);
+}
+
+// ── Firm identity (spec v3 §2.11) ────────────────────────────────────────────
+export const firmIdentityLine =
+	'Muslim Legacy Planning is the Islamic estate-planning service of McDaniel Estate Planning, PLLC. Legal services by Leonard McDaniel, licensed in Texas and California.';
+export const firmDescriptionLine =
+	'An attorney-led estate-planning practice offering educational resources and technology-assisted legal services.';
+export const attorneyName = 'Leonard McDaniel';
+/** Short byline for content pages (Appendix A §5.3). The name is rendered as a link to the profile; this is the rest of the sentence. */
+export const attorneyBylineRest =
+	' is an estate planning attorney licensed in Texas and California. He has focused on estate planning for Muslim families since 2022.';
+export const attorneyProfileUrl = 'https://mcdanielestateplanning.com/about';
+export const mlpOrigin = 'https://www.muslimlegacyplanning.com';
+export const mcdanielOrigin = 'https://mcdanielestateplanning.com';
+export const googleReviewsUrl =
+	'https://search.google.com/local/writereview?placeid=ChIJszQ9uNfRQIYRg3017kJNF8Y';
+
+// ── Jabal Foundation giving program (Appendix A §3) ──────────────────────────
+// A fixed $75 gift of the Firm's own funds per Guided Trust purchased. It is NOT
+// computed from the fee and NOT a checkout split: no Stripe transfer, second
+// charge, or payout is created for it. Leonard McDaniel serves without
+// compensation as secretary of Jabal Foundation's board.
+export const jabalDonationUsd = 75;
 export const jabalFoundationUrl = 'https://www.jabalfoundation.org/';
 export const jabalProPublicaUrl =
 	'https://projects.propublica.org/nonprofits/organizations/923844405';
 
-/** 5% of the trust preparation fee actually charged (excludes the deed retrieval add-on). */
-export function computeJabalDonation(trustFeeAmountUsd: number): number {
-	return Math.round(trustFeeAmountUsd * jabalGivingRate * 100) / 100;
+/** The fixed donation figure for display, e.g. "$75" (never derived from the fee charged). */
+export function formatJabalDonation(): string {
+	return new Intl.NumberFormat('en-US', {
+		style: 'currency',
+		currency: 'USD',
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0
+	}).format(jabalDonationUsd);
 }
 
-/** Format a donation amount for display (e.g. 74.95 → "$74.95"). */
-export function formatJabalDonation(trustFeeAmountUsd: number): string {
-	return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-		computeJabalDonation(trustFeeAmountUsd)
-	);
+/** Appendix A §3.2 — landing page giving section (short form rendered from config). */
+export function jabalLandingCopy(names: ProductNames = productNames): string {
+	return `For every ${productNameShortBare(names)} purchased, McDaniel Estate Planning donates ${formatJabalDonation()} of its own funds to Jabal Foundation's Legacy Waqf, which supports orphan development and ongoing meal distribution. The donation is made by the Firm and is not part of your fee. Leonard McDaniel serves without compensation as secretary of Jabal Foundation's board.`;
 }
+
+/** Appendix A §3.2 — payment screen, beneath the fee. */
+export function jabalPaymentCopy(): string {
+	return `With your purchase, McDaniel Estate Planning will donate ${formatJabalDonation()} of its own funds to Jabal Foundation's Legacy Waqf. This does not come from or add to your fee. Leonard McDaniel serves without compensation as secretary of Jabal Foundation's board.`;
+}
+
+/** Appendix A §3.2 — confirmation after payment and payment-received email. */
+export function jabalConfirmationCopy(): string {
+	return `Thank you. McDaniel Estate Planning will donate ${formatJabalDonation()} of its own funds to Jabal Foundation's Legacy Waqf in connection with your purchase. Leonard McDaniel serves without compensation as secretary of the foundation's board.`;
+}
+
+/** Appendix A §3.2 — beside the Jabal entry in the charitable picker. */
+export const jabalPickerDisclosure =
+	"Leonard McDaniel, your attorney, serves without compensation as secretary of this organization's board. Including it is entirely your choice and has no effect on your plan, your fee, or our work for you.";
+/** Appendix A §3.2 — explicit confirm prompt when Jabal is selected. */
+export const jabalPickerConfirmPrompt =
+	'You have selected Jabal Foundation, where your attorney serves as an unpaid board secretary. Please confirm this gift reflects your own wishes.';
+/** Appendix A §3.2 — charitable picker section heading. */
+export const charityPickerHeading =
+	'Some Islamic charities in Texas. Listing an organization here is not a recommendation. You may also add any U.S. charity by its legal name and EIN, or leave no charitable gift.';
+
+// ── Intake privacy notice (spec v3 §4.2) ─────────────────────────────────────
+export const intakePrivacyNotice =
+	'We use your information to evaluate and, if accepted, provide legal services. Access is limited to authorized firm personnel and service providers operating under confidentiality and security obligations. We do not send your interview answers, documents, or identifiable consultation or client activity to advertising platforms, and we do not use them to build advertising audiences. Optional educational and marketing subscriptions are separate. Our privacy notice explains the information collected, its purposes, service providers, retention, and how to contact us about privacy.';
+
+// ── Out-of-state exit (spec v3 §3.1) ─────────────────────────────────────────
+export const outOfStateExitParagraphs = [
+	'We currently prepare wills only for Texas and California matters. We are not able to prepare a document for the state you selected.',
+	'You are welcome to use the educational resources on this site. If you would like a referral to an attorney licensed in your state, contact us and we will help where we can.'
+] as const;
+
+export const outOfStateRealPropertyQuestion =
+	'Do you own real property in Texas or California, or do you expect your estate to be administered there?';
+
+/** Educational exit targets. Phase 7 ships both indexes. */
+export const contentLibraryHref = '/answers';
+export const videoLibraryHref = '/videos';
+
+// ── Email capture and marketing opt-in (spec v3 §4.3) ───────────────────────
+/** States what the email is for, in the spec's own terms. */
+export const emailPurposeNotice =
+	'We use your email to deliver your document and to communicate about your request.';
+
+/** Exact label. Unchecked by default, never bundled into account creation or terms. */
+export const marketingConsentLabel =
+	'Send me occasional educational and service emails from McDaniel Estate Planning. I may unsubscribe at any time; this is not required to request the free will.';
+
+// ── Testimonial disclaimer (spec v3 §2.8) ────────────────────────────────────
+export const testimonialDisclaimer =
+	'Client experience; not a guarantee of results. Legal outcomes depend on the circumstances, proper execution, and implementation.';
 
 
 export type ScreeningQuestion = {
@@ -117,6 +237,8 @@ export type CharityResponse = {
 	/** When present, this row is a user-added charity (`charityId` is an opaque id). */
 	customName?: string;
 	customEin?: string;
+	/** ISO timestamp of the explicit Jabal Foundation confirmation (Appendix A §3.2). Set only on the Jabal entry. */
+	jabalConfirmedAt?: string;
 };
 
 export type CharitiesResponse = {

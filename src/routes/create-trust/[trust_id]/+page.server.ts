@@ -8,8 +8,7 @@ import {
 	prePaymentQuestions,
 	screeningQuestions,
 	isEligibleForOnlineTrustFromScreening,
-	defaultPrepFee,
-	formatJabalDonation
+	defaultPrepFee
 } from '$lib/config';
 import type { TrustScreeningAnswers, LoeAgreementData } from '$lib/server/db/schema';
 import { LOE_AGREEMENT_VERSION } from '$lib/server/db/schema';
@@ -18,6 +17,8 @@ import {
 } from '$lib/question-response-helpers';
 import type { QuestionResponseValue } from '$lib/config';
 import type { PageServerLoad, Actions } from './$types';
+import { normalizeJurisdiction } from '$lib/loeAgreement';
+import { sendLoeAcceptanceCopy } from '$lib/server/documents/loeAcceptance';
 import { adminUserUrl, notifyAdmins } from '$lib/server/notifyAdmins';
 import { stripe } from '$lib/server/stripe';
 import { fulfillCheckoutSession } from '$lib/server/fulfillCheckout';
@@ -134,11 +135,6 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	}
 
 	const hasPaidInvoice = existing.selectedPlan !== null;
-	// Trust fee actually charged (excludes the deed add-on) — drives the post-purchase
-	// Jabal Foundation giving-program figure. Read live off the trust row rather than
-	// a hardcoded amount so it always tracks the price this trust actually paid.
-	const jabalDonationAmount = formatJabalDonation(existing.customPrice ?? defaultPrepFee);
-
 	const helpBlockedSteps = await loadHelpBlockedStepsForUser(locals.user.id, 'create_trust');
 
 	// Joint trust by default when the type picker is hidden (see +page.svelte).
@@ -167,7 +163,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		userEmail: locals.user.email,
 		userCounty: countyRow?.county?.trim() || null,
 		hasPaidInvoice,
-		jabalDonationAmount,
+		// The matter's actual charge (admin-adjustable), rendered in the engagement agreement.
+		flatFeeUsd: existing.customPrice ?? defaultPrepFee,
+		jurisdiction: normalizeJurisdiction(existing.jurisdiction),
 		helpBlockedSteps,
 	};
 };
@@ -216,6 +214,17 @@ export const actions: Actions = {
 			.where(and(eq(trust.id, trustId), eq(trust.userId, locals.user.id)));
 
 		await db.update(user).set({ county }).where(eq(user.id, locals.user.id));
+
+		// Appendix A F3: email the client a PDF of the agreement they accepted and store it on the matter.
+		if (loeAcceptedAt && loeAgreementData) {
+			await sendLoeAcceptanceCopy({
+				trustId,
+				userId: locals.user.id,
+				acceptedAt: loeAcceptedAt,
+				agreement: loeAgreementData,
+				businessOwnerContinuing: screeningAnswers.business_ownership === true,
+			});
+		}
 
 		if (eligible && screeningAnswers.business_ownership === true) {
 			const profile = await db.query.user.findFirst({

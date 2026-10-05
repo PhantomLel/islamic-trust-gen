@@ -3,6 +3,8 @@
 	import type { HelpRenderedResponse } from '$lib/server/db/help.schema';
 	import { hasSeenHelpStep, HELP_STEP_IDLE_MS, markHelpStepSeen } from '$lib/help/nudges';
 	import HelpCtaRow from './HelpCtaRow.svelte';
+	import { siteName, productNameShort } from '$lib/config';
+	import { HELP_ASSISTANT_DISCLOSURE } from '$lib/help/decisions';
 
 	let {
 		surface,
@@ -83,7 +85,7 @@
 				id: nextId++,
 				role: 'assistant',
 				status: 'done',
-				text: "Asalamualaikum! Ask me a general question about using Good Tree — signing your documents, funding your trust, or what to do next.",
+				text: `Asalamualaikum! Ask me a general question about using ${productNameShort} — signing your documents, funding your trust, or what to do next.`,
 			},
 		];
 		scrollToBottom();
@@ -208,7 +210,7 @@
 	<div
 		class="flex h-[32rem] flex-col overflow-hidden rounded-2xl border border-navy/10 bg-cream shadow-lg"
 		role="region"
-		aria-label="Good Tree Help Assistant test chat"
+		aria-label="{siteName} Help Assistant test chat"
 	>
 		{@render panelContents(false)}
 	</div>
@@ -268,7 +270,7 @@
 		class="fixed inset-x-4 bottom-4 top-16 z-[80] flex flex-col overflow-hidden rounded-3xl border border-navy/10 bg-cream shadow-2xl shadow-navy/20 sm:inset-x-auto sm:top-auto sm:right-6 sm:h-[36rem] sm:w-[400px] sm:max-h-[calc(100vh-3rem)] {panelBottomClass}"
 		role="dialog"
 		aria-modal="true"
-		aria-label="Good Tree Help Assistant"
+		aria-label="{siteName} Help Assistant"
 	>
 		{@render panelContents(true)}
 	</div>
@@ -280,7 +282,7 @@
 			<div class="flex items-center gap-2.5 min-w-0">
 				<span class="h-2 w-2 shrink-0 rounded-full bg-emerald-accent"></span>
 				<div class="min-w-0">
-					<h2 class="truncate text-[15px] font-semibold text-cream">Good Tree Help Assistant</h2>
+					<h2 class="truncate text-[15px] font-semibold text-cream">{siteName} Help Assistant</h2>
 					<p class="truncate text-[11px] text-cream/50">
 						{embedded ? 'Admin test — same pipeline as production' : 'General information, not individualized advice'}
 					</p>
@@ -307,6 +309,10 @@
 				</p>
 			</div>
 		{/if}
+
+		<div class="shrink-0 border-b border-navy/10 bg-white/80 px-4 py-2.5">
+			<p class="text-[11.5px] leading-snug text-navy/65">{HELP_ASSISTANT_DISCLOSURE}</p>
+		</div>
 
 		<!-- Messages -->
 		<div bind:this={scrollEl} class="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
@@ -352,6 +358,21 @@
 								</p>
 							{/if}
 							<p class="text-[13.5px] leading-relaxed text-navy">{m.rendered.shortAnswer}</p>
+							{#if m.rendered.relatedArticle}
+								<p class="mt-2 text-[12.5px]">
+									<a href={m.rendered.relatedArticle.href} class="font-medium text-emerald-accent underline underline-offset-2">{m.rendered.relatedArticle.title}</a>
+								</p>
+							{/if}
+							{#if m.rendered.didYouMean?.length}
+								<div class="mt-3 border-t border-navy/[0.06] pt-2">
+									<p class="text-[11px] font-medium uppercase tracking-wide text-navy/45 mb-1.5">Did you mean</p>
+									<ul class="space-y-1">
+										{#each m.rendered.didYouMean as item}
+											<li><a href={item.href} class="text-[12.5px] text-emerald-accent underline underline-offset-2">{item.title}</a></li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
 							{#if m.rendered.learnMore?.appMeaning || m.rendered.learnMore?.nextStep}
 								<details class="mt-2.5 group">
 									<summary class="cursor-pointer text-[12px] font-medium text-emerald-accent select-none">

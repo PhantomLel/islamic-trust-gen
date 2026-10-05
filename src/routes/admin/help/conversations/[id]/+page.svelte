@@ -16,7 +16,11 @@
 <div class="max-w-2xl rounded-xl border border-navy/[0.06] bg-white/70 p-5 space-y-5">
 	{#each data.queries as q (q.id)}
 		<div>
-			<p class="mb-1.5 text-[11px] uppercase tracking-wider text-navy/35 font-medium">Turn {q.turnIndex + 1}</p>
+			<p class="mb-1.5 text-[11px] uppercase tracking-wider text-navy/35 font-medium">
+				Turn {q.turnIndex + 1}
+				{#if q.kbEntryVersionId}<span class="normal-case tracking-normal text-navy/45"> · KB version #{q.kbEntryVersionId}</span>{/if}
+				<span class="normal-case tracking-normal text-navy/45"> · {new Date(q.createdAt).toLocaleString()}</span>
+			</p>
 			<div class="flex justify-end">
 				<div class="max-w-[85%] rounded-2xl rounded-br-md bg-navy px-4 py-2.5 text-[13px] leading-relaxed text-cream">
 					{q.questionText}

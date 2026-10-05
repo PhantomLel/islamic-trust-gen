@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName, defaultPrepFee, formatUsd, jabalFoundationUrl, jabalProPublicaUrl } from '$lib/config';
+	import { siteName, productName, productAttorneyReviewSentence, defaultPrepFee, formatUsd, jabalFoundationUrl, jabalProPublicaUrl, jabalLandingCopy } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { slide } from 'svelte/transition';
 
@@ -66,7 +66,7 @@
 	const included = [
 		{
 			title: 'Revocable living trust',
-			body: 'The core instrument — drafted by a licensed Texas attorney and structured to enforce Qur\'anic inheritance shares privately, outside of probate.'
+			body: 'The core instrument — drafted by a licensed Texas attorney and structured to reflect Qur\'anic inheritance shares.'
 		},
 		{
 			title: 'Pour-over wills',
@@ -97,11 +97,11 @@
 		},
 		{
 			question: 'Is this legally valid in Texas?',
-			answer: 'Yes. Your trust is drafted and supervised by a licensed Texas attorney and structured under Texas law. It is a legally binding estate planning instrument designed to avoid probate when properly funded.'
+			answer: 'Yes. Your trust is drafted and supervised by a licensed Texas attorney and structured under Texas law. It is a legally binding estate planning instrument. A properly funded trust is designed to avoid probate for the assets it holds.'
 		},
 		{
 			question: 'Are trusts only for wealthy families?',
-			answer: 'No. In many cases, working families benefit the most from avoiding probate. A properly structured trust reduces court involvement, preserves privacy, and ensures assets are distributed according to Islamic inheritance principles.'
+			answer: 'No. In many cases, working families benefit the most from avoiding probate. A properly structured trust reduces court involvement, and preserves privacy.'
 		}
 	];
 </script>
@@ -221,8 +221,9 @@
 				Build your Islamic trust online, in about an hour.
 			</h1>
 
-			<p class="text-navy/60 text-base md:text-lg font-light max-w-xl leading-relaxed text-balance">
-				An attorney-supervised revocable trust for Texas families — Qur'anic inheritance enforced 
+			<p class="text-navy text-lg md:text-xl font-medium max-w-xl leading-snug text-balance">{productName}</p>
+			<p class="text-navy/60 text-base md:text-lg font-light max-w-xl leading-relaxed text-balance -mt-3">
+				{productAttorneyReviewSentence}
 			</p>
 			<div class="flex flex-col sm:flex-row items-center gap-3 mt-3">
 				<a
@@ -262,11 +263,6 @@
 				<div class="flex items-center gap-2">
 					<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 					<span class="text-navy/45 text-xs">Attorney-supervised</span>
-				</div>
-				<div class="w-px h-3 bg-navy/15 sm:block hidden"></div>
-				<div class="flex items-center gap-2">
-					<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-					<span class="text-navy/45 text-xs">Qur'anic inheritance, enforced</span>
 				</div>
 				<div class="w-px h-3 bg-navy/15 sm:block hidden"></div>
 				<div class="flex items-center gap-2">
@@ -339,8 +335,8 @@
 					We believe every Muslim family should build a waqf of their own — or leave a bequest to one that already exists. When you build your plan with us, you choose your own charitable bequests from a neutral, alphabetical list. We deliberately don't recommend one.
 				</p>
 				<p class="text-navy/70 text-base md:text-[17px] leading-relaxed">
-					Here's proof we mean it: attorney <strong class="font-semibold text-navy">Leonard McDaniel</strong> serves as treasurer of Jabal Foundation's board and personally oversees its finances. Leonard receives <strong class="font-semibold text-navy">zero</strong> compensation for this, as do all of Jabal Foundation's board members.
-					<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>. Jabal Foundation is a real waqf that funds orphan development and meal distribution. <strong class="font-semibold text-navy">5% of every Good Tree Trust App purchase is donated to Jabal Foundation's Legacy Waqf</strong> — the same day you buy.
+					{jabalLandingCopy()}
+					<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>.
 				</p>
 				<a
 					href={jabalFoundationUrl}
@@ -365,9 +361,6 @@
 						<span class="w-8 h-px bg-emerald-accent/60"></span>
 						<span class="text-emerald-accent text-[11px] tracking-[0.3em] uppercase font-medium">What's included</span>
 					</div>
-					<h2 class="text-3xl md:text-4xl tracking-tight text-navy leading-tight text-balance mb-5">
-						Four documents. One flat fee. Nothing extra to buy.
-					</h2>
 					<p class="text-navy/60 text-base leading-relaxed mb-7">
 						Drafted by a licensed Texas attorney, reviewed before they reach your inbox, and signed in front of a notary we arrange for you.
 					</p>
@@ -434,7 +427,7 @@
 						</div>
 						<h3 class="text-2xl md:text-3xl text-navy tracking-tight mb-6 text-balance">The online trust works for you if…</h3>
 						<ul class="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-							{#each ['You live in Texas', 'You own one primary residence', 'You want to avoid probate', 'You want Islamic shares enforced'] as item}
+							{#each ['You live in Texas', 'You own one primary residence', 'You want to avoid probate'] as item}
 								<li class="flex items-start gap-3 text-navy/75 text-[15px] leading-relaxed">
 									<svg class="w-4 h-4 text-emerald-accent shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 									<span>{item}</span>

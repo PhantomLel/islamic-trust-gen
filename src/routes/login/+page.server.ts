@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { user } from '$lib/server/db/schema';
+import { isContentStaffRole } from '$lib/content/permissions';
 import { sql } from 'drizzle-orm';
 import { auth } from '$lib/server/auth';
 import { APIError } from 'better-auth/api';
@@ -26,6 +27,9 @@ export const load: PageServerLoad = async (event) => {
 		if (event.locals.user.role === "admin") {
 			return redirect(302, '/admin');
 		}
+		if (isContentStaffRole(event.locals.user.role)) {
+			return redirect(302, '/admin/content');
+		}
 		const redirectTo = safeRedirectPath(event.url.searchParams.get('redirectTo'));
 		if (redirectTo) {
 			return redirect(302, redirectTo);
@@ -45,13 +49,17 @@ export const actions: Actions = {
 		const email = emailRaw.trim();
 
 		const [row] = await db
-			.select({ id: user.id })
+			.select({ id: user.id, role: user.role })
 			.from(user)
 			.where(sql`lower(${user.email}) = ${email.toLowerCase()}`)
 			.limit(1);
 
 		if (!row) {
 			return { needsSignup: true as const, email };
+		}
+
+		if (isContentStaffRole(row.role)) {
+			return fail(400, { message: 'Content accounts sign in with a password and verification code at /login/staff.' });
 		}
 
 		try {

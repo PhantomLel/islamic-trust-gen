@@ -44,7 +44,9 @@ export type PreviewRenderOpts = {
 };
 
 /** Render a drip template with sample links for preview / test send. */
-export function renderPreviewEmail(opts: PreviewRenderOpts): { html: string; subject: string; sequence: SequenceName } | null {
+export function renderPreviewEmail(
+	opts: PreviewRenderOpts,
+): { html: string; subject: string; sequence: SequenceName; unsubscribeUrl: string } | null {
 	const item = findPreviewableEmail(opts.emailKey);
 	if (!item) return null;
 
@@ -67,5 +69,5 @@ export function renderPreviewEmail(opts: PreviewRenderOpts): { html: string; sub
 	});
 
 	if (!html) return null;
-	return { html, subject: item.subject, sequence: item.sequence };
+	return { html, subject: item.subject, sequence: item.sequence, unsubscribeUrl: links.unsubscribeUrl };
 }

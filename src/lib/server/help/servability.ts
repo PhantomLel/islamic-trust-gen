@@ -20,6 +20,7 @@ export type ServableEntry = {
 	goodTreeAppMeaning: string | null;
 	userNextStep: string | null;
 	rerankDocument: string | null;
+	contentPageSlug: string | null;
 	classificationBase: KbClassificationBase | null;
 	alsoAnswers: string[] | null;
 	status: KbGovernanceStatus;
@@ -82,6 +83,7 @@ export async function listServableEntries(options?: {
 			goodTreeAppMeaning: kbEntry.goodTreeAppMeaning,
 			userNextStep: kbEntry.userNextStep,
 			rerankDocument: kbEntry.rerankDocument,
+			contentPageSlug: kbEntry.contentPageSlug,
 			classificationBase: sql<string | null>`null`,
 			alsoAnswers: sql<string[] | null>`null`,
 			status: kbEntryGovernance.status,
@@ -158,7 +160,7 @@ export async function searchServableEntries(query: string, limit = 20): Promise<
 	const rows = await db.execute(sql`
 		SELECT e.id, e.entry_type, e.category, e.title, e.question,
 			e.user_facing_answer, e.good_tree_app_meaning, e.user_next_step, e.rerank_document,
-			g.status
+			e.content_page_slug, g.status
 		FROM kb_entry e
 		INNER JOIN kb_entry_governance g ON g.entry_id = e.id
 		WHERE g.status = 'approved'
@@ -192,6 +194,7 @@ export async function searchServableEntries(query: string, limit = 20): Promise<
 			goodTreeAppMeaning: (r.good_tree_app_meaning as string | null) ?? null,
 			userNextStep: (r.user_next_step as string | null) ?? null,
 			rerankDocument: (r.rerank_document as string | null) ?? null,
+			contentPageSlug: (r.content_page_slug as string | null) ?? null,
 			classificationBase: null,
 			alsoAnswers: null,
 			status: r.status as KbGovernanceStatus,

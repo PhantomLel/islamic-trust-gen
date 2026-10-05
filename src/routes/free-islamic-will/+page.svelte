@@ -2,11 +2,19 @@
 	import { onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { authClient } from '$lib/auth-client';
-	import { siteName, consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
+	import {
+		siteName,
+		consultationBookingUrl,
+		defaultPrepFee,
+		formatUsd,
+		productName,
+		productAttorneyReviewSentence,
+		emailPurposeNotice,
+		marketingConsentLabel
+	} from '$lib/config';
 	import type { HeirsCalculatorResponse } from '$lib/config';
 	import {
 		usStates,
-		willAvailableStates,
 		isWillAvailableState,
 		stateName,
 		stageMeta,
@@ -33,11 +41,8 @@
 		getNamedHeirs,
 		heirsQuestionId,
 		heirsCalculatorAllResponses,
-		getWillLimitationReasons,
 		needsWillLimitationWarning,
-		willLimitationWarningIntro,
-		willLimitationWarningOutro,
-		willLimitationReasonLabels,
+		willFlagBoundaryCopy,
 		toWillResponses,
 		getStepValidationMessage,
 		normalizeWillPersonName,
@@ -49,7 +54,10 @@
 	import GuardiansInput from '$lib/components/GuardiansInput.svelte';
 	import WillCountySelector from '$lib/components/WillCountySelector.svelte';
 	import WillWasiyyahInput from '$lib/components/WillWasiyyahInput.svelte';
-	import WillWaitlistCapture from '$lib/components/WillWaitlistCapture.svelte';
+	import OutOfStateExit from '$lib/components/OutOfStateExit.svelte';
+	import IntakePrivacyNotice from '$lib/components/IntakePrivacyNotice.svelte';
+	import { DRAFT_MARKER } from '$lib/free-will/draft';
+	import { willSigningInstructionsFor } from '$lib/free-will/signing';
 	import type { WillWasiyyahResponse } from '$lib/free-will/config';
 	import {
 		ACKNOWLEDGMENT_VERSION,
@@ -62,7 +70,7 @@
 		selfHelpDisclaimerCopy,
 		type AcknowledgmentData
 	} from '$lib/free-will/acknowledgment';
-	import { getFirstTouchUtm, trackWillCompletion } from '$lib/utm';
+	import { trackWillCompletion } from '$lib/utm';
 
 	let { data } = $props();
 
@@ -97,6 +105,8 @@
 	let accountLoading = $state(false);
 	let savingWill = $state(false);
 	let magicLinkSent = $state(false);
+	// Spec v3 §4.3: unchecked by default, never pre-checked, never bundled.
+	let marketingConsent = $state(false);
 
 	// ── derived ──
 	let activeSteps = $derived(getActiveSteps(responses));
@@ -120,7 +130,6 @@
 	let canContinueAcknowledge = $derived(
 		acknowledgeSelfHelp && (!requiresCommunityAck || acknowledgeCommunityProperty)
 	);
-	let willLimitationReasons = $derived(getWillLimitationReasons(responses));
 	let showWillLimitationWarning = $derived(needsWillLimitationWarning(responses));
 
 	let namedHeirs = $derived(getNamedHeirs(responses));
@@ -130,8 +139,8 @@
 	type PlanCard = { title: string; tagline: string; price: string; href: string };
 	const planCards: Record<Exclude<PlanKey, null>, PlanCard> = {
 		'goodtree-trust': {
-			title: 'GoodTree Trust',
-			tagline: 'Create your fully functional trust online. Avoid probate with an attorney-supervised Islamic revocable living trust.',
+			title: productName,
+			tagline: productAttorneyReviewSentence,
 			price: formatUsd(defaultPrepFee),
 			href: '/trust'
 		},
@@ -148,10 +157,17 @@
 			href: consultationBookingUrl
 		}
 	};
-	// Ordered upsell ladder (packet R1): GoodTree Trust App first when app-recommended,
-	// Legacy Plan second as secondary option — one source of truth shared with the delivery email.
-	let offerLadder = $derived(freeWillOfferLadder(responses));
+	// No paid offer is shown when `recommendPlan` returns no plan (spec v3 §4.5).
+	let offerLadder = $derived(recommendation.plan ? freeWillOfferLadder(responses) : []);
 	let offerCards = $derived(offerLadder.map((key) => ({ key, ...planCards[key] })));
+
+	// Signing wrapper (spec v3 §3.4); Texas steps only for TX.
+	let signing = $derived(willSigningInstructionsFor(responses['state'] as string | undefined));
+
+	// §4.2: the privacy notice appears once, at the first family/asset/heir question.
+	let privacyNoticeStepId = $derived(
+		activeSteps.find((st) => st.id === 'marital_status' || st.stage === 'family' || st.stage === 'assets')?.id ?? null
+	);
 
 	// ── persistence (localStorage) ──
 	function persist() {
@@ -252,11 +268,8 @@
 				const trackingKey = `mlp:tracked-completion-${data.savedWill.id}`;
 				const alreadyTracked = localStorage.getItem(trackingKey);
 				if (!alreadyTracked) {
-					console.log('[Will] First time showing completion for will', data.savedWill.id, '- tracking event');
-					trackWillCompletion(data.savedWill.id, data.user.email);
+					trackWillCompletion(data.savedWill.id);
 					localStorage.setItem(trackingKey, new Date().toISOString());
-				} else {
-					console.log('[Will] Already tracked completion for will', data.savedWill.id, 'at', alreadyTracked);
 				}
 			} else {
 				// A4 — the flow is no longer locked to a single will: a genuinely
@@ -435,10 +448,8 @@
 		form.set('acknowledgmentData', acknowledgmentData ? JSON.stringify(acknowledgmentData) : '');
 		// A4 — set means "update this specific will", unset means "insert a new one".
 		form.set('willId', activeWillId != null ? String(activeWillId) : '');
-		const utm = getFirstTouchUtm();
-		form.set('utmSource', utm.utmSource ?? '');
-		form.set('utmMedium', utm.utmMedium ?? '');
-		form.set('utmCampaign', utm.utmCampaign ?? '');
+		// Source attribution is read from the first-party cookie on the server (spec v3 §5.1).
+		form.set('marketingConsent', marketingConsent ? 'true' : 'false');
 		if (action === 'savePending') {
 			form.set('name', accountName.trim());
 			form.set('email', accountEmail.trim());
@@ -478,10 +489,8 @@
 		if (resultData?.willDownload) willDownload = resultData.willDownload;
 		phase = 'complete';
 		
-		// Track will completion with UTM params
-		const email = accountEmail.trim() || data.user?.email || undefined;
-		console.log('[Will] Tracking completion - Will ID:', activeWillId, 'Email:', email);
-		trackWillCompletion(activeWillId, email);
+		// Track will completion with the first-touch source only (no email, spec v3 §5).
+		trackWillCompletion(activeWillId);
 	}
 
 	async function handleCreateAccount() {
@@ -553,14 +562,6 @@
 	}
 
 </script>
-
-<svelte:head>
-	<title>Free Islamic Will — {siteName}</title>
-	<meta
-		name="description"
-		content="Create your free Islamic will in about 10 minutes. Attorney-informed, shariah-grounded, and the right first step for every Muslim family."
-	/>
-</svelte:head>
 
 {#snippet optionButton(label: string, selected: boolean, onClick: () => void)}
 	<button
@@ -650,7 +651,6 @@
 						<p class="text-navy text-base md:text-lg font-medium leading-snug">
 							Available now in California and Texas
 						</p>
-						<p class="text-navy/55 text-sm mt-1">Other states coming soon.</p>
 					</div>
 
 					<button
@@ -746,6 +746,10 @@
 							<div class="mb-8"></div>
 						{/if}
 
+						{#if currentStep.id === privacyNoticeStepId}
+							<IntakePrivacyNotice class="mb-8" />
+						{/if}
+
 						<!-- INPUT BY TYPE -->
 						{#if currentStep.type === 'state'}
 							{@const selectedState = (responses[currentStep.id] as string) ?? ''}
@@ -757,31 +761,17 @@
 										outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 cursor-pointer"
 								>
 									<option value="" disabled>Select your state…</option>
-									{#each usStates.filter((s) => willAvailableStates.has(s.code)) as s}
+									{#each usStates as s}
 										<option value={s.code}>{s.name}</option>
 									{/each}
-									<optgroup label="Coming soon">
-										{#each usStates.filter((s) => !willAvailableStates.has(s.code)) as s}
-											<option value={s.code}>{s.name}</option>
-										{/each}
-									</optgroup>
 								</select>
 								<svg class="w-4 h-4 text-navy/40 absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
 								</svg>
 							</div>
 							{#if selectedState && !isWillAvailableState(selectedState)}
-								<!-- A1: out-of-state email capture, works on both state screens -->
-								<WillWaitlistCapture
-									stateCode={selectedState}
-									stateLabel={stateName(selectedState)}
-									stepId={currentStep.id}
-									name={accountName}
-								/>
-							{:else}
-								<p class="text-navy/45 text-xs leading-relaxed mt-3 px-1">
-									Only California and Texas are available right now. Other states are listed below as coming soon.
-								</p>
+								<!-- Spec v3 §3.1: stop here; no further interview questions are shown. -->
+								<OutOfStateExit stateCode={selectedState} name={accountName} />
 							{/if}
 
 						{:else if currentStep.type === 'county'}
@@ -1033,16 +1023,7 @@
 							</span>
 							<h2 class="text-xl md:text-2xl text-navy tracking-tight">Important to know</h2>
 						</div>
-						<p class="text-navy/65 text-[15px] leading-relaxed mb-4">{willLimitationWarningIntro}</p>
-						<ul class="flex flex-col gap-2.5 mb-4">
-							{#each willLimitationReasons as reason}
-								<li class="flex items-start gap-2.5 text-navy/65 text-[14px] leading-relaxed">
-									<span class="text-amber-600 mt-1 shrink-0">•</span>
-									<span>{willLimitationReasonLabels[reason]}</span>
-								</li>
-							{/each}
-						</ul>
-						<p class="text-navy/65 text-[15px] leading-relaxed">{willLimitationWarningOutro}</p>
+						<p class="text-navy/65 text-[15px] leading-relaxed">{willFlagBoundaryCopy}</p>
 					</div>
 					<div class="flex items-center justify-between mt-8">
 						<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
@@ -1128,6 +1109,10 @@
 						</ul>
 					</div>
 
+					<div class="rounded-xl border border-red-300 bg-red-50 px-5 py-3 mb-5 text-center">
+						<p class="text-red-700 text-sm font-bold tracking-wide">{DRAFT_MARKER}</p>
+					</div>
+
 					<!-- Legal mode note -->
 					<div class="rounded-xl border border-navy/8 bg-navy/3 px-5 py-4 mb-8">
 						<div class="text-navy/40 text-[10px] tracking-[0.22em] uppercase mb-1.5">Legal note</div>
@@ -1194,6 +1179,18 @@
 									placeholder="you@example.com"
 									class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white border border-navy/10 text-navy text-sm placeholder:text-navy/30 outline-none transition-all focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10"
 								/>
+								<span class="block text-navy/50 text-xs leading-relaxed mt-1.5" data-testid="email-purpose-notice">{emailPurposeNotice}</span>
+							</label>
+
+							<!-- Spec v3 §4.3: separate, unchecked by default, not required, not bundled into account creation. -->
+							<label class="flex items-start gap-3 cursor-pointer mt-1">
+								<input
+									type="checkbox"
+									bind:checked={marketingConsent}
+									class="mt-1 w-4 h-4 accent-emerald-accent cursor-pointer shrink-0"
+									data-testid="marketing-consent"
+								/>
+								<span class="text-navy/65 text-xs leading-relaxed">{marketingConsentLabel}</span>
 							</label>
 
 							{#if accountError}
@@ -1251,6 +1248,10 @@
 						</p>
 					</div>
 
+					<div class="rounded-xl border border-red-300 bg-red-50 px-5 py-3 mb-5 text-center" data-testid="draft-banner">
+						<p class="text-red-700 text-sm font-bold tracking-wide">{DRAFT_MARKER}</p>
+					</div>
+
 					{#if willDownload}
 						<div class="rounded-2xl border border-emerald-accent/30 bg-emerald-accent/8 p-6 mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 							<div class="flex items-center gap-3.5">
@@ -1259,7 +1260,7 @@
 								</span>
 								<div>
 									<p class="text-navy font-medium text-[15px] leading-snug">Your Islamic will (.docx)</p>
-									<p class="text-navy/50 text-xs mt-0.5">Ready to print, sign, and witness</p>
+									<p class="text-red-700/80 text-xs font-medium mt-0.5">{DRAFT_MARKER}</p>
 								</div>
 							</div>
 							<a
@@ -1278,36 +1279,26 @@
 						</div>
 					{/if}
 
-					<!-- Signing instructions -->
-					<div class="rounded-2xl border border-navy/10 bg-white/70 p-6 mb-5">
-						<h3 class="text-navy font-medium text-[15px] mb-4">Next: sign your will</h3>
-						<ol class="flex flex-col gap-3.5">
-							{#each ['Print your will.', 'Sign and date it in front of two adult witnesses who are not heirs.', 'Have your witnesses sign in your presence and each other\u2019s.', 'Store the signed original somewhere safe and tell your representative where it is.'] as step, i}
-								<li class="flex gap-3.5 items-start">
-									<span class="text-emerald-accent/60 text-[11px] tabular-nums tracking-widest mt-0.5 shrink-0">0{i + 1}</span>
-									<span class="text-navy/65 text-sm leading-relaxed">{step}</span>
-								</li>
-							{/each}
-						</ol>
-						<p class="text-navy/40 text-xs leading-relaxed mt-4 pt-4 border-t border-navy/8">
-							Witnessing and notarization requirements vary by state. Your emailed document includes the specific steps for {stateName(responses['state'] as string) || 'your state'}.
-						</p>
+					<!-- Signing instructions (spec v3 §3.4): wrapper for every will; Texas steps for TX only. -->
+					<div class="rounded-2xl border border-navy/10 bg-white/70 p-6 mb-5" data-testid="signing-instructions">
+						<p class="text-navy/70 text-sm leading-relaxed">{signing.wrapper}</p>
+						{#if signing.heading}
+							<h3 class="text-navy font-medium text-[15px] mt-5 mb-4">{signing.heading}</h3>
+							<ol class="flex flex-col gap-3.5">
+								{#each signing.steps as step, i}
+									<li class="flex gap-3.5 items-start">
+										<span class="text-emerald-accent/60 text-[11px] tabular-nums tracking-widest mt-0.5 shrink-0">0{i + 1}</span>
+										<span class="text-navy/65 text-sm leading-relaxed">{step}</span>
+									</li>
+								{/each}
+							</ol>
+						{/if}
 					</div>
 
 					<!-- Will limitation upsell block -->
 					{#if showWillLimitationWarning}
 						<div class="rounded-2xl border border-amber-300/60 bg-amber-50/70 p-6 mb-5">
-							<h3 class="text-navy font-medium text-[15px] mb-2">Recommended next steps</h3>
-							<p class="text-navy/60 text-sm leading-relaxed mb-3">{willLimitationWarningIntro}</p>
-							<ul class="flex flex-col gap-2 mb-5">
-								{#each willLimitationReasons as reason}
-									<li class="flex items-start gap-2 text-navy/60 text-sm leading-relaxed">
-										<span class="text-amber-600 shrink-0">•</span>
-										<span>{willLimitationReasonLabels[reason]}</span>
-									</li>
-								{/each}
-							</ul>
-							<p class="text-navy/60 text-sm leading-relaxed mb-5">{willLimitationWarningOutro}</p>
+							<p class="text-navy/60 text-sm leading-relaxed mb-5">{willFlagBoundaryCopy}</p>
 							<div class="flex flex-col gap-2.5">
 								{#if tags.includes('beneficiary_designation_review')}
 									<a href="/beneficiary-checklist" class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
@@ -1323,52 +1314,38 @@
 						</div>
 					{/if}
 
-					<!-- Upsell ladder (packet R1): GoodTree card above Legacy Plan when app-recommended -->
-					{#if offerCards.length === 0}
-						<div class="rounded-2xl border border-navy/10 bg-white/70 p-7 mb-5">
-							<h3 class="text-navy font-medium text-[15px] mb-3">Where things stand for you</h3>
-							<p class="text-navy/60 text-sm leading-relaxed">
-								Based on what you told us, your situation is straightforward — most people in a similar position don't need anything beyond this will right now. If that changes (you buy a home, open a retirement account, start a business, get married, or anything else shifts), come back and update your will, and we'll help you figure out whether more planning is worth it then.
-							</p>
-						</div>
-					{:else}
-						{#each offerCards as card}
-							{#if card.key === 'goodtree-trust'}
-								<div class="rounded-2xl bg-navy overflow-hidden mb-5">
-									<div class="p-7">
-										<span class="text-emerald-light/70 text-[10px] tracking-[0.28em] uppercase font-medium">Recommended for your situation</span>
-										<h3 class="text-cream text-xl md:text-2xl tracking-tight mt-2 mb-2">{card.title}</h3>
-										<p class="text-cream/60 text-sm leading-relaxed mb-3">{card.tagline}</p>
-										{#if recommendation.attorneyReviewNote}
-											<p class="text-cream/45 text-xs leading-relaxed mb-5">Given what you shared, it may also be worth a quick word with an attorney; you can book a free consult any time.</p>
-										{/if}
-										<div class="flex items-center justify-between gap-4 mt-5">
-											<span class="text-cream/50 text-sm">{card.price}</span>
-											<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cream text-navy text-sm font-medium transition-all duration-200 hover:bg-white">
-												Learn more
-												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-											</a>
-										</div>
+					<!-- Offers appear only when `recommendPlan` returns a plan (spec v3 §4.5); no assessment copy. -->
+					{#each offerCards as card}
+						{#if card.key === 'goodtree-trust'}
+							<div class="rounded-2xl bg-navy overflow-hidden mb-5">
+								<div class="p-7">
+									<h3 class="text-cream text-xl md:text-2xl tracking-tight mb-2">{card.title}</h3>
+									<p class="text-cream/60 text-sm leading-relaxed mb-3">{card.tagline}</p>
+									<div class="flex items-center justify-between gap-4 mt-5">
+										<span class="text-cream/50 text-sm">{card.price}</span>
+										<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cream text-navy text-sm font-medium transition-all duration-200 hover:bg-white">
+											Learn more
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+										</a>
 									</div>
 								</div>
-							{:else}
-								<div class="rounded-2xl border border-navy/10 bg-white/70 overflow-hidden mb-5">
-									<div class="p-7">
-										<span class="text-navy/40 text-[10px] tracking-[0.28em] uppercase font-medium">Premium option</span>
-										<h3 class="text-navy text-xl md:text-2xl tracking-tight mt-2 mb-2">{card.title}</h3>
-										<p class="text-navy/60 text-sm leading-relaxed mb-5">{card.tagline}</p>
-										<div class="flex items-center justify-between gap-4">
-											<span class="text-navy/45 text-sm">{card.price}</span>
-											<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy text-cream text-sm font-medium transition-all duration-200 hover:bg-navy-light">
-												Learn more
-												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-											</a>
-										</div>
+							</div>
+						{:else}
+							<div class="rounded-2xl border border-navy/10 bg-white/70 overflow-hidden mb-5">
+								<div class="p-7">
+									<h3 class="text-navy text-xl md:text-2xl tracking-tight mb-2">{card.title}</h3>
+									<p class="text-navy/60 text-sm leading-relaxed mb-5">{card.tagline}</p>
+									<div class="flex items-center justify-between gap-4">
+										<span class="text-navy/45 text-sm">{card.price}</span>
+										<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy text-cream text-sm font-medium transition-all duration-200 hover:bg-navy-light">
+											Learn more
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+										</a>
 									</div>
 								</div>
-							{/if}
-						{/each}
-					{/if}
+							</div>
+						{/if}
+					{/each}
 
 					<div class="text-center">
 						<a href="/plans" class="text-navy/45 text-sm hover:text-navy/70 transition-colors">Explore all plans →</a>

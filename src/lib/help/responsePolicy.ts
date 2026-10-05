@@ -1,10 +1,11 @@
 import { GENERAL_INFORMATION_FOOTER } from '$lib/help/decisions';
-import type { HelpRenderedResponse } from '$lib/server/db/help.schema';
+import type { HelpDidYouMeanItem, HelpRenderedResponse } from '$lib/server/db/help.schema';
 import type { ServableEntry } from '$lib/server/help/servability';
 import type { HelpSettings } from '$lib/server/help/settingsDefaults';
 import type { TriggerMatch } from '$lib/help/triggers';
 import { highestTier } from '$lib/help/triggers';
 import type { KbClassificationBase } from '$lib/server/db/help.schema';
+import { renderKbText } from '$lib/server/help/renderKb';
 
 export type ResponsePolicyInput = {
 	triggers: TriggerMatch[];
@@ -14,7 +15,16 @@ export type ResponsePolicyInput = {
 	entry: ServableEntry | null;
 	templateBody?: string | null;
 	settings: HelpSettings;
+	didYouMean?: HelpDidYouMeanItem[];
+	relatedArticle?: { title: string; href: string };
 };
+
+function learnMore(entry: ServableEntry) {
+	return {
+		appMeaning: entry.goodTreeAppMeaning ? renderKbText(entry.goodTreeAppMeaning) : undefined,
+		nextStep: entry.userNextStep ? renderKbText(entry.userNextStep) : undefined,
+	};
+}
 
 export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedResponse {
 	const footer = GENERAL_INFORMATION_FOOTER;
@@ -38,7 +48,7 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 		return {
 			kind: 'sensitive_data',
 			shortAnswer:
-				'Please do not share passwords, seed phrases, private keys, SSNs, full account numbers, bank logins, or photos of IDs here. The Good Tree app will never ask for crypto seed phrases or private keys.',
+				'Please do not share passwords, seed phrases, private keys, SSNs, full account numbers, bank logins, or photos of IDs here. This app will never ask for crypto seed phrases or private keys.',
 			footer,
 			cta: supportCta,
 		};
@@ -49,7 +59,7 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 		return {
 			kind: 'tier1',
 			shortAnswer:
-				input.templateBody ??
+				renderKbText(input.templateBody) ||
 				'Please contact the office before continuing. The Help Assistant steps back for urgent matters like this.',
 			footer,
 			cta: urgentCta,
@@ -61,17 +71,22 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 			kind: 'fallback',
 			shortAnswer:
 				'I do not have an approved answer for that yet. Try rephrasing your question. If that doesn\'t work, please contact our team so we can give you a real answer instead of a guess.',
+			didYouMean: input.didYouMean?.length ? input.didYouMean : undefined,
 			footer,
 			cta: supportCta,
 		};
 	}
 
 	const classification: KbClassificationBase | null = input.entry.classificationBase;
+	const answerText = renderKbText(input.entry.userFacingAnswer);
+	const relatedArticle = input.relatedArticle;
+
 	if (classification === 'do_not_answer') {
 		return {
 			kind: 'do_not_answer',
-			shortAnswer: input.templateBody ?? input.entry.userFacingAnswer ?? '',
+			shortAnswer: renderKbText(input.templateBody) || answerText,
 			entryId: input.entry.id,
+			relatedArticle,
 			footer,
 			cta: consultCta,
 		};
@@ -80,12 +95,10 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 	if (tier === '2') {
 		return {
 			kind: 'tier2',
-			shortAnswer: input.entry.userFacingAnswer ?? '',
+			shortAnswer: answerText,
 			entryId: input.entry.id,
-			learnMore: {
-				appMeaning: input.entry.goodTreeAppMeaning ?? undefined,
-				nextStep: input.entry.userNextStep ?? undefined,
-			},
+			learnMore: learnMore(input.entry),
+			relatedArticle,
 			footer,
 			cta: consultCta,
 			blockedStep: input.triggers.some((t) => t.blocksStep),
@@ -95,12 +108,10 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 	if (classification === 'consult_trigger' || tier === '3') {
 		return {
 			kind: classification === 'consult_trigger' ? 'consult_trigger' : 'tier3',
-			shortAnswer: input.entry.userFacingAnswer ?? '',
+			shortAnswer: answerText,
 			entryId: input.entry.id,
-			learnMore: {
-				appMeaning: input.entry.goodTreeAppMeaning ?? undefined,
-				nextStep: input.entry.userNextStep ?? undefined,
-			},
+			learnMore: learnMore(input.entry),
+			relatedArticle,
 			footer,
 			cta: consultCta,
 		};
@@ -108,12 +119,10 @@ export function resolveResponsePolicy(input: ResponsePolicyInput): HelpRenderedR
 
 	return {
 		kind: 'safe_answer',
-		shortAnswer: input.entry.userFacingAnswer ?? '',
+		shortAnswer: answerText,
 		entryId: input.entry.id,
-		learnMore: {
-			appMeaning: input.entry.goodTreeAppMeaning ?? undefined,
-			nextStep: input.entry.userNextStep ?? undefined,
-		},
+		learnMore: learnMore(input.entry),
+		relatedArticle,
 		footer,
 	};
 }

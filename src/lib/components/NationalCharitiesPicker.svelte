@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { nationalCharities } from '$lib/nationalCharities';
+	import { isJabalCharityId, nationalCharities } from '$lib/nationalCharities';
+	import { charityPickerHeading, jabalPickerConfirmPrompt, jabalPickerDisclosure } from '$lib/config';
 
 	let {
 		selectedIds,
@@ -11,20 +12,36 @@
 	}: {
 		selectedIds: string[];
 		getPercentage: (id: string) => number;
-		onselect: (id: string) => void;
+		/** `meta.confirmedAt` is set (ISO timestamp) only for the Jabal Foundation entry, after the explicit confirm. */
+		onselect: (id: string, meta?: { confirmedAt?: string }) => void;
 		onremove: (id: string) => void;
 		onPercentageChange: (id: string, percentage: number) => void;
 		idPrefix?: string;
 	} = $props();
 
 	let open = $state(false);
+	/** Jabal selected but not yet confirmed: nothing is stored until the confirm button is pressed. */
+	let pendingJabalId = $state<string | null>(null);
 
 	let selectedSet = $derived(new Set(selectedIds));
 	let selectedCharities = $derived(nationalCharities.filter((c) => selectedSet.has(c.id)));
 
 	function toggle(id: string) {
-		if (selectedSet.has(id)) onremove(id);
-		else onselect(id);
+		if (selectedSet.has(id)) {
+			onremove(id);
+		} else if (isJabalCharityId(id)) {
+			// Appendix A §3.2: explicit confirm before the answer is stored.
+			pendingJabalId = id;
+			open = false;
+		} else {
+			onselect(id);
+		}
+	}
+
+	function confirmJabal() {
+		if (!pendingJabalId) return;
+		onselect(pendingJabalId, { confirmedAt: new Date().toISOString() });
+		pendingJabalId = null;
 	}
 
 	function handleTriggerBlur() {
@@ -45,10 +62,7 @@
 
 <div class="rounded-xl border border-navy/10 bg-navy/[0.02] p-4 space-y-3">
 	<div>
-		<h3 class="text-sm font-medium text-navy">Muslim Charities in Texas</h3>
-		<p class="text-xs text-navy/55 mt-0.5 leading-relaxed">
-			A few well-regarded Islamic charities you may want to consider. Visit their websites to learn more, then select any you'd like to include.
-		</p>
+		<p class="text-xs text-navy/65 leading-relaxed" data-testid="charity-picker-heading">{charityPickerHeading}</p>
 	</div>
 
 	<div class="relative">
@@ -112,6 +126,9 @@
 						</span>
 						<span class="flex-1 min-w-0">
 							<span class="block text-sm font-medium text-navy leading-snug">{charity.name}</span>
+							{#if isJabalCharityId(charity.id)}
+								<span class="block text-xs text-navy/55 leading-relaxed mt-0.5" data-testid="jabal-disclosure">{jabalPickerDisclosure}</span>
+							{/if}
 							<a
 								href={charity.url}
 								target="_blank"
@@ -132,12 +149,37 @@
 		{/if}
 	</div>
 
+	{#if pendingJabalId}
+		<div class="rounded-xl border border-amber-300/70 bg-amber-50 p-4" role="alertdialog" aria-label="Confirm Jabal Foundation gift" data-testid="jabal-confirm">
+			<p class="text-sm text-navy leading-relaxed">{jabalPickerConfirmPrompt}</p>
+			<div class="mt-3 flex gap-2">
+				<button
+					type="button"
+					onclick={confirmJabal}
+					class="px-4 py-2 rounded-lg bg-emerald-accent text-cream text-sm font-medium hover:bg-emerald-light transition-colors cursor-pointer"
+				>
+					Confirm
+				</button>
+				<button
+					type="button"
+					onclick={() => (pendingJabalId = null)}
+					class="px-4 py-2 rounded-lg border border-navy/15 text-sm text-navy/70 hover:bg-navy/[0.04] transition-colors cursor-pointer"
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	{/if}
+
 	{#each selectedCharities as charity (charity.id)}
 		{@const pct = getPercentage(charity.id)}
 		<div class="rounded-xl border border-emerald-accent/30 bg-emerald-accent/5 p-4">
 			<div class="flex items-start gap-3">
 				<div class="flex-1 min-w-0">
 					<h4 class="text-sm font-medium text-navy leading-snug">{charity.name}</h4>
+					{#if isJabalCharityId(charity.id)}
+						<p class="text-xs text-navy/55 leading-relaxed mt-0.5">{jabalPickerDisclosure}</p>
+					{/if}
 					<a
 						href={charity.url}
 						target="_blank"

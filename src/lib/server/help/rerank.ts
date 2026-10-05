@@ -1,4 +1,5 @@
 import { env } from '$env/dynamic/private';
+import { productNameMidSentence, siteName } from '$lib/config';
 import { HELP_PROVIDER_MODELS, HELP_RERANK_DEFAULTS } from '$lib/help/decisions';
 import type { ServableEntry } from '$lib/server/help/servability';
 
@@ -28,8 +29,8 @@ export async function rerankCorpus(
 	}
 
 	const instruction = stepHint
-		? `Represent the query for retrieving supporting documents about the Good Tree trust app step "${stepHint}": `
-		: 'Represent the query for retrieving supporting Good Tree help documents: ';
+		? `Represent the query for retrieving supporting documents about the ${productNameMidSentence()} step "${stepHint}": `
+		: `Represent the query for retrieving supporting ${siteName} help documents: `;
 
 	const documents = entries.map(
 		(e) => e.rerankDocument ?? e.question ?? e.title ?? String(e.id),

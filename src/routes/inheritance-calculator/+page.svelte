@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName, consultationBookingUrl } from '$lib/config';
+	import { siteName, consultationBookingUrl, productName } from '$lib/config';
 
 	type FractionJSON = { numerator: number; denominator: number; display: string; decimal: number };
 	type HeirResult = {
@@ -159,14 +159,6 @@
 		},
 	};
 </script>
-
-<svelte:head>
-	<title>Islamic Inheritance Calculator (Farāʾiḍ) | {siteName}</title>
-	<meta
-		name="description"
-		content="Estimate how your estate would be divided among your Islamic heirs under the Qur'anic shares (farāʾiḍ). Free, instant, and easy to use."
-	/>
-</svelte:head>
 
 <div class="min-h-dvh bg-cream font-sans flex flex-col">
 	<!-- ═══════════════════ NAV ═══════════════════ -->
@@ -656,7 +648,7 @@
 									href="/trust"
 									class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-navy bg-cream transition-all hover:bg-white"
 								>
-									Make it enforceable — see the GoodTree Trust
+									Make it enforceable — see {productName}
 								</a>
 								<a
 									href={consultationBookingUrl}

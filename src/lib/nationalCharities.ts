@@ -19,6 +19,20 @@ export const nationalCharities: NationalCharity[] = [
 	{ id: 'national-sapience-institute', name: 'Sapience Institute', url: 'https://www.sapienceinstitute.org/' },
 ];
 
+/** Jabal Foundation: the one entry where the attorney serves on the board (Appendix A §3.2). */
+export const JABAL_CHARITY_ID = 'national-jabal-foundation';
+
+export function isJabalCharityId(id: string): boolean {
+	return id === JABAL_CHARITY_ID;
+}
+
+/** True when a stored Jabal selection lacks the explicit confirmation timestamp. */
+export function jabalSelectionMissingConfirmation(
+	entries: ReadonlyArray<{ charityId: string; jabalConfirmedAt?: string | null }>
+): boolean {
+	return entries.some((e) => isJabalCharityId(e.charityId) && !e.jabalConfirmedAt);
+}
+
 const nationalCharityById = new Map<string, NationalCharity>(nationalCharities.map((c) => [c.id, c]));
 
 export const NATIONAL_CHARITY_ID_SET = new Set(nationalCharityById.keys());

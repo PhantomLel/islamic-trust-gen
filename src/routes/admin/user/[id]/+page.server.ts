@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { Resend } from 'resend';
-import { siteName } from '$lib/config';
+import { siteName, productNameShortBare } from '$lib/config';
 import { db } from '$lib/server/db';
 import { trust, user, adminNote, TrustStatus, marketingLead, marketingEmailLog, helpConversation } from '$lib/server/db/schema';
 import type { LoeAgreementData, WarningAgreementData } from '$lib/server/db/schema';
@@ -370,7 +370,7 @@ export const actions: Actions = {
 					await resend.emails.send({
 						from: env.FROM_EMAIL,
 						to,
-						subject: `We need something from you to finish your Good Tree documents`,
+						subject: `We need something from you to finish your ${productNameShortBare()} documents`,
 						html: fundingActionNeededEmail({
 							trustId,
 							recipientName: target?.name,

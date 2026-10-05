@@ -61,7 +61,7 @@ export async function verifyTopEntry(
 					{
 						role: 'system',
 						content:
-							'You verify whether an approved Good Tree KB entry answers the user question. Return accept=true only if the entry directly answers the question. Return trigger codes from the provided taxonomy when detected. Never write prose.',
+							'You verify whether an approved help KB entry answers the user question. Return accept=true only if the entry directly answers the question. Return trigger codes from the provided taxonomy when detected. Never write prose.',
 					},
 					{
 						role: 'user',

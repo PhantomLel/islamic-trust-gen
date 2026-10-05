@@ -65,7 +65,7 @@
 				name="goodTreeAppMeaning"
 				class="mt-1.5 w-full rounded-md border border-navy/15 bg-white px-3 py-2 text-sm text-navy focus:outline-none focus:border-emerald-accent"
 				rows="2"
-				placeholder="Optional — what this means inside Good Tree…"
+				placeholder="Optional — what this means inside the app…"
 			></textarea>
 		</label>
 

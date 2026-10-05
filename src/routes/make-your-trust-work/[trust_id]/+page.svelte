@@ -737,6 +737,19 @@
 												>
 											</div>
 											<p class="text-[13px] text-navy/55 leading-relaxed mb-3">{m.body}</p>
+											{#if m.willSigning}
+												<div class="mb-3 rounded-lg border border-navy/10 bg-white/70 px-3.5 py-3" data-testid="will-signing-instructions">
+													<p class="text-[12.5px] text-navy/70 leading-relaxed">{m.willSigning.wrapper}</p>
+													{#if m.willSigning.heading}
+														<p class="text-[13px] font-semibold text-navy mt-3 mb-2">{m.willSigning.heading}</p>
+														<ol class="space-y-1.5">
+															{#each m.willSigning.steps as step, i}
+																<li class="flex gap-2.5 text-[12.5px] text-navy/65 leading-relaxed"><span class="shrink-0 tabular-nums text-navy/40">{i + 1}.</span><span>{step}</span></li>
+															{/each}
+														</ol>
+													{/if}
+												</div>
+											{/if}
 											{#if m.warning}
 												{@render infoCallout(m.warning)}
 											{/if}

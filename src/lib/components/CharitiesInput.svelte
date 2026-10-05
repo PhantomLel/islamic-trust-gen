@@ -15,7 +15,7 @@
 	import MasajidBequestPicker from '$lib/components/MasajidBequestPicker.svelte';
 	import NationalCharitiesPicker from '$lib/components/NationalCharitiesPicker.svelte';
 	import { isMasjidId } from '$lib/masajid';
-	import { isNationalCharityId } from '$lib/nationalCharities';
+	import { isJabalCharityId, isNationalCharityId } from '$lib/nationalCharities';
 
 	let {
 		value,
@@ -78,13 +78,19 @@
 		return data.husbandCharities.some((c) => c.charityId === charityId);
 	}
 
-	function toggleHusbandCharity(charityId: string) {
+	function toggleHusbandCharity(charityId: string, meta?: { confirmedAt?: string }) {
 		const exists = data.husbandCharities.some((c) => c.charityId === charityId);
 		if (exists) {
 			const next = data.husbandCharities.filter((c) => c.charityId !== charityId);
 			emit({ ...data, husbandCharities: next });
 		} else {
-			emit({ ...data, husbandCharities: [...data.husbandCharities, { charityId, percentage: 0 }] });
+			emit({
+				...data,
+				husbandCharities: [
+					...data.husbandCharities,
+					{ charityId, percentage: 0, ...(meta?.confirmedAt ? { jabalConfirmedAt: meta.confirmedAt } : {}) },
+				],
+			});
 		}
 	}
 
@@ -135,11 +141,10 @@
 	// ── Wife charity helpers ─────────────────────────────────────────────────
 
 	function copyHusbandBequests() {
-		const copied = data.husbandCharities.map((c) =>
-			isCustomCharityResponse(c)
-				? { ...c, charityId: newCustomId() }
-				: { ...c }
-		);
+		// The Jabal confirmation is personal: a copied entry must be confirmed again by the other spouse.
+		const copied = data.husbandCharities
+			.filter((c) => !isJabalCharityId(c.charityId))
+			.map((c) => (isCustomCharityResponse(c) ? { ...c, charityId: newCustomId() } : { ...c }));
 		emit({ ...data, wifeInterested: true, wifeCharities: copied });
 	}
 
@@ -155,13 +160,19 @@
 		return data.wifeCharities.some((c) => c.charityId === charityId);
 	}
 
-	function toggleWifeCharity(charityId: string) {
+	function toggleWifeCharity(charityId: string, meta?: { confirmedAt?: string }) {
 		const exists = data.wifeCharities.some((c) => c.charityId === charityId);
 		if (exists) {
 			const next = data.wifeCharities.filter((c) => c.charityId !== charityId);
 			emit({ ...data, wifeCharities: next });
 		} else {
-			emit({ ...data, wifeCharities: [...data.wifeCharities, { charityId, percentage: 0 }] });
+			emit({
+				...data,
+				wifeCharities: [
+					...data.wifeCharities,
+					{ charityId, percentage: 0, ...(meta?.confirmedAt ? { jabalConfirmedAt: meta.confirmedAt } : {}) },
+				],
+			});
 		}
 	}
 
@@ -246,7 +257,7 @@
 					idPrefix="h-national-charity"
 					selectedIds={husbandNationalCharityIds()}
 					getPercentage={(id) => data.husbandCharities.find((c) => c.charityId === id)?.percentage ?? 0}
-					onselect={(id) => toggleHusbandCharity(id)}
+					onselect={(id, meta) => toggleHusbandCharity(id, meta)}
 					onremove={(id) => toggleHusbandCharity(id)}
 					onPercentageChange={updateHusbandCharityPercentage}
 				/>
@@ -392,7 +403,7 @@
 					idPrefix="w-national-charity"
 					selectedIds={wifeNationalCharityIds()}
 					getPercentage={(id) => data.wifeCharities.find((c) => c.charityId === id)?.percentage ?? 0}
-					onselect={(id) => toggleWifeCharity(id)}
+					onselect={(id, meta) => toggleWifeCharity(id, meta)}
 					onremove={(id) => toggleWifeCharity(id)}
 					onPercentageChange={updateWifeCharityPercentage}
 				/>

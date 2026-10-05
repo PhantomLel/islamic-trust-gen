@@ -1,7 +1,22 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	import BoldUnderIslamicLawText from '$lib/components/BoldUnderIslamicLawText.svelte';
-	import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
+	import {
+		consultationBookingUrl,
+		defaultPrepFee,
+		formatUsd,
+		productName,
+		productNameShortBare,
+		productNameShortCapitalized,
+		productAttorneyReviewSentence
+	} from '$lib/config';
+
+	/**
+	 * The result is shown on screen. The email capture below only fed the marketing
+	 * drip, which is switched off (DRIP_SENDING_ENABLED=false), so the form would
+	 * promise an email that is never sent. Turn this on together with the drip.
+	 */
+	const emailCaptureEnabled = false;
 
 	/* ─── Questions ─────────────────────────────────────────────────────── */
 	const questions = [
@@ -119,12 +134,12 @@
 				attorneyReviewSuggested: hasComplexitySignal,
 				reason: hasComplexitySignal
 					? 'Your situation has enough going on — business ownership, a blended '
-						+ 'family, larger assets, or more complex giving — that GoodTree Trust '
+						+ 'family, larger assets, or more complex giving — that ' + productNameShortBare() + ' '
 						+ 'is the right starting point, with attorney access built in as you '
 						+ 'build it. Given what you shared, it may also be worth a quick word '
 						+ 'with an attorney; you can book a free consult any time.'
 					: 'Your situation — a home or married status with a straightforward '
-						+ 'family structure — is a strong fit for the GoodTree Trust. You can '
+						+ 'family structure — is a strong fit for the ' + productNameShortBare() + '. You can '
 						+ 'build your shariah-compliant trust online at your own pace, with '
 						+ 'attorney access throughout.'
 			};
@@ -148,21 +163,21 @@
 	/* ─── Plan display config ───────────────────────────────────────────── */
 	const plans = {
 		'free-will': {
-			eyebrow: 'Free · No cost · All states',
+			eyebrow: 'Free · No cost',
 			name: 'Free Islamic Will',
 			price: 'Free',
 			priceNote: 'no credit card required',
-			body: 'Attorney-informed and shariah-grounded. The starting point for every Muslim family — regardless of estate size or state of residence.',
+			body: 'Attorney-informed and shariah-grounded. The starting point for every Muslim family — regardless of estate size.',
 			cta: { label: 'Create Your Free Islamic Will', href: '/free-islamic-will' },
 			color: 'emerald'
 		},
 		goodtree: {
-			eyebrow: 'Self-service · Online · TX & CA',
-			name: 'GoodTree Trust',
+			eyebrow: 'Online · TX & CA',
+			name: productName,
 			price: formatUsd(defaultPrepFee),
 			priceNote: 'flat fee · attorney-supervised · notarization included',
 			body: 'Build an attorney-supervised Islamic revocable trust at your own pace. Includes deed preparation and email attorney access throughout.',
-			cta: { label: 'Start Your GoodTree Trust', href: '/trust' },
+			cta: { label: 'Start Your ' + productNameShortBare(), href: '/trust' },
 			color: 'navy'
 		},
 		legacy: {
@@ -187,14 +202,6 @@
 
 	const primary = $derived(plans[rec.tier]);
 </script>
-
-<svelte:head>
-	<title>Which Plan Is Right for You — Muslim Legacy Planning</title>
-	<meta
-		name="description"
-		content="Answer six questions to find the Islamic estate plan that fits your family's situation."
-	/>
-</svelte:head>
 
 <!-- ═══ NAV ═══ -->
 <nav class="fixed top-0 inset-x-0 z-50 bg-cream/95 backdrop-blur-sm border-b border-navy/10">
@@ -324,7 +331,7 @@
 						{#if rec.tier === 'free-will'}
 							Start with the free Islamic will.
 						{:else}
-							The GoodTree Trust fits your situation.
+							{productNameShortCapitalized()} fits your situation.
 						{/if}
 					</h1>
 
@@ -333,8 +340,10 @@
 					</p>
 				</div>
 
-			<!-- Email capture gate -->
-			{#if !captureSubmitted}
+			<!-- Email capture gate (hidden while the drip is off) -->
+			{#if !emailCaptureEnabled}
+				<!-- result is shown on screen only -->
+			{:else if !captureSubmitted}
 				<div class="rounded-2xl border border-navy/10 bg-white/70 p-7 mb-6" in:fly={{ y: 16, opacity: 0, duration: 300, delay: 120 }}>
 					<p class="text-[11px] text-emerald-accent tracking-[0.2em] uppercase font-medium mb-2">Get your personalised guidance</p>
 					<p class="text-navy text-base font-medium tracking-tight mb-1">Where should we send your recommendation?</p>
@@ -389,7 +398,12 @@
 						</div>
 
 						<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
-							<h2 class="text-2xl md:text-3xl tracking-tight text-cream">{primary.name}</h2>
+							<div>
+								<h2 class="text-2xl md:text-3xl tracking-tight text-cream">{primary.name}</h2>
+								{#if rec.tier === 'goodtree'}
+									<p class="text-cream/75 text-sm leading-relaxed mt-2 max-w-[44ch]">{productAttorneyReviewSentence}</p>
+								{/if}
+							</div>
 							<div class="text-right">
 								<div class="text-2xl tracking-tight text-cream">{primary.price}</div>
 								<div class="text-cream/50 text-xs mt-0.5">{primary.priceNote}</div>
@@ -476,6 +490,9 @@
 								<span class="text-navy text-base font-medium tracking-tight">{p.name}</span>
 								<span class="text-navy/60 text-sm">{p.price}</span>
 							</div>
+							{#if key === 'goodtree'}
+								<p class="text-navy/65 text-xs leading-relaxed mb-2">{productAttorneyReviewSentence}</p>
+							{/if}
 							<p class="text-navy/48 text-xs leading-relaxed mb-3">{p.body.slice(0, 110)}…</p>
 							<span class="text-emerald-accent text-xs flex items-center gap-1 group-hover:gap-1.5 transition-all">
 								{p.cta.label}

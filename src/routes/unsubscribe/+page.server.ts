@@ -2,6 +2,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { marketingLead } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
+import { unsubscribeMarketingLeadByToken } from '$lib/server/drip/unsubscribeMarketingLead';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const token = url.searchParams.get('token') ?? '';
@@ -22,18 +23,7 @@ export const actions: Actions = {
 		const token = data.get('token');
 		if (typeof token !== 'string' || !token) return { done: false };
 
-		const now = new Date();
-		await db
-			.update(marketingLead)
-			.set({
-				unsubscribed: true,
-				sequenceStatus: 'unsubscribed',
-				nextEmailAt: null,
-				stoppedAt: now,
-				stoppedReason: 'unsubscribed',
-				updatedAt: now,
-			})
-			.where(eq(marketingLead.unsubscribeToken, token));
+		await unsubscribeMarketingLeadByToken(token);
 
 		return { done: true };
 	},

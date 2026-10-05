@@ -67,3 +67,46 @@ export async function recordWillWaitlistLead(input: WillWaitlistInput): Promise<
 		})
 		.where(eq(marketingLead.email, email));
 }
+
+
+export type ReferralRequestInput = {
+	email: string;
+	name?: string | null;
+	/** USPS state code the visitor selected (outside the Texas / California scope). */
+	state: string;
+};
+
+/**
+ * Out-of-state referral request (spec v3 §3.1). Distinct lead type, no drip
+ * sequence, no marketing consent. The email is used only to answer the request.
+ * Never reactivates or reclassifies an existing row.
+ */
+export async function recordReferralRequest(input: ReferralRequestInput): Promise<void> {
+	const email = input.email.trim().toLowerCase();
+	const firstName = (input.name ?? '').trim().split(/\s+/)[0] || null;
+	const now = new Date();
+
+	const existing = await db.query.marketingLead.findFirst({ where: eq(marketingLead.email, email) });
+
+	if (!existing) {
+		await db.insert(marketingLead).values({
+			email,
+			firstName,
+			leadType: 'referral_request',
+			state: input.state,
+			lastStep: 'state',
+			sequenceStatus: null,
+			currentSequence: null,
+			nextEmailAt: null,
+			marketingConsent: false,
+			unsubscribeToken: randomBytes(24).toString('hex'),
+			updatedAt: now,
+		});
+		return;
+	}
+
+	await db
+		.update(marketingLead)
+		.set({ firstName: existing.firstName ?? firstName, state: input.state, updatedAt: now })
+		.where(eq(marketingLead.email, email));
+}

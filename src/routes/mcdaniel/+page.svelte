@@ -1,9 +1,16 @@
 <script lang="ts">
-	import { consultationBookingUrl } from '$lib/config';
+	import {
+		attorneyProfileUrl,
+		consultationBookingUrl,
+		firmDescriptionLine,
+		googleReviewsUrl,
+		productNameMidSentence
+	} from '$lib/config';
+	import TestimonialDisclaimer from '$lib/components/TestimonialDisclaimer.svelte';
 
 	const freeWillUrl = 'https://muslimlegacyplanning.com/free-islamic-will';
 	const mlpUrl = 'https://muslimlegacyplanning.com';
-	const googleReviewsUrl = 'https://g.page/r/review';
+	const firmDescriptionInline = firmDescriptionLine.replace(/^An /, 'an ');
 
 	let mobileMenuOpen = $state(false);
 	let navScrolled = $state(false);
@@ -111,22 +118,11 @@
 		}
 	];
 
-	const testimonials = [
-		{
-			quote: "Brother Leonard built a comprehensive estate plan for our complex estate that will allow us to avoid probate and fulfill our shariah obligations. His knowledge of Islamic law, Texas law, and tax rules gave us real confidence.",
-			name: 'Dr. Mohammad Haque, MD',
-			detail: 'Masjid Hamza · Houston, TX',
-			featured: true
-		},
+	const testimonials: { quote: string; name: string; detail: string; featured?: boolean }[] = [
 		{
 			quote: "I have personally witnessed Brother Leonard's professionalism and integrity. His sincere concern for clients makes him a trustworthy advocate.",
 			name: 'Dr. Sh. Mamdouh Mahmoud',
 			detail: 'Klein Islamic Center · Houston, TX'
-		},
-		{
-			quote: 'After my father\'s passing, Leonard guided me through probate with care. He made a difficult time genuinely easier.',
-			name: 'Aidah Aqil',
-			detail: 'Atlanta, GA'
 		},
 		{
 			quote: 'As a father of four, I wanted my family secure. Leonard explained both Islamic inheritance and Texas law clearly, reduced costs where possible, and offered unmatched value.',
@@ -139,11 +135,6 @@
 <svelte:window onscroll={updateScroll} />
 
 <svelte:head>
-	<title>McDaniel Estate Planning, PLLC — Islamic Estate Planning Attorney | Texas & California</title>
-	<meta
-		name="description"
-		content="McDaniel Estate Planning helps Muslim families create legally sound wills, trusts, deeds, and probate plans designed to honor Islamic inheritance principles while complying with U.S. law. Attorney Leonard McDaniel is licensed in Texas and California."
-	/>
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 	<link
@@ -383,12 +374,18 @@
 							University of Houston Law Center in 2017.
 						</p>
 						<p>
-							For the last five years, his practice has focused on probate and estate planning — helping Muslim
+							Since 2022, his practice has focused on probate and estate planning — helping Muslim
 							families protect their wealth through thoughtful legal work grounded in classical fiqh and Texas
-							and California law. He also built Muslim Legacy Planning, the educational and technology platform
-							that makes foundational Islamic estate planning accessible to more families.
+							and California law. He built {productNameMidSentence()} so that more families could put an attorney-supervised plan in place that reflects Islamic inheritance and is structured under the law of the state where they live.
 						</p>
 					</div>
+
+					<a
+						href={attorneyProfileUrl}
+						class="inline-block mt-6 text-[14.5px] text-[#1F2D3D]/75 hover:text-[#1F2D3D] border-b border-[#9A7B45]/50 hover:border-[#9A7B45] pb-0.5 transition-colors duration-300"
+					>
+						Read Leonard McDaniel&rsquo;s full profile
+					</a>
 
 					<div use:revealStagger class="flex flex-wrap gap-x-10 gap-y-6 mt-8 pt-7 border-t border-[#1F2D3D]/12">
 						<div>
@@ -397,7 +394,7 @@
 						</div>
 						<div>
 							<div class="mep-serif text-2xl tabular-nums tracking-tight">2017</div>
-							<div class="text-[11px] text-[#9A7B45] tracking-[0.18em] uppercase mt-1.5">UH Law, top of class</div>
+							<div class="text-[11px] text-[#9A7B45] tracking-[0.18em] uppercase mt-1.5">UH Law</div>
 						</div>
 						<div>
 							<div class="mep-serif text-2xl tracking-tight">TX · CA</div>
@@ -417,15 +414,6 @@
 							<span class="w-8 h-px bg-[#9A7B45]"></span>
 							<span class="text-[11px] tracking-[0.3em] uppercase text-[#9A7B45]">Client Experiences</span>
 						</div>
-						<a
-							href={googleReviewsUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="inline-flex items-center gap-1.5 text-[#9A7B45] text-sm font-medium hover:text-[#B69561] transition-colors duration-300"
-						>
-							<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.92 6.26L21.6 9.27l-4.96 4.6 1.24 6.77L12 17.4l-5.88 3.24 1.24-6.77-4.96-4.6 6.68-1.01L12 2z"/></svg>
-							13 five-star Google reviews
-						</a>
 					</div>
 					<a
 						href={googleReviewsUrl}
@@ -433,7 +421,7 @@
 						rel="noopener noreferrer"
 						class="text-[#1F2D3D]/45 text-xs underline underline-offset-2 hover:text-[#1F2D3D]/70 transition-colors duration-300 whitespace-nowrap"
 					>
-						Read Google Reviews
+						Read our Google reviews.
 					</a>
 				</div>
 
@@ -453,6 +441,7 @@
 						</figure>
 					{/each}
 				</div>
+				<TestimonialDisclaimer class="mt-12 text-[12.5px] leading-relaxed text-[#1F2D3D]/60 max-w-[52rem]" />
 
 			</div>
 		</section>
@@ -476,8 +465,8 @@
 								The Legal Practice Behind Muslim Legacy Planning
 							</h2>
 							<p class="text-[15.5px] leading-relaxed text-[#FCFBF8]/72 max-w-[62ch]">
-								Muslim Legacy Planning is our educational and technology platform. It is where Muslim families
-								can create a free Islamic will, build a self-service trust, and access attorney-reviewed
+								Muslim Legacy Planning is {firmDescriptionInline} It is where Muslim families
+								can create a free Islamic will, complete {productNameMidSentence()}, and access attorney-reviewed
 								estate plans. McDaniel Estate Planning is the licensed law firm that backs all of it.
 							</p>
 						</div>

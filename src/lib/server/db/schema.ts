@@ -5,7 +5,7 @@ import { defaultPrepFee } from '../../config';
 
 // ── Marketing / drip ──────────────────────────────────────────────────────────
 
-export type LeadType = 'free_will' | 'quiz' | 'app_started' | 'waitlist';
+export type LeadType = 'free_will' | 'quiz' | 'app_started' | 'waitlist' | 'referral_request';
 export type SequenceStatus =
 	| 'active'
 	| 'paused'
@@ -55,6 +55,11 @@ export const marketingLead = pgTable('marketing_lead', {
 	utmCampaign: text('utm_campaign'),
 	/** Free-will step id the visitor was on when they left an email (e.g. 'state', 'home_state'). */
 	lastStep: text('last_step'),
+	/** Short first-party source code (spec v3 §5.1). The raw campaign string is never stored on new rows. */
+	attributionCode: text('attribution_code'),
+	/** Marketing opt-in (spec v3 §4.3): unchecked by default, never bundled. Service mail ignores this. */
+	marketingConsent: boolean('marketing_consent').notNull().default(false),
+	marketingConsentAt: timestamp('marketing_consent_at'),
 
 	// Classification
 	leadType: text('lead_type').$type<LeadType>(),
@@ -224,6 +229,10 @@ export const trust = pgTable('trust', {
 	// ── Legacy binder shipping ──────────────────────────────────────────
 	/** Mailing address collected after intake completion for shipping the printed legacy binder. */
 	shippingAddress: jsonb('shipping_address').$type<ShippingAddress | null>(),
+	/** Short first-party source code carried from first arrival to matter creation (spec v3 §5.1). */
+	attributionCode: text('attribution_code'),
+	/** Matter jurisdiction (USPS code). Drives which engagement-agreement text the client signs: 'TX' Schedule A, 'CA' advance-fee clause. */
+	jurisdiction: text('jurisdiction').notNull().default('TX'),
 });
 
 /**
@@ -284,6 +293,11 @@ export const freeWill = pgTable('free_will', {
 	acknowledgmentAcceptedAt: timestamp('acknowledgment_accepted_at'),
 	/** Full acknowledgment record (version, per-checkbox state, client timestamp). */
 	acknowledgmentData: jsonb('acknowledgment_data').$type<AcknowledgmentData | null>(),
+	/** Short first-party source code (spec v3 §5.1). */
+	attributionCode: text('attribution_code'),
+	// ── Marketing consent at account email (spec v3 §4.3) ───────────────
+	marketingConsent: boolean('marketing_consent').notNull().default(false),
+	marketingConsentAt: timestamp('marketing_consent_at'),
 });
 
 export const invoice = pgTable('invoice', {
@@ -566,3 +580,4 @@ export const utmTrackingEvent = pgTable('utm_tracking_event', {
 
 export * from './auth.schema';
 export * from './help.schema';
+export * from './content.schema';

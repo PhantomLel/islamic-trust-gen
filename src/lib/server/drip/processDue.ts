@@ -7,10 +7,15 @@ import { buildLinks } from './links';
 import { renderDripEmail } from './renderEmail';
 import { sendMarketingEmail } from './sendMarketingEmail';
 import { enrollLead } from './enroll';
+import { DRIP_SENDING_ENABLED } from './config';
 import { env } from '$env/dynamic/private';
 
 /** Process all leads with a due email. Returns count sent. */
 export async function processDueEmails(): Promise<number> {
+	// Drip sequences are switched off (see ./config.ts). Nothing is sent, and no
+	// row is advanced, so re-enabling later resumes from where each lead stands.
+	if (!DRIP_SENDING_ENABLED) return 0;
+
 	const now = new Date();
 	const origin = env.ORIGIN ?? '';
 
@@ -78,6 +83,7 @@ export async function processDueEmails(): Promise<number> {
 				html,
 				sequence,
 				emailKey: emailMeta.key,
+				unsubscribeUrl: links.unsubscribeUrl,
 			});
 
 			sent++;
@@ -105,6 +111,8 @@ export async function processDueEmails(): Promise<number> {
 
 /** Detect unpaid app abandoners and enroll them (or refresh their sequence). */
 export async function enrollAppAbandoners(): Promise<number> {
+	if (!DRIP_SENDING_ENABLED) return 0;
+
 	const now = new Date();
 	let enrolled = 0;
 

@@ -60,14 +60,6 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Why Islamic Wills Fail — {siteName}</title>
-	<meta
-		name="description"
-		content="Two reasons Islamic wills fail, and the trust-based solution — three short videos from McDaniel Estate Planning."
-	/>
-</svelte:head>
-
 <div class="relative min-h-[100dvh] bg-cream font-sans text-navy overflow-x-hidden">
 	<div
 		class="absolute inset-x-0 top-0 h-[60vh] pointer-events-none"

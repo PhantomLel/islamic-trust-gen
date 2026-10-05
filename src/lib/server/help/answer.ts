@@ -25,6 +25,10 @@ import { persistEscalationAndBlocks } from '$lib/server/help/escalate';
 import { assertHelpProvidersReadyForProduction } from '$lib/server/help/contracts';
 import { checkHelpRateLimit } from '$lib/server/help/rateLimit';
 import { notifyHelpQuestion } from '$lib/server/help/notify';
+import { getLatestEntryVersionId } from '$lib/server/help/governance';
+import { entryDisplayTitle, hrefForEntry, publishedAnswerHref } from '$lib/server/help/contentLinks';
+import { getPublishedPageBySlug } from '$lib/server/content/pages';
+import type { HelpDidYouMeanItem } from '$lib/server/db/help.schema';
 
 export type HelpQueryRequest = {
 	userId: string;
@@ -99,6 +103,8 @@ export async function processHelpQuery(req: HelpQueryRequest): Promise<HelpQuery
 	let verifierAccepted = false;
 	let providerFailure = false;
 	let matchedIds: number[] = [];
+	let corpusForDidYouMean: Awaited<ReturnType<typeof listServableEntries>> = [];
+	let rankedForDidYouMean: Awaited<ReturnType<typeof rerankCorpus>> = [];
 
 	const templateFromTrigger = deterministicTriggers.find((t) => t.templateId)?.templateId;
 	let templateBody = await loadTemplateBody(templateFromTrigger);
@@ -106,7 +112,9 @@ export async function processHelpQuery(req: HelpQueryRequest): Promise<HelpQuery
 	if (!redacted.hadSensitiveData) {
 		try {
 			const corpus = await listServableEntries({ entryTypes: ['faq'] });
+			corpusForDidYouMean = corpus;
 			const ranked = await rerankCorpus(redacted.text, corpus, req.stepKey ?? undefined);
+			rankedForDidYouMean = ranked;
 			matchedIds = ranked.map((r) => r.entryId);
 			const gate = passesRerankGate(ranked);
 			rerankScore = gate.top?.score ?? null;
@@ -137,6 +145,28 @@ export async function processHelpQuery(req: HelpQueryRequest): Promise<HelpQuery
 	);
 	const lowConfidence = providerFailure || !verifierAccepted || !selectedEntry;
 
+	let didYouMean: HelpDidYouMeanItem[] | undefined;
+	if (lowConfidence && rankedForDidYouMean.length && corpusForDidYouMean.length) {
+		const byId = new Map(corpusForDidYouMean.map((e) => [e.id, e]));
+		const items: HelpDidYouMeanItem[] = [];
+		for (const r of rankedForDidYouMean) {
+			if (items.length >= 5) break;
+			const e = byId.get(r.entryId);
+			if (!e) continue;
+			items.push({ title: entryDisplayTitle(e), href: await hrefForEntry(e) });
+		}
+		if (items.length) didYouMean = items;
+	}
+
+	let relatedArticle: { title: string; href: string } | undefined;
+	if (selectedEntry?.contentPageSlug) {
+		const href = await publishedAnswerHref(selectedEntry.contentPageSlug);
+		if (href) {
+			const pub = await getPublishedPageBySlug(selectedEntry.contentPageSlug);
+			relatedArticle = { title: pub?.page.title || selectedEntry.contentPageSlug, href };
+		}
+	}
+
 	const rendered = resolveResponsePolicy({
 		triggers: allTriggers,
 		sensitiveData: redacted.hadSensitiveData,
@@ -145,7 +175,12 @@ export async function processHelpQuery(req: HelpQueryRequest): Promise<HelpQuery
 		entry: selectedEntry,
 		templateBody,
 		settings,
+		didYouMean,
+		relatedArticle,
 	});
+
+	const kbEntryVersionId =
+		selectedEntry && !lowConfidence ? await getLatestEntryVersionId(selectedEntry.id) : null;
 
 	const [queryRow] = await db
 		.insert(helpQuery)
@@ -156,6 +191,7 @@ export async function processHelpQuery(req: HelpQueryRequest): Promise<HelpQuery
 			questionText: redacted.text,
 			matchedEntryIds: matchedIds,
 			selectedEntryId: selectedEntry?.id ?? null,
+			kbEntryVersionId,
 			resolvedTier: sessionTier,
 			triggerCodes: allTriggers.map((t) => t.code),
 			rerankScore: rerankScore?.toString() ?? null,

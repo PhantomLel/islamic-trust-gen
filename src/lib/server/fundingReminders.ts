@@ -2,6 +2,7 @@
  * Funding journey reminder processor — invoked from the drip cron (no separate endpoint).
  */
 import { Resend } from 'resend';
+import { productNameShortBare } from '$lib/config';
 import { and, eq, isNull, isNotNull } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
@@ -108,7 +109,7 @@ export async function processFundingReminders(): Promise<number> {
 					...base,
 					subject: 'Reminder: your documents are not finished until they are signed',
 					headline: 'Schedule or complete notarization',
-					body: 'Your Good Tree documents are ready, but your trust is not effective until it is signed and notarized. Open Make Your Trust Work to review signing steps and book your appointment.',
+					body: `Your ${productNameShortBare()} documents are ready, but your trust is not effective until it is signed and notarized. Open Make Your Trust Work to review signing steps and book your appointment.`,
 				})
 			)
 				sent += 1;

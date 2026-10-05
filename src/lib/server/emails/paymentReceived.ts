@@ -1,5 +1,5 @@
 import { amanaEmailDocument, escapeHtmlAttr, escapeHtmlText } from './layout';
-import { formatJabalDonation, jabalFoundationUrl, jabalProPublicaUrl } from '$lib/config';
+import { jabalConfirmationCopy, jabalFoundationUrl, jabalProPublicaUrl } from '$lib/config';
 
 export type PaymentPlanId = 'full' | 'discounted';
 
@@ -10,8 +10,6 @@ export type PaymentReceivedEmailInput = {
 	/** Stripe `amount_total` in cents; omit if unknown */
 	amountTotalCents?: number | null;
 	continueUrl: string;
-	/** Trust preparation fee actually charged, in whole USD (excludes the deed add-on). Drives the Jabal Foundation giving-program figure below — always derived live, never hardcoded. */
-	trustFeeAmountUsd: number;
 };
 
 function planTitle(_plan: PaymentPlanId): string {
@@ -53,7 +51,7 @@ export function paymentReceivedEmail(input: PaymentReceivedEmailInput): string {
             </table>`
 		: '';
 
-	const donationAmountText = escapeHtmlText(formatJabalDonation(input.trustFeeAmountUsd));
+	const jabalParagraph = escapeHtmlText(jabalConfirmationCopy());
 	const jabalHref = escapeHtmlAttr(jabalFoundationUrl);
 	const jabalProPublicaHref = escapeHtmlAttr(jabalProPublicaUrl);
 
@@ -95,7 +93,7 @@ export function paymentReceivedEmail(input: PaymentReceivedEmailInput): string {
                 <tr>
                   <td style="padding:22px 24px;">
                     <p style="margin:0;font-size:14px;color:#1e3a3a;line-height:1.7;">
-                      As part of your purchase today, <strong>${donationAmountText}</strong> — 5% of your plan — was donated to Jabal Foundation's Legacy Waqf, which funds orphan development and ongoing meal distribution. Leonard serves as treasurer of Jabal Foundation's board and personally oversees its finances. Leonard receives <strong>zero</strong> compensation for this, as do all of Jabal Foundation's board members. See more at <a href="${jabalProPublicaHref}" style="color:#5a9e8f;text-decoration:underline;">${jabalProPublicaHref}</a>.
+                      ${jabalParagraph} See more at <a href="${jabalProPublicaHref}" style="color:#5a9e8f;text-decoration:underline;">${jabalProPublicaHref}</a>.
                     </p>
                     <p style="margin:14px 0 0 0;font-size:13px;">
                       <a href="${jabalHref}" style="color:#5a9e8f;text-decoration:underline;">Learn more about Jabal Foundation →</a>

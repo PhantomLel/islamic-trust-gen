@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, type Cookies } from '@sveltejs/kit';
 import { Resend } from 'resend';
 import { env } from '$env/dynamic/private';
 import type { PageServerLoad, Actions } from './$types';
@@ -13,60 +13,18 @@ import {
 	saveFreeWillForUser,
 	type SaveFreeWillInput,
 } from '$lib/server/freeWill';
-import {
-	getEmailFlags,
-	emailFlagLabels,
-	freeWillOfferLadder,
-	isWillComplete,
-	requiresCommunityPropertyAcknowledgment,
-	toWillResponses,
-} from '$lib/free-will/logic';
+import { isWillComplete, toWillResponses } from '$lib/free-will/logic';
 import { isAcknowledgmentComplete, type AcknowledgmentData } from '$lib/free-will/acknowledgment';
 import { renderFreeWill } from '$lib/server/documents/renderWill';
 import { saveGeneratedWillDocx } from '$lib/server/documents/storage';
-import { freeWillReadyEmailV2, type FreeWillReadyV2Offer } from '$lib/server/emails/freeWillReadyV2';
-import { trackUrl } from '$lib/server/drip/links';
-import { consultationBookingUrl, defaultPrepFee, formatUsd } from '$lib/config';
+import { freeWillReadyEmailV2 } from '$lib/server/emails/freeWillReadyV2';
+import { attributionCodeFromCookies } from '$lib/attribution';
 import { stateName, type WillResponse } from '$lib/free-will/config';
 import { enrollLead } from '$lib/server/drip/enroll';
 
 const WILL_DOC_KIND = 'free-will';
 
 type WillDownload = { url: string; filename: string };
-
-const OFFER_CARD_META: Record<'goodtree-trust' | 'legacy-plan', Omit<FreeWillReadyV2Offer, 'href'>> = {
-	'goodtree-trust': {
-		title: 'GoodTree Trust',
-		tagline: 'Build an attorney-backed Islamic living trust online \u2014 designed to implement the Islamic shares more completely, keep your family out of probate court, and guide you through signing and funding.',
-		priceLine: `${formatUsd(defaultPrepFee)} flat fee.`,
-		variant: 'app',
-	},
-	'legacy-plan': {
-		title: 'Legacy Plan',
-		tagline: 'Full-service estate planning designed personally by your attorney.',
-		priceLine: 'From $3,500.',
-		variant: 'premium',
-	},
-};
-
-/**
- * Resolve the A2 upsell ladder into absolute, UTM-tracked offer cards.
- * `utmSource` is the visitor's first-touch source once the A7 groundwork
- * ticket lands (marketing_lead/free_will UTM columns); until then it falls
- * back to a generic transactional source so links remain trackable.
- */
-function resolveOffersForEmail(
-	offerKeys: ('goodtree-trust' | 'legacy-plan')[],
-	utmSource: string,
-): FreeWillReadyV2Offer[] {
-	const origin = (env.ORIGIN ?? '').replace(/\/$/, '');
-	const tag = { campaign: 'will_delivery' as const, source: utmSource };
-	return offerKeys.map((key) => {
-		const meta = OFFER_CARD_META[key];
-		const base = key === 'goodtree-trust' ? (origin ? `${origin}/trust` : '/trust') : (origin ? `${origin}/plans` : '/plans');
-		return { ...meta, href: trackUrl(base, tag) };
-	});
-}
 
 /** Email the finished will to the user with the document attached. Never throws. */
 async function emailWill(opts: {
@@ -78,14 +36,7 @@ async function emailWill(opts: {
 }): Promise<void> {
 	if (!env.RESEND_API_KEY || !env.FROM_EMAIL || !opts.to) return;
 	try {
-		const responses = toWillResponses(opts.input.responses);
 		const firstName = opts.name.split(' ')[0] ?? opts.name;
-		const flagLines = getEmailFlags(responses).map((f) => emailFlagLabels[f]);
-		// Original masjid/campaign attribution (A7 groundwork), falling back to a
-		// generic transactional source when no first touch was ever captured.
-		const utmSource = opts.input.utmSource ?? 'transactional';
-		const offers = resolveOffersForEmail(freeWillOfferLadder(responses), utmSource);
-
 		const resend = new Resend(env.RESEND_API_KEY);
 		await resend.emails.send({
 			from: env.FROM_EMAIL,
@@ -96,10 +47,6 @@ async function emailWill(opts: {
 				stateName: stateName(opts.input.state),
 				stateCode: opts.input.state,
 				filename: opts.filename,
-				marriedCommunityPropertyState: requiresCommunityPropertyAcknowledgment(responses),
-				flagLines,
-				offers,
-				consultUrl: trackUrl(consultationBookingUrl, { campaign: 'will_delivery', source: utmSource }),
 			}),
 			attachments: [{ filename: opts.filename, content: opts.buffer }],
 		});
@@ -148,14 +95,19 @@ async function generateWillDownload(
 		});
 		await emailWill({ to: email, name, input, buffer, filename });
 
-		// Enroll in Free Will drip (start at Email 2 — Email 1 is the transactional will).
-		enrollLead({
-			email,
-			firstName: name.split(' ')[0] ?? name,
-			sequence: 'free_will_lead',
-			leadType: 'free_will',
-			source: input.utmSource ?? 'free_will',
-		}).catch((err) => console.error('[drip] Free will enroll failed:', err));
+		// Marketing list: only when the visitor ticked the (unchecked-by-default)
+		// box. Service mail above does not depend on it (spec v3 §4.3).
+		if (input.marketingConsent) {
+			enrollLead({
+				email,
+				firstName: name.split(' ')[0] ?? name,
+				sequence: 'free_will_lead',
+				leadType: 'free_will',
+				source: 'free_will',
+				attributionCode: input.attributionCode ?? null,
+				marketingConsent: true,
+			}).catch((err) => console.error('[drip] Free will enroll failed:', err));
+		}
 
 		return { url: file.url, filename: file.filename };
 	} catch (err) {
@@ -193,9 +145,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 				recommendedPlan: latest.recommendedPlan,
 				reviewReminders: latest.reviewReminders,
 				acknowledgmentData: latest.acknowledgmentData,
-				utmSource: latest.utmSource,
-				utmMedium: latest.utmMedium,
-				utmCampaign: latest.utmCampaign,
+				attributionCode: latest.attributionCode,
+				marketingConsent: latest.marketingConsent,
 			},
 		);
 	}
@@ -226,7 +177,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	};
 };
 
-function parseSaveInput(form: FormData): {
+function parseSaveInput(form: FormData, cookies: Cookies): {
 	name: string;
 	email: string;
 	input: SaveFreeWillInput;
@@ -300,18 +251,17 @@ function parseSaveInput(form: FormData): {
 			recommendedPlan,
 			reviewReminders: form.get('reviewReminders') === 'true',
 			acknowledgmentData,
-			utmSource: typeof form.get('utmSource') === 'string' ? (form.get('utmSource') as string) || null : null,
-			utmMedium: typeof form.get('utmMedium') === 'string' ? (form.get('utmMedium') as string) || null : null,
-			utmCampaign: typeof form.get('utmCampaign') === 'string' ? (form.get('utmCampaign') as string) || null : null,
+			attributionCode: attributionCodeFromCookies(cookies),
+			marketingConsent: form.get('marketingConsent') === 'true',
 		},
 	};
 }
 
 export const actions: Actions = {
 	/** Persist directly to the signed-in user's account, then generate the will. */
-	saveAuthed: async ({ request, locals }) => {
+	saveAuthed: async ({ request, locals, cookies }) => {
 		if (!locals.user) throw error(401, 'Not authenticated');
-		const { input, willId } = parseSaveInput(await request.formData());
+		const { input, willId } = parseSaveInput(await request.formData(), cookies);
 		const { id } = await saveFreeWillForUser(
 			locals.user.id,
 			locals.user.name,
@@ -324,8 +274,8 @@ export const actions: Actions = {
 	},
 
 	/** Persist a pending submission keyed by email; claimed after the user signs in. */
-	savePending: async ({ request }) => {
-		const { name, email, input } = parseSaveInput(await request.formData());
+	savePending: async ({ request, cookies }) => {
+		const { name, email, input } = parseSaveInput(await request.formData(), cookies);
 		if (!email || !email.includes('@')) throw error(400, 'A valid email is required');
 		if (!name) throw error(400, 'A name is required');
 		const { id } = await savePendingFreeWill(name, email, input);

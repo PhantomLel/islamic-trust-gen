@@ -39,7 +39,7 @@ function getOrCreateSessionId(): string {
 async function trackUtmEvent(
 	eventType: 'landing' | 'will_completion',
 	params: UtmParams,
-	additionalData?: { willId?: number; email?: string }
+	additionalData?: { willId?: number }
 ): Promise<void> {
 	const payload = {
 		eventType,
@@ -49,8 +49,6 @@ async function trackUtmEvent(
 		sessionId: getOrCreateSessionId(),
 		...additionalData,
 	};
-	
-	console.log('[UTM Tracking] Sending event:', payload);
 	
 	try {
 		const response = await fetch('/api/utm-tracking', {
@@ -65,8 +63,6 @@ async function trackUtmEvent(
 			return;
 		}
 		
-		const result = await response.json();
-		console.log('[UTM Tracking] Success:', result);
 	} catch (error) {
 		// Silent fail - don't block user experience for tracking errors
 		console.warn('[UTM Tracking] Failed to track event:', error);
@@ -113,26 +109,17 @@ export function getFirstTouchUtm(): UtmParams {
 	}
 }
 
-/** Track a will completion event with UTM parameters */
-export function trackWillCompletion(willId?: number | null, email?: string): void {
-	if (typeof window === 'undefined') {
-		console.log('[UTM Tracking] Skipping completion tracking - not in browser');
-		return;
-	}
-	
+/**
+ * Track a will completion event with UTM parameters. The email is deliberately
+ * NOT sent (spec v3 §5): new `utm_tracking_event` rows carry no email address.
+ */
+export function trackWillCompletion(willId?: number | null): void {
+	if (typeof window === 'undefined') return;
+
 	const utmParams = getFirstTouchUtm();
-	console.log('[UTM Tracking] Retrieved UTM params for completion:', utmParams);
-	console.log('[UTM Tracking] Will ID:', willId, 'Email:', email);
-	
+
 	// Only track if there are UTM parameters
-	if (!utmParams.utmSource && !utmParams.utmMedium && !utmParams.utmCampaign) {
-		console.log('[UTM Tracking] No UTM parameters found - skipping completion tracking');
-		return;
-	}
-	
-	console.log('[UTM Tracking] Calling trackUtmEvent for will_completion');
-	trackUtmEvent('will_completion', utmParams, { 
-		willId: willId ?? undefined, 
-		email 
-	});
+	if (!utmParams.utmSource && !utmParams.utmMedium && !utmParams.utmCampaign) return;
+
+	trackUtmEvent('will_completion', utmParams, { willId: willId ?? undefined });
 }
