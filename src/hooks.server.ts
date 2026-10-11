@@ -14,13 +14,13 @@ import {
 	ATTRIBUTION_QUERY_PARAM,
 	resolveAttributionCode
 } from '$lib/attribution';
+import { redirectFor } from '$lib/hostPolicy';
 
-const FREE_WILL_REDIRECT_HOSTS = new Set(['freemuslimwill.org', 'www.freemuslimwill.org']);
-const FREE_WILL_URL = 'https://www.muslimlegacyplanning.com/free-islamic-will';
-
-const handleFreeWillRedirect: Handle = async ({ event, resolve }) => {
-	if (FREE_WILL_REDIRECT_HOSTS.has(event.url.hostname)) {
-		return Response.redirect(FREE_WILL_URL, 308);
+/** AA-W1 — apex → www, freemuslimwill.org, and host-owned paths. GET and HEAD only. */
+const handleHostRedirect: Handle = async ({ event, resolve }) => {
+	const hit = redirectFor(event.url, event.request.method);
+	if (hit) {
+		return new Response(null, { status: hit.status, headers: { location: hit.location } });
 	}
 	return resolve(event);
 };
@@ -82,4 +82,4 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 	return svelteKitHandler({ event, resolve, auth, building });
 };
 
-export const handle: Handle = sequence(handleFreeWillRedirect, handleAttribution, handleContentRedirect, handleBetterAuth);
+export const handle: Handle = sequence(handleHostRedirect, handleAttribution, handleContentRedirect, handleBetterAuth);

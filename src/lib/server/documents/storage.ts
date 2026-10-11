@@ -6,6 +6,7 @@ import { db } from '$lib/server/db';
 import { trust, freeWill, type GeneratedFile } from '$lib/server/db/schema';
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const PDF_MIME = 'application/pdf';
 
 let _utapi: UTApi | null = null;
 function utapi(): UTApi {
@@ -105,13 +106,13 @@ export async function saveGeneratedDocx(opts: {
  * to `free_will.generated_files`. A previous file of the same `kind` for this
  * submission is removed from storage and replaced.
  */
-export async function saveGeneratedWillDocx(opts: {
+export async function saveGeneratedWillFile(opts: {
 	freeWillId: number;
 	kind: string;
 	buffer: Buffer;
 	filename: string;
 }): Promise<GeneratedFile> {
-	const result = await uploadBufferToUploadThing(opts.buffer, opts.filename, DOCX_MIME);
+	const result = await uploadBufferToUploadThing(opts.buffer, opts.filename, PDF_MIME);
 
 	const entry: GeneratedFile = {
 		kind: opts.kind,

@@ -18,7 +18,6 @@ import {
 import {
 	assetRangeFloor,
 	assetRanges,
-	attorneyServiceStates,
 	communityPropertyAckStates,
 	communityPropertyClauseStates,
 	communityPropertyWarningStates,
@@ -109,11 +108,11 @@ export function isStepAnswered(step: WillStep, responses: WillResponses): boolea
 	}
 	if (step.type === 'executors') {
 		if (!Array.isArray(v) || v.length !== 3) return false;
-		return validateRepSlots(v as RepEntryLike[], 1);
+		return validateRepSlots(v as RepEntryLike[], 2);
 	}
 	if (step.type === 'guardians') {
 		if (!Array.isArray(v) || v.length !== 2) return false;
-		return validateRepSlots(v as RepEntryLike[], 1);
+		return validateRepSlots(v as RepEntryLike[], 2);
 	}
 	if (step.type === 'address') {
 		const a = v as AddressValue;
@@ -141,6 +140,7 @@ export function isStepAnswered(step: WillStep, responses: WillResponses): boolea
 
 /** True when every currently-active step has a usable answer. */
 export function isWillComplete(responses: WillResponses): boolean {
+	if (isWillAnswersNotHandled(responses)) return false;
 	return getActiveSteps(responses).every((s) => isStepAnswered(s, responses));
 }
 
@@ -153,8 +153,30 @@ export function willProgress(responses: WillResponses, currentIndex: number): nu
 
 // ─── Reads ───────────────────────────────────────────────────────────────────
 
+export const MARITAL_SEPARATED = 'Married, separated but not divorced';
+export const MARITAL_RDP = 'Registered domestic partnership';
+
 export function isMarried(responses: WillResponses): boolean {
 	return responses['marital_status'] === 'Married';
+}
+
+export function isMaritalStatusNotHandled(responses: WillResponses): boolean {
+	const status = responses['marital_status'];
+	return status === MARITAL_SEPARATED || status === MARITAL_RDP;
+}
+
+export function isEstateFullyDistributed(heirs: HeirsCalculatorResponse | null | undefined): boolean {
+	if (!heirs) return false;
+	if (heirs.dhawulArhamNeeded) return false;
+	const named = heirs.namedHeirs ?? [];
+	if (named.length === 0) return false;
+	const sum = named.reduce((s, h) => s + (h.totalShare?.decimal ?? 0), 0);
+	return Math.abs(sum - 1) < 1e-5;
+}
+
+export function isWillAnswersNotHandled(responses: WillResponses): boolean {
+	if (isMaritalStatusNotHandled(responses)) return true;
+	return !isEstateFullyDistributed(getHeirsResponse(responses));
 }
 
 export function getAddress(responses: WillResponses): AddressValue | undefined {
@@ -287,21 +309,8 @@ export const communityPropertyClauses: { title: string; body: string }[] = [
 	},
 ];
 
-// ─── Legal mode (dev brief §9) ────────────────────────────────────────────────
-
-export type LegalMode = 'attorney' | 'self-help';
-
-export function legalMode(responses: WillResponses): LegalMode {
-	const state = responses['state'];
-	return typeof state === 'string' && attorneyServiceStates.has(state) ? 'attorney' : 'self-help';
-}
-
-export const legalModeDisclaimers: Record<LegalMode, string> = {
-	'self-help':
-		'This document is a self-help educational tool. It does not create an attorney-client relationship. Laws vary by state. Consult a licensed attorney in your state for legal advice specific to your situation.',
-	attorney:
-		'Legal services in Texas and California are provided by McDaniel Estate Planning, PLLC. An attorney-client relationship is formed only after formal engagement and conflict check.',
-};
+/** AB B6.3 — free wills are self-help only. */
+export const FREE_WILL_LEGAL_MODE = 'self-help' as const;
 
 // ─── Lead tagging (dev brief §6) ──────────────────────────────────────────────
 
@@ -350,7 +359,6 @@ export function computeLeadTags(responses: WillResponses): LeadTag[] {
 	if (hasCharitableWasiyyahIntent(responses)) tags.add('charitable_intent');
 	const wasiyyah = getWasiyyahResponse(responses);
 	if (wasiyyah?.interested && wasiyyah.bequests.some((b) => b.percentage > 0)) tags.add('waqf_interest');
-	if (responses['attorney_review'] === true) tags.add('attorney_interest');
 	if (responses['strict_faraid'] === true) tags.add('strict_faraid_intent');
 	if (needsWillLimitationWarning(responses)) tags.add('will_limitation_flag');
 
@@ -544,7 +552,7 @@ export function getStepValidationMessage(step: WillStep, responses: WillResponse
 			getRepSlotValidationMessage(v as RepEntryLike[], {
 				role: 'personal representative',
 				ordinals: ['1st', '2nd', '3rd'],
-				requiredCount: 1,
+				requiredCount: 2,
 			}) ?? 'Please complete your personal representative details.'
 		);
 	}
@@ -553,7 +561,7 @@ export function getStepValidationMessage(step: WillStep, responses: WillResponse
 			getRepSlotValidationMessage(v as RepEntryLike[], {
 				role: 'guardian',
 				ordinals: ['1st', '2nd'],
-				requiredCount: 1,
+				requiredCount: 2,
 			}) ?? 'Please complete your guardian details.'
 		);
 	}

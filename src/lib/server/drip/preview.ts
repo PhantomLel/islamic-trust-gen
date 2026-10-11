@@ -1,3 +1,4 @@
+import { mlpOrigin } from '$lib/config';
 import { SCHEDULES, type SequenceName } from './sequences';
 import { buildLinks } from './links';
 import { renderDripEmail } from './renderEmail';
@@ -51,7 +52,7 @@ export function renderPreviewEmail(
 	if (!item) return null;
 
 	const links = buildLinks({
-		origin: opts.origin || 'https://muslimlegacyplanning.com',
+		origin: opts.origin || mlpOrigin,
 		sequence: item.sequence,
 		emailKey: item.key,
 		unsubscribeToken: 'preview-token',

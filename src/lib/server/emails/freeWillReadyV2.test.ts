@@ -1,41 +1,47 @@
 import { describe, expect, it } from 'vitest';
 import { freeWillReadyEmailV2, type FreeWillReadyV2Input } from './freeWillReadyV2';
-import { willSigningWrapper, texasWillSigningSteps } from '$lib/free-will/signing';
-import { DRAFT_MARKER } from '$lib/free-will/draft';
+import { freeWillSigningWrapper } from '$lib/free-will/deliveryCopy';
+import { texasWillSigningSteps } from '$lib/free-will/signing';
 import { productName } from '$lib/config';
 
 const baseInput: FreeWillReadyV2Input = {
 	firstName: 'Yusuf',
 	stateName: 'Texas',
 	stateCode: 'TX',
-	filename: 'Yusuf-Islamic-Will.docx',
+	filename: 'islamic-will-Yusuf-1.pdf',
 };
 
 describe('freeWillReadyEmailV2', () => {
-	it('renders the greeting, filename, and draft marker', () => {
+	it('renders the greeting, filename, and signing wrapper', () => {
 		const html = freeWillReadyEmailV2(baseInput);
 		expect(html).toContain('Assalamu Alaikum, Yusuf');
-		expect(html).toContain('Yusuf-Islamic-Will.docx');
-		expect(html).toContain(DRAFT_MARKER);
+		expect(html).toContain('islamic-will-Yusuf-1.pdf');
+		expect(html).toContain(freeWillSigningWrapper);
 		expect(html).toContain('Licensed in Texas and California');
+		expect(html).not.toContain('DRAFT');
 		expect(html).not.toContain('{{');
 	});
 
-	it('Texas: shows the wrapper, the Appendix A 4.1 heading, and all eight steps verbatim', () => {
+	it('Texas: keeps the wrapper and omits the old step list', () => {
 		const html = freeWillReadyEmailV2(baseInput);
-		expect(html).toContain(willSigningWrapper);
-		expect(html).toContain('How to sign your will in Texas');
-		expect(texasWillSigningSteps).toHaveLength(8);
-		for (const step of texasWillSigningSteps) expect(html).toContain(step);
+		expect(html).toContain(freeWillSigningWrapper);
+		expect(html).not.toContain('How to sign your will in Texas');
+		for (const step of texasWillSigningSteps) expect(html).not.toContain(step);
 	});
 
 	it('California: shows the wrapper only, with no Texas steps and no draft California steps', () => {
 		const html = freeWillReadyEmailV2({ ...baseInput, stateCode: 'CA', stateName: 'California' });
-		expect(html).toContain(willSigningWrapper);
+		expect(html).toContain(freeWillSigningWrapper);
 		expect(html).not.toContain('How to sign your will in Texas');
 		expect(html).not.toContain('How to sign your will in California');
 		expect(html).not.toContain('self-proving affidavit');
 		expect(html).not.toContain('California does not require a notary');
+	});
+
+	it('does not include removed disclaimer wording (B6.2/B6.3)', () => {
+		const html = freeWillReadyEmailV2(baseInput);
+		expect(html).not.toMatch(/attorney-client relationship/i);
+		expect(html).not.toMatch(/never shared/i);
 	});
 
 	it('is a service email: no plan card, flag list, or promotional block', () => {

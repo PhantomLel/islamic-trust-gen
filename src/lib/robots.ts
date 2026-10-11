@@ -1,5 +1,12 @@
 import { mcdanielOrigin, mlpOrigin } from '$lib/config';
+import { hostSite, publicPathFor } from '$lib/hostPolicy';
 import { sitemapRoutes, type SiteId } from '$lib/seo';
+
+/** Owning public site for robots.txt and the sitemap. Dev behaves as MLP. */
+export function crawlSite(url: URL): SiteId {
+	if (hostSite(url.hostname) === 'mep') return 'mcdaniel';
+	return publicPathFor(url).site;
+}
 
 /** Private areas: account, admin, checkout and API. Public marketing and content routes stay crawlable. */
 export const DISALLOWED_PATHS = [

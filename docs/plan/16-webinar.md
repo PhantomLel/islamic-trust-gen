@@ -1,6 +1,6 @@
 # 16: Webinar registration (V3 §11, D14)
 
-Read `00-overview.md` and V3 §11. The platform is anything; we only store the join link.
+Read `00-overview.md` and V3 §11. The call is Zoom only (D14). Store the Zoom join link. Do not call the Zoom API, and do not use Zoom registration or Zoom's reminder emails. Zoom only carries the call.
 
 ## 1. Schema: `drizzle/0010_webinar.sql` (idempotent), plus `webinar.schema.ts`
 - `webinar`:
@@ -16,7 +16,8 @@ Read `00-overview.md` and V3 §11. The platform is anything; we only store the j
   - unique (`webinar_id`, lower(`email`))
 
 ## 2. Admin: `/admin/webinar`
-- Create or edit the **next** webinar: title, date and time (America/Chicago input, stored UTC), duration, join link, status.
+- Create or edit the **next** webinar: title, date and time (America/Chicago input, stored UTC), duration, Zoom join link, status.
+- Accept `join_url` only when it is `https` and the host is `zoom.us` or a subdomain of `zoom.us` (for example `us02web.zoom.us`), with a join path of `/j/`, `/w/`, `/s/`, `/my/`, or `/wc/`. Reject every other host, including `zoom.com`, `zoomgov.com`, and shorteners.
 - Only one webinar can be `open` at a time.
 - List the registrants with a CSV export. Writes go to `content_audit`.
 
@@ -60,6 +61,7 @@ Read `00-overview.md` and V3 §11. The platform is anything; we only store the j
 
 ## Tests
 - Registration: duplicate emails, honeypot, consent stored only when ticked, and the code saved.
+- `join_url`: a Zoom join link is accepted; any other URL is rejected.
 - Cron selection logic, as a pure function: due vs not due for each email type, and idempotency.
 - `.ics` output contains `DTSTART`, `DTEND` and `URL`.
 - The page HTML never contains `join_url`.

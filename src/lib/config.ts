@@ -11,16 +11,42 @@ export const defaultPrepFee = 1499;
 export const deedRetrievalFeeUsd = 35;
 
 /** CAN-SPAM physical mailing address required in all marketing emails. */
-export const firmMailingAddress = 'McDaniel Estate Planning, PLLC · 3800 N Lamar Blvd, Ste 200 · Austin, TX 78756';
+export const firmNap = {
+	name: 'McDaniel Estate Planning, PLLC',
+	street: '13100 Wortham Center Drive, 3rd Floor',
+	city: 'Houston',
+	region: 'TX',
+	postalCode: '77065',
+	phone: '(713) 659-9668',
+	phoneTel: '+17136599668',
+	email: 'admin@mcdanielestateplanning.com',
+} as const;
+
+export const firmMailingAddress = `${firmNap.name} · ${firmNap.street}, ${firmNap.city}, ${firmNap.region} ${firmNap.postalCode}`;
+export const firmPhone = firmNap.phone;
+export const firmPhoneTel = firmNap.phoneTel;
+
 /** Reply-to address for marketing emails (a real inbox, not no-reply). */
 export const replyToEmail = 'leonard@mcdanielestateplanning.com';
-/** Firm phone number, display form and `tel:` form. */
-export const firmPhone = '(713) 659-9668';
-export const firmPhoneTel = '+17136599668';
+
+/** Single-line firm NAP (AA W9.5). */
+export function formatFirmNapLine(): string {
+	return `${firmNap.name} · ${firmNap.street}, ${firmNap.city}, ${firmNap.region} ${firmNap.postalCode} · ${firmNap.phone} · ${firmNap.email}`;
+}
 
 /** Format a whole-dollar USD amount for display (e.g. 1499 → "$1,499.00"). */
 export function formatUsd(amountUsd: number): string {
 	return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amountUsd);
+}
+
+/** Public list prices: whole dollars, no cents (AA W8.2). */
+export function formatUsdWhole(amountUsd: number): string {
+	return new Intl.NumberFormat('en-US', {
+		style: 'currency',
+		currency: 'USD',
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	}).format(amountUsd);
 }
 
 // ── Product name (spec v3 §2.1–2.2) ──────────────────────────────────────────
@@ -83,11 +109,18 @@ export const attorneyName = 'Leonard McDaniel';
 /** Short byline for content pages (Appendix A §5.3). The name is rendered as a link to the profile; this is the rest of the sentence. */
 export const attorneyBylineRest =
 	' is an estate planning attorney licensed in Texas and California. He has focused on estate planning for Muslim families since 2022.';
-export const attorneyProfileUrl = 'https://mcdanielestateplanning.com/about';
 export const mlpOrigin = 'https://www.muslimlegacyplanning.com';
-export const mcdanielOrigin = 'https://mcdanielestateplanning.com';
-export const googleReviewsUrl =
-	'https://search.google.com/local/writereview?placeid=ChIJszQ9uNfRQIYRg3017kJNF8Y';
+export const mcdanielOrigin = 'https://www.mcdanielestateplanning.com';
+export const attorneyProfileUrl = `${mcdanielOrigin}/attorney`;
+export const attorneyPersonId = `${attorneyProfileUrl}#person`;
+export const firmLegalServiceId = `${mcdanielOrigin}/#legalservice`;
+export const googlePlaceId = 'ChIJszQ9uNfRQIYRg3017kJNF8Y';
+/** Elfsight Google Reviews widget (AA-W5, D8). Home pages only. */
+export const elfsightReviewsAppId = 'fdfb23d6-45c5-41bd-950a-d905edc79df1';
+export const googleWriteReviewUrl =
+	`https://search.google.com/local/writereview?placeid=${googlePlaceId}`;
+export const googleReadReviewsUrl =
+	`https://search.google.com/local/reviews?placeid=${googlePlaceId}`;
 
 // ── Jabal Foundation giving program (Appendix A §3) ──────────────────────────
 // A fixed $75 gift of the Firm's own funds per Guided Trust purchased. It is NOT

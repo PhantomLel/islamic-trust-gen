@@ -1,7 +1,6 @@
 /**
- * Will-signing copy (spec v3 §3.4, Appendix A §4). Single source for the free-will
- * completion screen, the delivery email, and the pour-over will signing card in
- * the funding module, so all three say the same thing.
+ * Will-signing copy for the trust funding pour-over card (Phase 2).
+ * The free will no longer uses this module. Its signing steps are inside the PDF.
  *
  * Appendix A §4.2 (California steps) is marked DRAFT and needs Leonard's
  * verification, so it is deliberately NOT in this file. California gets the

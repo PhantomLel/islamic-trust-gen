@@ -7,18 +7,29 @@ import {
 	jsonLdScript,
 	organizationJsonLd,
 	resolveSeo,
+	sitemapRoutes,
 	siteForHost,
+	staticRouteSeo,
 } from '$lib/seo';
+
+const MEP_PAGES = [
+	'/attorney',
+	'/legacy-plan',
+	'/family-waqf-plan',
+	'/probate-estate-administration',
+	'/business-succession-planning',
+] as const;
 
 describe('canonicalUrl', () => {
 	it('uses the MLP origin for MLP paths and drops query strings', () => {
 		expect(canonicalUrl(new URL('https://www.muslimlegacyplanning.com/plans?utm_campaign=x'))).toBe(`${mlpOrigin}/plans`);
+		expect(canonicalUrl(new URL('https://muslimlegacyplanning.com/plans?x=1'))).toBe(`${mlpOrigin}/plans`);
 		expect(canonicalUrl(new URL('http://localhost:5173/'))).toBe(`${mlpOrigin}/`);
 	});
 
 	it('uses the firm origin on the firm host, and for the internal /mcdaniel tree on the MLP host', () => {
-		expect(canonicalUrl(new URL('https://mcdanielestateplanning.com/'))).toBe(`${mcdanielOrigin}/`);
-		expect(canonicalUrl(new URL('https://mcdanielestateplanning.com/about'))).toBe(`${mcdanielOrigin}/about`);
+		expect(canonicalUrl(new URL('https://www.mcdanielestateplanning.com/'))).toBe(`${mcdanielOrigin}/`);
+		expect(canonicalUrl(new URL('https://mcdanielestateplanning.com/attorney'))).toBe(`${mcdanielOrigin}/attorney`);
 		expect(canonicalUrl(new URL('https://www.muslimlegacyplanning.com/mcdaniel'))).toBe(`${mcdanielOrigin}/`);
 		expect(canonicalUrl(new URL('https://www.muslimlegacyplanning.com/mcdaniel/about/'))).toBe(`${mcdanielOrigin}/about`);
 	});
@@ -77,8 +88,18 @@ describe('robots and sitemap', () => {
 
 	it('lists only the owning host\'s URLs', () => {
 		const xml = sitemapXml('mcdaniel', staticSitemapEntries('mcdaniel'));
-		expect(xml).toContain(`${mcdanielOrigin}/about`);
+		expect(xml).toContain(`${mcdanielOrigin}/attorney`);
+		expect(xml).not.toContain(`${mcdanielOrigin}/about`);
 		expect(xml).not.toContain(mlpOrigin);
+	});
+
+	it('gives each new MEP page a title, a description, and a sitemap entry', () => {
+		for (const path of MEP_PAGES) {
+			const seo = staticRouteSeo[`/mcdaniel${path}`];
+			expect(seo?.title, path).toBeTruthy();
+			expect(seo?.description, path).toBeTruthy();
+			expect(sitemapRoutes).toContainEqual({ site: 'mcdaniel', path });
+		}
 	});
 
 	it('detects the firm host', () => {

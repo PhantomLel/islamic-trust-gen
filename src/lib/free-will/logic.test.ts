@@ -54,7 +54,7 @@ describe('isStepAnswered executors/guardians (B4)', () => {
 		expect(isStepAnswered(executorsStep, responses)).toBe(true);
 	});
 
-	it('accepts only the first executor when backups are empty (C1)', () => {
+	it('requires two executors (D2)', () => {
 		const responses: WillResponses = {
 			executors: [
 				{ fullName: 'Sumayya Ahmed', relationship: 'Sister', contact: '' },
@@ -62,7 +62,7 @@ describe('isStepAnswered executors/guardians (B4)', () => {
 				{ fullName: '', relationship: '', contact: '' },
 			],
 		};
-		expect(isStepAnswered(executorsStep, responses)).toBe(true);
+		expect(isStepAnswered(executorsStep, responses)).toBe(false);
 	});
 
 	it('rejects a partially filled backup executor (C1)', () => {

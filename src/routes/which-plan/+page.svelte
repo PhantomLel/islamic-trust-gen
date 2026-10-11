@@ -4,7 +4,7 @@
 	import {
 		consultationBookingUrl,
 		defaultPrepFee,
-		formatUsd,
+		formatUsdWhole,
 		productName,
 		productNameShortBare,
 		productNameShortCapitalized,
@@ -140,7 +140,7 @@
 						+ 'with an attorney; you can book a free consult any time.'
 					: 'Your situation — a home or married status with a straightforward '
 						+ 'family structure — is a strong fit for the ' + productNameShortBare() + '. You can '
-						+ 'build your shariah-compliant trust online at your own pace, with '
+						+ 'build your trust online at your own pace, designed around Islamic inheritance principles, with '
 						+ 'attorney access throughout.'
 			};
 		}
@@ -150,7 +150,7 @@
 			attorneyReviewSuggested: false,
 			reason: 'Based on what you shared, you likely don\u2019t need more than the '
 				+ 'free Islamic will right now — so that\u2019s genuinely our recommendation. '
-				+ 'It costs nothing and takes less than ten minutes. If your situation '
+				+ 'It costs nothing and takes about ten minutes. If your situation '
 				+ 'changes — you buy a home, get married, start a business, or anything '
 				+ 'else shifts — come back and we\u2019ll help you figure out the next step '
 				+ 'then.'
@@ -167,14 +167,14 @@
 			name: 'Free Islamic Will',
 			price: 'Free',
 			priceNote: 'no credit card required',
-			body: 'Attorney-informed and shariah-grounded. The starting point for every Muslim family — regardless of estate size.',
+			body: 'Attorney-informed and designed around Islamic inheritance principles. The starting point for many Muslim families — regardless of estate size.',
 			cta: { label: 'Create Your Free Islamic Will', href: '/free-islamic-will' },
 			color: 'emerald'
 		},
 		goodtree: {
 			eyebrow: 'Online · TX & CA',
 			name: productName,
-			price: formatUsd(defaultPrepFee),
+			price: formatUsdWhole(defaultPrepFee),
 			priceNote: 'flat fee · attorney-supervised · notarization included',
 			body: 'Build an attorney-supervised Islamic revocable trust at your own pace. Includes deed preparation and email attorney access throughout.',
 			cta: { label: 'Start Your ' + productNameShortBare(), href: '/trust' },
@@ -196,7 +196,7 @@
 		name: 'Family Waqf Plan',
 		price: 'Inquire for pricing',
 		priceNote: 'includes everything in the Legacy Plan',
-		body: 'For families who want to protect their estate and build something that outlasts them. Includes 501(c)(3) formation, endowment structure design, and facilitated Afterfund onboarding — coordinated directly on your behalf.',
+		body: 'The Family Waqf Plan: we draft the legal framework for your family waqf, built into your estate plan and designed for ongoing sadaqah jariyah.',
 		cta: { label: 'Inquire About the Waqf Plan', href: consultationBookingUrl }
 	};
 

@@ -77,7 +77,7 @@
 		<div class="p-7 space-y-5">
 			<h2 class="text-cream text-xl tracking-tight">Recommended next step</h2>
 			<p class="text-cream/60 text-sm leading-relaxed">
-				For a simple estate, review every beneficiary form and keep confirmation copies with your will. If you own a home, have retirement accounts, want to avoid probate, or want the Islamic shares implemented more completely, consider a living trust coordinated with your beneficiary designations.
+				For a simple estate, review every beneficiary form and keep confirmation copies with your will. If you own a home, have retirement accounts, want a plan designed to avoid probate for the assets it holds, or want the Islamic shares implemented more completely, consider a living trust coordinated with your beneficiary designations.
 			</p>
 			<div class="flex flex-col sm:flex-row gap-3">
 				<a

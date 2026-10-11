@@ -163,8 +163,8 @@ export type WillFieldType =
 	| 'yes-no-unsure' // 'yes' | 'no' | 'unsure'
 	| 'address' // street / unit / city / zip (state comes from the `state` step)
 	| 'heirs-calculator' // reuses the Islamic inheritance calculator + heir names
-	| 'executors' // executor selection (1 required, 2 backups optional — C1)
-	| 'guardians' // guardian selection (1 required, 1 backup optional — C1)
+	| 'executors' // executor selection (2 required, 3rd optional — D2)
+	| 'guardians' // guardian selection (2 required when minor children — D2)
 	| 'wasiyyah'; // wasiyyah bequests — masajid + custom charities, capped at 1/3
 
 /** Islamic wasiyyah cap: one-third of the estate. */
@@ -270,7 +270,7 @@ export const willSteps: WillStep[] = [
 		stage: 'location',
 		type: 'county',
 		question: 'Which county do you live in?',
-		help: 'Your county identifies where your will should be filed if needed.',
+		help: 'We ask your current county to help prepare your document. If probate is later required, the proper county generally depends on where you live at death.',
 		showIf: (r) => isWillAvailableState(r['state'] as string),
 	},
 	{
@@ -285,7 +285,7 @@ export const willSteps: WillStep[] = [
 		stage: 'location',
 		type: 'address',
 		question: 'What is your home address?',
-		help: 'Your address identifies you on your will. We keep it private and never share it.',
+		help: 'Your address identifies you on your will.',
 	},
 	{
 		id: 'gender',
@@ -300,7 +300,8 @@ export const willSteps: WillStep[] = [
 		stage: 'location',
 		type: 'single-select',
 		question: 'What is your current marital status?',
-		options: ['Married', 'Single', 'Widowed', 'Divorced'],
+		/** Options come from `maritalStatusOptions(state)` in flow.ts. */
+		options: [],
 	},
 	{
 		id: 'spouse_name',
@@ -345,7 +346,7 @@ export const willSteps: WillStep[] = [
 		stage: 'family',
 		type: 'heirs-calculator',
 		question: 'Who are your heirs?',
-		help: 'Tell us who survives you and add each person\u2019s name. We calculate the exact Qur\u2019anic share for everyone you list.',
+		help: 'Tell us who survives you and add each person\u2019s name. We calculate the inheritance shares used in this will for everyone you list.',
 	},
 	{
 		id: 'minor_children',
@@ -457,12 +458,6 @@ export const willSteps: WillStep[] = [
 		type: 'yes-no-unsure',
 		question: 'Are you interested in keeping your family out of probate court?',
 		help: 'Probate can be slow and public.',
-	},
-	{
-		id: 'attorney_review',
-		stage: 'goals',
-		type: 'yes-no',
-		question: 'Would you like to book a consultation to discuss attorney review before you finish?',
 	},
 	{
 		id: 'strict_faraid',

@@ -2,19 +2,19 @@
 	import {
 		consultationBookingUrl,
 		defaultPrepFee,
-		formatUsd,
+		formatUsdWhole,
+		formatFirmNapLine,
 		jabalFoundationUrl,
 		jabalProPublicaUrl,
 		jabalLandingCopy,
 		attorneyProfileUrl,
 		firmIdentityLine,
-		firmDescriptionLine,
-		googleReviewsUrl,
-		outOfStateExitParagraphs,
+		mcdanielOrigin,
 		productName,
 		productNameShortBare,
 		productAttorneyReviewSentence
 	} from '$lib/config';
+	import ReviewsBlock from '$lib/components/ReviewsBlock.svelte';
 	import TestimonialDisclaimer from '$lib/components/TestimonialDisclaimer.svelte';
 	import VideoFacade from '$lib/components/content/VideoFacade.svelte';
 	import { slide } from 'svelte/transition';
@@ -129,20 +129,7 @@
 		{
 			num: '03',
 			title: 'Community property creates unique complications',
-			body: 'Texas and California treat marital assets as jointly owned by default. This creates specific conflicts with Islamic ownership and inheritance that most plans ignore.'
-		}
-	];
-
-	const testimonials = [
-		{
-			quote: "I have personally witnessed Brother Leonard's professionalism and integrity. His sincere concern for clients makes him a trustworthy advocate.",
-			name: 'Dr. Sh. Mamdouh Mahmoud',
-			where: 'Klein Islamic Center · Houston, TX'
-		},
-		{
-			quote: 'As a father of four, I wanted my family secure. Leonard explained both Islamic inheritance and Texas law clearly, reduced costs where possible, and offered unmatched value.',
-			name: 'Muhammed Johnson',
-			where: 'Bear Creek Masjid · Houston, TX'
+			body: "Texas and California treat marital assets as jointly owned by default. This creates specific conflicts with Islamic ownership and inheritance that many plans don't address."
 		}
 	];
 
@@ -153,19 +140,23 @@
 		},
 		{
 			q: 'What is the difference between a will and a trust?',
-			a: "A will expresses your wishes but must go through probate court before anyone receives anything — a process that can take months and is public record. A trust is a legal entity that holds your assets during your lifetime and distributes them privately and immediately when needed."
+			a: 'A will expresses your wishes but must go through probate court before anyone receives anything — a process that can take months and is public record. A trust is a legal entity that holds your assets during your lifetime and distributes them privately and immediately when needed.'
 		},
 		{
 			q: 'Is the free Islamic will legally binding?',
-			a: 'Yes, when properly signed and witnessed according to your state\'s requirements. The free Islamic will is attorney-informed and designed to meet the formal validity requirements of your state. In Texas and California, it includes shariah-compliant distribution language drafted under attorney supervision.'
+			a: 'It can be, if you sign it with the formalities your state requires. In California, that means signing in front of two witnesses who are present at the same time. In Texas, it means signing in front of two witnesses who are at least 14; the instructions also explain the optional Texas self-proving affidavit. No attorney reviews your answers or the document.'
 		},
 		{
-			q: 'Do you serve families outside Texas and California?',
-			a: outOfStateExitParagraphs.join(' ')
+			q: 'Which Islamic inheritance method does the free will use?',
+			a: 'The free will calculates shares using the Hanafi method and says so in the will. Some schools of Islamic law calculate certain family situations differently — for example, when a grandfather and siblings both survive. If you follow a different school, consider a consultation.'
 		},
 		{
 			q: 'What if I cannot afford the fee?',
-			a: 'Start with the free Islamic will — it costs nothing and is the right starting point for every Muslim family. Families who qualify as zakat-eligible may qualify for free or reduced-cost services through our community program. Contact us directly to discuss your situation.'
+			a: 'Start with the free Islamic will. It costs nothing, takes about ten minutes, and you complete it on your own.'
+		},
+		{
+			q: 'Do you serve families outside Texas and California?',
+			a: 'No. We are licensed in Texas and California, and our services and free will are available only for those states.'
 		}
 	];
 </script>
@@ -295,7 +286,7 @@
 				</h1>
 
 				<p class="text-navy/60 text-base md:text-[17px] leading-relaxed max-w-[52ch] mb-9">
-					Most Muslim families in Texas have no plan to keep their home and assets out of probate court — and no plan that follows Islamic inheritance. We help families address both.
+					Many Muslim families in Texas and California have no plan to keep their home out of probate court — and no plan that follows Islamic inheritance. We help families address both.
 				</p>
 
 				<div class="flex flex-col gap-3.5 mb-8">
@@ -336,7 +327,7 @@
 						<span class="text-emerald-accent text-[11px] tracking-[0.28em] uppercase font-medium">The Problem</span>
 					</div>
 					<h2 class="text-3xl md:text-4xl tracking-tight text-navy leading-tight text-balance max-w-sm">
-						Three things most Muslim families don't know.
+						Three things many Muslim families don't know.
 					</h2>
 				</div>
 				<p class="text-navy/50 text-base leading-relaxed md:border-l md:border-navy/10 md:pl-10 max-w-lg">
@@ -413,7 +404,7 @@
 					Two ways to protect your family's future.
 				</h2>
 				<p class="text-navy/50 text-sm leading-relaxed max-w-xs">
-					Every plan is shariah-compliant and attorney-supervised. Choose the level of support your situation requires.
+					Every plan is attorney-supervised and designed around Islamic inheritance principles.
 				</p>
 			</div>
 
@@ -424,14 +415,13 @@
 					<div>
 						<div class="text-emerald-accent/70 text-[10px] tracking-[0.28em] uppercase mb-3">Online</div>
 						<h3 class="text-2xl tracking-tight text-navy mb-1.5">{productName}</h3>
-						<p class="text-navy/70 text-sm leading-relaxed mb-2">{productAttorneyReviewSentence}</p>
 						<p class="text-navy/55 text-sm leading-relaxed">
-							Attorney-drafted Islamic revocable living trust for individuals and families with straightforward estates. Build at your own pace, with attorney access throughout.
+							An attorney-supervised Islamic revocable living trust for married couples with straightforward estates. {productAttorneyReviewSentence}
 						</p>
 					</div>
 
 					<ul class="flex flex-col gap-2">
-						{#each ['Attorney-drafted trust templates', 'Shariah-compliant distribution logic', 'Deed preparation & recording', 'Email attorney access'] as feat}
+						{#each ['Attorney-drafted trust templates', "Distribution built around the Qur'anic shares", 'Deed preparation & recording', 'Email attorney access'] as feat}
 							<li class="flex items-start gap-2 text-sm text-navy/65">
 								<svg class="w-3 h-3 shrink-0 mt-1 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 								{feat}
@@ -441,7 +431,7 @@
 
 					<div class="flex flex-col gap-1.5 pt-4 border-t border-navy/8 mt-auto">
 						<div class="flex items-baseline gap-1.5">
-							<span class="text-2xl tracking-tight text-navy">{formatUsd(defaultPrepFee)}</span>
+							<span class="text-2xl tracking-tight text-navy">{formatUsdWhole(defaultPrepFee)}</span>
 							<span class="text-navy/40 text-xs">flat fee · attorney-supervised</span>
 						</div>
 					</div>
@@ -492,13 +482,13 @@
 			</div>
 
 			<p class="text-center text-xs text-navy/38 mt-8">
-				Not ready yet? Start with a free Islamic will at <a href="https://freemuslimwill.org" class="underline underline-offset-2 hover:text-navy/60 transition-colors">freemuslimwill.org</a>.
+				Not ready yet? <a href="/free-islamic-will" class="underline underline-offset-2 hover:text-navy/60 transition-colors">Start with the free Islamic will.</a>
 			</p>
 
 			<div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-4 text-xs text-navy/38">
 				<span>Not sure which plan fits your situation? <a href="/which-plan" class="underline underline-offset-2 hover:text-navy/60 transition-colors">Take the two-minute routing quiz →</a></span>
 				<span class="hidden sm:inline w-px h-3 bg-navy/15"></span>
-				<a href="/plans" class="hover:text-navy/60 transition-colors">View all five plans →</a>
+				<a href="/plans" class="hover:text-navy/60 transition-colors">Compare all plans →</a>
 			</div>
 		</div>
 	</section>
@@ -512,21 +502,18 @@
 					<svg class="w-5 h-5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
 				</div>
 				<div class="flex-1">
-					<div class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase font-medium mb-1">We're the waqf guys</div>
+					<h2 class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase font-medium mb-1">Giving back</h2>
 					<p class="text-navy/60 text-sm leading-relaxed">
+						In your plan, any charitable gifts are your own choice. Our list of Islamic charities is alphabetical and is not a recommendation.
+					</p>
+					<p class="text-navy/60 text-sm leading-relaxed mt-2">
 						{jabalLandingCopy()}
-						<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>.
+					</p>
+					<p class="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+						<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent text-sm underline hover:text-emerald-light">See Jabal's public filings</a>
+						<a href={jabalFoundationUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent text-sm font-medium hover:text-emerald-light">Learn more about Jabal</a>
 					</p>
 				</div>
-				<a
-					href={jabalFoundationUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="inline-flex items-center gap-1.5 text-emerald-accent text-sm font-medium hover:text-emerald-light transition-colors shrink-0 whitespace-nowrap"
-				>
-					Learn more about Jabal
-					<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-				</a>
 			</div>
 		</div>
 	</section>
@@ -543,8 +530,8 @@
 		<div class="absolute bottom-10 left-8 md:left-16 w-8 h-8 border-b border-l border-emerald-accent/30 pointer-events-none"></div>
 		<div class="absolute bottom-10 right-8 md:right-16 w-8 h-8 border-b border-r border-emerald-accent/30 pointer-events-none"></div>
 
-		<div use:revealOnScroll class="scroll-reveal max-w-7xl mx-auto relative">
-			<div class="grid md:grid-cols-[1.1fr_0.9fr] gap-14 md:gap-20 items-center">
+		<div use:revealOnScroll class="scroll-reveal max-w-3xl mx-auto relative">
+			<div class="max-w-xl">
 				<div>
 					<div class="flex items-center gap-3 mb-7">
 						<span class="w-6 h-px bg-emerald-light/60"></span>
@@ -557,32 +544,16 @@
 						The American Muslim community has funded its institutions for decades through iftar dinners and Ramadan drives. That model sustains — it does not build. Waqf changes that.
 					</p>
 					<p class="text-cream/60 text-base leading-relaxed mb-9 max-w-[52ch]">
-						A family waqf endowment positions your estate to benefit your heirs in this life while sending a perpetual stream of sadaqah jariyah to the institutions your family loves — automatically, for generations.
+						The Family Waqf Plan: we draft the legal framework for your family waqf, built into your estate plan and designed for ongoing sadaqah jariyah.
 					</p>
 					<a
-						href={consultationBookingUrl}
+						href="{mcdanielOrigin}/family-waqf-plan"
 						class="group inline-flex items-center gap-2 px-7 py-3.5 border border-cream/20 text-cream text-sm font-medium rounded-lg
 							   transition-all duration-300 hover:border-cream/40 hover:bg-cream/6 hover:-translate-y-0.5"
 					>
 						Learn about the Family Waqf Plan
 						<svg class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 					</a>
-				</div>
-
-				<div use:revealStagger class="flex flex-col gap-6">
-					{#each [
-						{ label: 'Sadaqah jariyah', body: 'Every dollar you endow continues to benefit your family and your masjid long after you are gone — no auction required.' },
-						{ label: 'Afterfund partnership', body: 'Charitable assets invested in a shariah-compliant ETF, returning proceeds automatically to the institutions your family chooses.' },
-						{ label: 'From estate plan to endowment', body: "The Family Waqf Plan moves your legacy from paperwork to purpose — structured within your estate plan, not separate from it." }
-					] as item, i}
-						<div class="flex gap-5 items-start">
-							<span class="text-emerald-accent/50 text-[10px] tabular-nums tracking-widest mt-1 shrink-0">0{i + 1}</span>
-							<div>
-								<div class="text-cream text-sm font-medium mb-1.5">{item.label}</div>
-								<p class="text-cream/50 text-sm leading-relaxed">{item.body}</p>
-							</div>
-						</div>
-					{/each}
 				</div>
 			</div>
 		</div>
@@ -624,7 +595,7 @@
 						Brother Leonard embraced Islam in 2014 while studying history at UCLA, graduating magna cum laude. Having come to Islam as an adult, Leonard understands firsthand how converts and lifelong Muslims alike navigate the intersection of faith, family, and American law. Inspired by a desire to serve his community with both faith and expertise, he earned his Juris Doctor at the University of Houston Law Center in 2017.
 					</p>
 					<p class="text-navy/62 text-base leading-relaxed">
-						Since 2022, he has focused on probate and estate planning — helping Muslim families protect their wealth through thoughtful legal work grounded in classical fiqh and Texas and California law.
+						Since 2022, he has focused on estate planning for Muslim families — helping them protect their wealth through thoughtful legal work grounded in classical fiqh and Texas and California law.
 					</p>
 
 					<div use:revealStagger class="flex flex-wrap gap-7 pt-5 border-t border-navy/10 mt-2">
@@ -634,7 +605,7 @@
 						</div>
 						<div>
 							<div class="text-2xl tabular-nums text-navy tracking-tight">2017</div>
-							<div class="text-xs text-navy/40 tracking-wider uppercase mt-1">UH Law</div>
+							<div class="text-xs text-navy/40 tracking-wider uppercase mt-1">UH Law Center, JD</div>
 						</div>
 						<div>
 							<div class="text-2xl tabular-nums text-navy tracking-tight">TX · CA</div>
@@ -656,46 +627,18 @@
 		</div>
 	</section>
 
-	<!-- ═══════════════════ TESTIMONIALS ═══════════════════ -->
+	<!-- ═══════════════════ REVIEWS ═══════════════════ -->
 	<section id="testimonials" class="py-24 md:py-32 px-6 bg-white/50 scroll-mt-20">
 		<div use:revealOnScroll class="scroll-reveal max-w-5xl mx-auto">
 			<div class="flex items-center gap-3 mb-5">
 				<span class="w-6 h-px bg-emerald-accent/60"></span>
 				<span class="text-emerald-accent text-[11px] tracking-[0.28em] uppercase font-medium">Community</span>
 			</div>
-			<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-14">
-				<div>
-					<h2 class="text-3xl md:text-4xl tracking-tight text-navy text-balance">
-						Trusted by families and imams across Texas.
-					</h2>
-				</div>
-				<a href={googleReviewsUrl} target="_blank" rel="noopener noreferrer"
-					class="text-navy/45 text-xs underline underline-offset-2 hover:text-navy/70 transition-colors whitespace-nowrap">
-					Read our Google reviews.
-				</a>
-			</div>
-
-			<div use:revealStagger class="grid md:grid-cols-2 gap-6 items-stretch">
-				{#each testimonials as t}
-					<figure
-						class="h-full bg-cream border border-navy/8 rounded-2xl p-7 md:p-8 flex flex-col
-							   transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
-							   hover:border-navy/12 hover:shadow-[0_12px_32px_-12px_rgba(30,42,58,0.08)]"
-					>
-						<svg class="w-6 h-5 shrink-0 text-emerald-accent/40 mb-1" viewBox="0 0 24 18" fill="currentColor" aria-hidden="true">
-							<path d="M0 18V10.5C0 4.71 3.63 1.41 10.88 0l1.07 1.95C8.26 3.06 6.26 5.1 5.78 8.4H10V18H0zm14 0V10.5C14 4.71 17.63 1.41 24.88 0l1.07 1.95C22.26 3.06 20.26 5.1 19.78 8.4H24V18H14z"/>
-						</svg>
-						<blockquote class="text-navy/72 text-[15px] leading-relaxed flex-1 min-h-0">
-							{t.quote}
-						</blockquote>
-						<figcaption class="mt-auto flex flex-col gap-0.5 pt-5 border-t border-navy/8">
-							<span class="text-navy font-medium text-sm">{t.name}</span>
-							<span class="text-navy/45 text-xs tracking-wide">{t.where}</span>
-						</figcaption>
-					</figure>
-				{/each}
-			</div>
-			<TestimonialDisclaimer class="mt-6 text-xs leading-relaxed text-navy/60 max-w-xl" />
+			<h2 class="text-3xl md:text-4xl tracking-tight text-navy text-balance mb-10">
+				What clients say.
+			</h2>
+			<ReviewsBlock linksClass="text-emerald-accent" />
+			<TestimonialDisclaimer class="mt-6 max-w-2xl" />
 		</div>
 	</section>
 
@@ -749,7 +692,6 @@
 				<p class="text-sm text-emerald-accent mt-3">Your checklist is on the way.</p>
 			{/if}
 
-			<p class="text-navy/30 text-xs mt-4">Your information is never shared with anyone.</p>
 		</div>
 	</section>
 	-->
@@ -767,13 +709,15 @@
 			<div class="space-y-3">
 				{#each faqs as faq, i}
 					<div class="bg-cream rounded-xl border border-navy/8 overflow-hidden {openFaq === i ? 'shadow-md shadow-navy/5' : ''}">
-						<button
-							onclick={() => toggleFaq(i)}
-							class="w-full flex items-center justify-between px-6 py-5 text-left cursor-pointer"
-						>
-							<span class="text-navy text-sm font-medium pr-4">{faq.q}</span>
-							<svg class="w-4 h-4 text-navy/35 shrink-0 transition-transform duration-200 {openFaq === i ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
-						</button>
+						<h3 class="m-0 text-sm font-medium">
+							<button
+								onclick={() => toggleFaq(i)}
+								class="w-full flex items-center justify-between px-6 py-5 text-left cursor-pointer"
+							>
+								<span class="text-navy pr-4">{faq.q}</span>
+								<svg class="w-4 h-4 text-navy/35 shrink-0 transition-transform duration-200 {openFaq === i ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+							</button>
+						</h3>
 						{#if openFaq === i}
 							<div transition:slide={{ duration: 200 }} class="px-6 pb-5">
 								<p class="text-navy/58 text-sm leading-relaxed">{faq.a}</p>
@@ -808,7 +752,7 @@
 							Your family's legacy begins with one document.
 						</h2>
 						<p class="text-cream/55 text-base max-w-md leading-relaxed">
-							Start with the free Islamic will — it costs nothing and takes less than ten minutes. Add to it when you're ready.
+							Start with the free Islamic will — it costs nothing and takes about ten minutes. Add to it when you're ready.
 						</p>
 					</div>
 
@@ -851,7 +795,10 @@
 						Attorney-led Islamic estate planning for Muslim families in Texas and California. Legal services provided by McDaniel Estate Planning, PLLC.
 					</p>
 					<p class="text-navy/30 text-xs mt-4 leading-relaxed max-w-xs">
-						Licensed in Texas and California. {firmDescriptionLine} Use of this site does not create an attorney-client relationship.
+						Licensed in Texas and California. The information on this site is general and is not legal advice. Viewing this site does not create an attorney-client relationship. Legal services are provided only under a written engagement agreement with McDaniel Estate Planning, PLLC.
+					</p>
+					<p class="text-navy/30 text-xs mt-4 leading-relaxed max-w-xs">
+						{formatFirmNapLine()}
 					</p>
 				</div>
 
@@ -859,7 +806,11 @@
 					<div class="text-navy/30 text-[10px] tracking-[0.25em] uppercase mb-1.5">Plans</div>
 					<a href="/free-islamic-will" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Free Islamic Will</a>
 					<a href="/trust" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">{productNameShortBare()}</a>
-					<a href="#products" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Legacy Plan</a>
+					<a href="{mcdanielOrigin}/legacy-plan" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Legacy Plan</a>
+					<a href="{mcdanielOrigin}/family-waqf-plan" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Family Waqf Plan</a>
+					<a href="{mcdanielOrigin}/probate-estate-administration" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Probate & Estate Administration</a>
+					<a href="{mcdanielOrigin}/business-succession-planning" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Business Succession Planning</a>
+					<a href={attorneyProfileUrl} class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Attorney</a>
 					<a href="/which-plan" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Which plan is right?</a>
 					<a href="/inheritance-calculator" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Inheritance Calculator</a>
 				</div>
@@ -879,7 +830,7 @@
 					<a href="tel:+17136599668" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">+1 (713) 659-9668</a>
 					<a href="mailto:admin@mcdanielestateplanning.com" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors break-all">admin@mcdanielestateplanning.com</a>
 					<a href={consultationBookingUrl} class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Book a Consultation</a>
-					<a href="https://mcdanielestateplanning.com" target="_blank" rel="noopener noreferrer" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">McDaniel Estate Planning</a>
+					<a href={mcdanielOrigin} class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">McDaniel Estate Planning</a>
 				</div>
 			</div>
 

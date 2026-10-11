@@ -147,7 +147,7 @@
 	<!-- Intro -->
 	<div class="rounded-2xl bg-white border border-navy/10 p-5 space-y-2 text-[14px] text-navy/70 leading-relaxed">
 		<p>
-			Islamic law permits you to leave up to one-third of your estate to anyone of your choosing — charities, institutions, or individuals. This portion is called your <strong class="text-navy/85">wasiyyah</strong>.
+			You may leave up to one-third of your estate to charities and to people who are not your heirs under Islamic inheritance law. Your heirs receive their inheritance shares instead. This portion is called your <strong class="text-navy/85">wasiyyah</strong>.
 		</p>
 		<p class="text-[13px] text-navy/50">This is optional. Most families leave this blank or donate to a local masjid or Islamic charity.</p>
 	</div>

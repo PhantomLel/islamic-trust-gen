@@ -4,6 +4,7 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { WillResponse, WillResponses } from '$lib/free-will/config';
 import { getHeirsResponse, heirsQuestionId, isWillComplete, toWillResponses } from '$lib/free-will/logic';
 import { isAcknowledgmentComplete, type AcknowledgmentData } from '$lib/free-will/acknowledgment';
+import { FREE_WILL_LEGAL_MODE, isWillAnswersNotHandled } from '$lib/free-will/logic';
 
 export class IncompleteWillError extends Error {
 	constructor() {
@@ -14,8 +15,22 @@ export class IncompleteWillError extends Error {
 
 export class AcknowledgmentRequiredError extends Error {
 	constructor() {
-		super('Required acknowledgment checkboxes are missing');
+		super('Required B6.1 notice acknowledgment is missing');
 		this.name = 'AcknowledgmentRequiredError';
+	}
+}
+
+export class NotHandledWillError extends Error {
+	constructor() {
+		super('This situation is not handled by the free will tool');
+		this.name = 'NotHandledWillError';
+	}
+}
+
+export function assertWillSaveAllowed(responses: WillResponse[]): void {
+	const keyed = toWillResponses(responses);
+	if (isWillAnswersNotHandled(keyed)) {
+		throw new NotHandledWillError();
 	}
 }
 
@@ -111,8 +126,9 @@ export async function saveFreeWillForUser(
 	input: SaveFreeWillInput,
 	willId?: number | null,
 ): Promise<{ id: number }> {
-	assertWillComplete(input.responses);
 	assertAcknowledgmentComplete(input.responses, input.acknowledgmentData);
+	assertWillSaveAllowed(input.responses);
+	assertWillComplete(input.responses);
 
 	const existing = willId
 		? await db.query.freeWill.findFirst({
@@ -127,7 +143,7 @@ export async function saveFreeWillForUser(
 		name,
 		claimEmail: email.trim().toLowerCase(),
 		state: input.state,
-		legalMode: input.legalMode,
+		legalMode: input.legalMode || FREE_WILL_LEGAL_MODE,
 		responses: input.responses,
 		tags: input.tags,
 		recommendedPlan: input.recommendedPlan,
@@ -159,8 +175,9 @@ export async function savePendingFreeWill(
 	email: string,
 	input: SaveFreeWillInput,
 ): Promise<{ id: number }> {
-	assertWillComplete(input.responses);
 	assertAcknowledgmentComplete(input.responses, input.acknowledgmentData);
+	assertWillSaveAllowed(input.responses);
+	assertWillComplete(input.responses);
 
 	const claimEmail = email.trim().toLowerCase();
 
@@ -175,7 +192,7 @@ export async function savePendingFreeWill(
 			name,
 			claimEmail,
 			state: input.state,
-			legalMode: input.legalMode,
+			legalMode: input.legalMode || FREE_WILL_LEGAL_MODE,
 			responses: input.responses,
 			tags: input.tags,
 			recommendedPlan: input.recommendedPlan,

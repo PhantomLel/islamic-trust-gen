@@ -34,13 +34,13 @@ Code comments already use `A1–A8`, `B1–B7` and `C1–C6`. Those refer to an 
 | D5 | **One role: `admin`.** Remove `content_author` and `content_publisher` and convert existing holders to `admin`. Remove 2FA, `/login/staff`, the security page, the team page and the 12-hour idle logout. Video editors get **no** portal account. Overrides AB B3 and V3 7.1. |
 | D6 | Content statuses are `draft`, `published` and `unpublished`. Remove "in review" and "submit". Keep scheduling, where a scheduled page is a draft with `scheduledPublishAt` set. |
 | D7 | Videos are entered by **YouTube URL**. Editors upload Unlisted to the firm channel through YouTube Studio's Editor role. The server auto-fills the title, description, duration, date, privacy status and thumbnail from the YouTube Data API using an **API key only** (no OAuth), with oEmbed as a fallback. The transcript comes from an uploaded captions file. Publishing never calls YouTube. Overrides AB B4. |
-| D8 | Live reviews come from Places API (New) **on every request**, with no cache. |
+| D8 | Reviews come from the owner's paid **Elfsight Google Reviews widget**, embedded on both home pages only. No Places API. Overrides AA W5.1's "no Google script in the browser" and server-side rendering. W5's other rules still apply: no star filtering, no review JSON-LD, read and leave links, testimonial disclaimer. |
 | D9 | The canonical host is **www** for both domains. |
 | D10 | **MEP and MLP keep distinct styles.** Apply AA W8 defect fixes only. Ignore W8.2's "make them identical", except the price format and the footer NAP. |
 | D11 | **Do not change the help assistant.** V3 §12 is already done. |
 | D12 | **The privacy policy (AB B9) is deferred.** Render "Privacy Policy" mentions as plain text, with no link, until `/privacy` exists. |
 | D13 | Remove the free will's end-of-flow acknowledgment step entirely: both the self-help checkbox and the Texas community-property checkbox. AB B6.1 and B6.6 replace them. |
-| D14 | Webinar: one "next webinar" record that takes any join link. We send our own emails. |
+| D14 | Webinar: one "next webinar" record. The call is **Zoom only**. `join_url` must be an `https` Zoom join link (`zoom.us` or a subdomain, path `/j/`, `/w/`, `/s/`, `/my/`, or `/wc/`). No Zoom API, Zoom registration, or Zoom reminder mail. We send our own emails. Overrides the V3 11.2 hold to confirm a platform. |
 | D15 | Attribution uses `?src=` codes validated against the AB B2 patterns. Stop writing new `utm_tracking_event` rows; keep the table and the admin tab read-only. |
 | D16 | Self-host all web fonts and the Video.js CSS. |
 | D17 | Skip `llms.txt` (AA W9.7). |
@@ -84,5 +84,6 @@ Code comments already use `A1–A8`, `B1–B7` and `C1–C6`. Those refer to an 
 ## Human-only items (no code)
 - V3 §1: check the Vercel, Stripe, Resend, Clio and Calendly dashboards for injected tags (see `docs/tracking-inventory.md`).
 - Vercel: add the `www` domains and set apex → www redirects.
-- Google Cloud: create a Places API key and set `GOOGLE_PLACES_API_KEY`. Enable YouTube Data API v3 and set `YOUTUBE_API_KEY`; the same project is fine.
+- Google Cloud: enable YouTube Data API v3 and set `YOUTUBE_API_KEY`.
+- Elfsight: confirm the reviews widget has no star filter, rich snippets off, and branding hidden (task 08 §4).
 - YouTube Studio: give each editor the Editor role.

@@ -7,8 +7,7 @@
  */
 
 import { siteName } from '$lib/config';
-import { DRAFT_MARKER } from '$lib/free-will/draft';
-import { willSigningInstructionsFor } from '$lib/free-will/signing';
+import { freeWillSigningWrapper } from '$lib/free-will/deliveryCopy';
 import { escapeHtmlText } from './layout';
 
 /**
@@ -34,22 +33,6 @@ export function freeWillReadyEmailV2(input: FreeWillReadyV2Input): string {
 		? `Assalamu Alaikum, ${escapeHtmlText(firstName)}`
 		: 'Assalamu Alaikum';
 	const fileName = escapeHtmlText(input.filename);
-
-	const instructions = willSigningInstructionsFor(input.stateCode);
-	const stepsHtml = instructions.steps
-		.map(
-			(step, i) => `
-      <tr><td width="36" valign="top" style="font-family:Georgia, serif; font-size:13px; color:#4E7A66; padding:6px 0;">${i + 1}.</td>
-          <td style="font-family:Georgia, serif; font-size:15px; line-height:22px; color:#3E4A44; padding:6px 0;">${escapeHtmlText(step)}</td></tr>`,
-		)
-		.join('');
-	const texasSteps = instructions.heading
-		? `
-    <div style="font-family:Georgia, serif; font-size:18px; color:#232B27; padding:18px 0 6px 0;">${escapeHtmlText(instructions.heading)}</div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      ${stepsHtml}
-    </table>`
-		: '';
 
 	return `<!DOCTYPE html>
 <html lang="en">
@@ -89,7 +72,6 @@ export function freeWillReadyEmailV2(input: FreeWillReadyV2Input): string {
         </td>
         <td style="padding:16px 16px 16px 0;">
           <div style="font-family:Arial, sans-serif; font-size:14px; font-weight:bold; color:#232B27;">${fileName}</div>
-          <div style="font-family:Arial, sans-serif; font-size:12px; font-weight:bold; color:#C00000; padding-top:4px;">${escapeHtmlText(DRAFT_MARKER)}</div>
         </td>
       </tr>
     </table>
@@ -97,7 +79,7 @@ export function freeWillReadyEmailV2(input: FreeWillReadyV2Input): string {
 
   <tr><td style="padding:28px 24px 8px 24px;">
     <div style="font-family:Arial, sans-serif; font-size:11px; letter-spacing:2px; color:#4E7A66; padding-bottom:10px;">SIGNING</div>
-    <div style="font-family:Georgia, serif; font-size:15px; line-height:23px; color:#3E4A44; padding-bottom:6px;">${escapeHtmlText(instructions.wrapper)}</div>${texasSteps}
+    <div style="font-family:Georgia, serif; font-size:15px; line-height:23px; color:#3E4A44; padding-bottom:6px;">${escapeHtmlText(freeWillSigningWrapper)}</div>
   </td></tr>
 
   <tr><td style="padding:24px;">
@@ -106,7 +88,7 @@ export function freeWillReadyEmailV2(input: FreeWillReadyV2Input): string {
         <div style="font-family:Arial, sans-serif; font-size:11px; letter-spacing:2px; color:#9DBFAE; padding-bottom:8px;">IMPORTANT</div>
         <div style="font-family:Georgia, serif; font-size:14px; line-height:21px; color:#EDF2EE;">
           <strong>A will is not valid until it is properly signed and witnessed.</strong>
-          This free will is a starting point; some situations benefit from attorney review. This is a self-help document \u2014 preparing it does not create an attorney-client relationship and is not legal advice for your specific situation. Your information is private and never shared.
+          This free will is a starting point; some situations benefit from attorney review.
         </div>
       </td></tr>
     </table>

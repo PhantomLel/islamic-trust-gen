@@ -4,6 +4,7 @@ import { invoice, trust, adminNote, freeWill, marketingLead, marketingEmailLog, 
 import type { GeneratedFile } from '$lib/server/db/schema';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
+import { FREE_WILL_ENABLED_KEY, getBooleanSetting, setSetting } from '$lib/server/settings';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw redirect(302, '/login');
@@ -134,7 +135,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	}
 
+	const freeWillEnabled = await getBooleanSetting(FREE_WILL_ENABLED_KEY, true);
+
 	return {
+		freeWillEnabled,
 		dripSends: recentDripSends.map((s) => {
 			const lead = leadById.get(s.leadId);
 			return {
@@ -251,6 +255,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	setFreeWillEnabled: async ({ request, locals }) => {
+		if (!locals.user) throw redirect(302, '/login');
+		if (locals.user.role !== 'admin') throw error(403, 'Forbidden');
+		const form = await request.formData();
+		const enabled = form.get('enabled') === 'true';
+		await setSetting(FREE_WILL_ENABLED_KEY, enabled ? 'true' : 'false', locals.user.id);
+		return { freeWillEnabled: enabled };
+	},
+
 	updatePrice: async ({ request, locals }) => {
 		if (!locals.user) throw redirect(302, '/login');
 		if (locals.user.role !== 'admin') throw error(403, 'Forbidden');

@@ -21,8 +21,12 @@ import {
 	mlpOrigin,
 	productAttorneyReviewSentence,
 	productName,
+	productNameShort,
 	siteName,
 } from '$lib/config';
+import { hostSite, publicPathFor } from '$lib/hostPolicy';
+
+export { publicPathFor };
 
 export type SiteId = 'mlp' | 'mcdaniel';
 
@@ -56,25 +60,10 @@ export type ResolvedSeo = {
 
 export const DEFAULT_OG_IMAGE = '/og-image.png';
 
-const MCDANIEL_HOSTS = new Set(['mcdanielestateplanning.com', 'www.mcdanielestateplanning.com']);
 const MCDANIEL_TITLE = 'McDaniel Estate Planning, PLLC';
 
 export function siteForHost(hostname: string): SiteId {
-	return MCDANIEL_HOSTS.has(hostname.toLowerCase()) ? 'mcdaniel' : 'mlp';
-}
-
-/** Path as the visitor sees it on the owning site (no internal `/mcdaniel` prefix). */
-export function publicPathFor(url: URL): { site: SiteId; path: string } {
-	const hostSite = siteForHost(url.hostname);
-	let path = url.pathname || '/';
-	let site = hostSite;
-	if (hostSite === 'mlp' && (path === '/mcdaniel' || path.startsWith('/mcdaniel/'))) {
-		// Direct hit on the internal tree from the MLP host: the firm site owns this content.
-		site = 'mcdaniel';
-		path = path.slice('/mcdaniel'.length) || '/';
-	}
-	if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
-	return { site, path };
+	return hostSite(hostname) === 'mep' ? 'mcdaniel' : 'mlp';
 }
 
 export function canonicalUrl(url: URL): string {
@@ -107,9 +96,9 @@ export function isNoindexRoute(routeId: string | null): boolean {
 /** Titles and descriptions for static public routes. Existing copy was moved here unchanged. */
 export const staticRouteSeo: Record<string, PageSeo> = {
 	'/': {
-		title: `${siteName} — Islamic Estate Planning`,
+		title: `${siteName} — Islamic Estate Planning in Texas & California`,
 		description:
-			"Attorney-led Islamic estate planning for Muslim families. Wills, trusts, prenuptials, and business succession grounded in Qur'anic principles and U.S. law.",
+			`Islamic estate planning for Muslim families in Texas and California — a free Islamic will, ${productNameShort}, and attorney-designed plans.`,
 	},
 	'/plans': {
 		title: `Plans — ${siteName}`,
@@ -127,7 +116,7 @@ export const staticRouteSeo: Record<string, PageSeo> = {
 	'/free-islamic-will': {
 		title: `Free Islamic Will — ${siteName}`,
 		description:
-			'Create your free Islamic will in about 10 minutes. Attorney-informed, shariah-grounded, and the right first step for every Muslim family.',
+			'Create a free Islamic will in about ten minutes — for Texas and California residents, with plain-language signing instructions.',
 	},
 	'/inheritance-calculator': {
 		title: `Islamic Inheritance Calculator (Farāʾiḍ) | ${siteName}`,
@@ -162,9 +151,29 @@ export const staticRouteSeo: Record<string, PageSeo> = {
 		description:
 			'McDaniel Estate Planning helps Muslim families create legally sound wills, trusts, deeds, and probate plans designed to honor Islamic inheritance principles while complying with U.S. law. Attorney Leonard McDaniel is licensed in Texas and California.',
 	},
-	'/mcdaniel/about': {
-		title: `About ${attorneyName} — ${MCDANIEL_TITLE}`,
+	'/mcdaniel/attorney': {
+		title: 'Leonard McDaniel, Islamic Estate Planning Attorney │ McDaniel Estate Planning',
 		description: `${attorneyName} is an estate planning attorney licensed in Texas and California. He has focused on estate planning for Muslim families since 2022.`,
+	},
+	'/mcdaniel/legacy-plan': {
+		title: 'Legacy Plan │ McDaniel Estate Planning, PLLC — Texas & California',
+		description:
+			'A full-service plan personally designed by your attorney: a revocable living trust, pour-over wills, powers of attorney and healthcare directives, deed preparation and recording, and a dedicated heba strategy session. From $3,500.',
+	},
+	'/mcdaniel/family-waqf-plan': {
+		title: 'Family Waqf Plan │ McDaniel Estate Planning, PLLC — Texas & California',
+		description:
+			'We draft the legal framework for your family waqf, built into your estate plan and designed for ongoing sadaqah jariyah.',
+	},
+	'/mcdaniel/probate-estate-administration': {
+		title: 'Probate & Estate Administration │ McDaniel Estate Planning, PLLC — Texas & California',
+		description:
+			'Guiding families through the court process after a death, including estates with Islamic distribution instructions.',
+	},
+	'/mcdaniel/business-succession-planning': {
+		title: 'Business Succession Planning │ McDaniel Estate Planning, PLLC — Texas & California',
+		description:
+			'Succession and estate planning for business owners, and customized planning for blended families and multiple properties.',
 	},
 };
 
@@ -182,7 +191,11 @@ export const sitemapRoutes: { site: SiteId; path: string }[] = [
 	{ site: 'mlp', path: '/answers' },
 	{ site: 'mlp', path: '/videos' },
 	{ site: 'mcdaniel', path: '/' },
-	{ site: 'mcdaniel', path: '/about' },
+	{ site: 'mcdaniel', path: '/attorney' },
+	{ site: 'mcdaniel', path: '/legacy-plan' },
+	{ site: 'mcdaniel', path: '/family-waqf-plan' },
+	{ site: 'mcdaniel', path: '/probate-estate-administration' },
+	{ site: 'mcdaniel', path: '/business-succession-planning' },
 ];
 
 /**

@@ -708,6 +708,39 @@
 		{/if}
 	{:else if view === 'wills'}
 		<!-- ─── FREE WILLS ─── -->
+		<form
+			method="POST"
+			action="?/setFreeWillEnabled"
+			use:enhance={() => {
+				return async ({ update }) => {
+					await update({ invalidateAll: true });
+				};
+			}}
+			class="mb-6 rounded-xl border border-navy/10 bg-white px-5 py-4 flex flex-wrap items-center justify-between gap-4"
+		>
+			<div>
+				<p class="text-navy font-medium text-sm">Free Islamic will tool</p>
+				<p class="text-navy/45 text-xs mt-0.5">
+					When off, the landing page stays up but users cannot complete the interview.
+				</p>
+			</div>
+			<label class="flex items-center gap-3 cursor-pointer">
+				<span class="text-sm text-navy/70">{data.freeWillEnabled ? 'Enabled' : 'Disabled'}</span>
+				<input type="hidden" name="enabled" value={data.freeWillEnabled ? 'false' : 'true'} />
+				<button
+					type="submit"
+					class="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer
+						{data.freeWillEnabled ? 'bg-emerald-accent' : 'bg-navy/20'}"
+					aria-pressed={data.freeWillEnabled}
+				>
+					<span
+						class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform
+							{data.freeWillEnabled ? 'translate-x-6' : 'translate-x-1'}"
+					></span>
+				</button>
+			</label>
+		</form>
+
 		<div class="mb-6">
 			<h1 class="text-2xl font-semibold text-navy tracking-tight mb-1">Free Wills</h1>
 			<p class="text-navy/45 text-sm">

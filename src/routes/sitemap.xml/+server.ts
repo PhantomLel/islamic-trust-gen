@@ -1,12 +1,11 @@
 import type { RequestHandler } from './$types';
-import { sitemapXml, staticSitemapEntries, type SitemapEntry } from '$lib/robots';
-import { siteForHost } from '$lib/seo';
+import { crawlSite, sitemapXml, staticSitemapEntries, type SitemapEntry } from '$lib/robots';
 import { publishedPageSitemap } from '$lib/server/content/pages';
 import { publishedVideoSitemap } from '$lib/server/content/videos';
 import { seriesSlugOf } from '$lib/server/content/videoView';
 
 export const GET: RequestHandler = async ({ url }) => {
-	const site = siteForHost(url.hostname);
+	const site = crawlSite(url);
 	const entries: SitemapEntry[] = [...staticSitemapEntries(site)];
 
 	if (site === 'mlp') {

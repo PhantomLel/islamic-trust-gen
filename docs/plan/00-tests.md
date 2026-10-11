@@ -54,8 +54,7 @@ Conventions:
 - A POST to `/api/*` on MEP → no redirect.
 
 ## 08 Reviews
-- `getPlaceReviews` preserves Google's order, and returns `null` on an HTTP error, a timeout or a missing key.
-- The compact selection returns the 2 most recent reviews.
+- SSR render of `ReviewsBlock` contains the Elfsight app class, the "Read all reviews on Google" link and the "Leave a review" link, and no stored count.
 - Home-page JSON-LD contains no `Review` or `AggregateRating`.
 
 ## 09 Accessibility and polish
@@ -97,3 +96,4 @@ Conventions:
 - The `.ics` output contains `DTSTART`, `DTEND` and `URL`.
 - Registration: a duplicate email is rejected, consent is stored only when ticked, and the honeypot blocks the submission.
 - The public page HTML never contains `join_url`.
+- A Zoom join link (`https` on `zoom.us` or a subdomain, path `/j/`, `/w/`, `/s/`, `/my/`, or `/wc/`) is accepted. Any other URL is rejected.

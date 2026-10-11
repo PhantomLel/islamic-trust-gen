@@ -1,23 +1,17 @@
 <script lang="ts">
-	import {
-		attorneyProfileUrl,
-		consultationBookingUrl,
-		firmDescriptionLine,
-		googleReviewsUrl,
-		productNameMidSentence
-	} from '$lib/config';
+	import { page } from '$app/state';
+	import ReviewsBlock from '$lib/components/ReviewsBlock.svelte';
 	import TestimonialDisclaimer from '$lib/components/TestimonialDisclaimer.svelte';
+	import {
+		attorneyName,
+		consultationBookingUrl,
+		mlpOrigin,
+		productNameShortCapitalized
+	} from '$lib/config';
+	import { mepHref } from '$lib/mep/href';
 
-	const freeWillUrl = 'https://muslimlegacyplanning.com/free-islamic-will';
-	const mlpUrl = 'https://muslimlegacyplanning.com';
-	const firmDescriptionInline = firmDescriptionLine.replace(/^An /, 'an ');
-
-	let mobileMenuOpen = $state(false);
-	let navScrolled = $state(false);
-
-	function updateScroll() {
-		navScrolled = document.documentElement.scrollTop > 24;
-	}
+	const freeWillUrl = `${mlpOrigin}/free-islamic-will`;
+	const trustUrl = `${mlpOrigin}/trust`;
 
 	function revealOnScroll(node: HTMLElement) {
 		if (typeof IntersectionObserver === 'undefined') {
@@ -60,13 +54,6 @@
 		return { destroy() { observer.disconnect(); } };
 	}
 
-	const navLinks = [
-		{ href: '#why-legal', label: 'Why Legal Implementation' },
-		{ href: '#services', label: 'Services' },
-		{ href: '#attorney', label: 'Attorney' },
-		{ href: '#reviews', label: 'Reviews' }
-	];
-
 	const pillars = [
 		{
 			numeral: 'I',
@@ -85,129 +72,42 @@
 		}
 	];
 
-	const services = [
+	const services: { num: string; title: string; body: string; href: string; external?: boolean }[] = [
 		{
 			num: '01',
 			title: 'Islamic Estate Planning Consultations',
-			body: 'A structured attorney review of your family, assets, and planning goals through the lens of Islamic inheritance and U.S. law.'
+			body: 'A structured attorney review of your family, assets, and planning goals through the lens of Islamic inheritance and U.S. law.',
+			href: consultationBookingUrl,
+			external: true
 		},
 		{
 			num: '02',
-			title: 'Revocable Living Trust Planning',
-			body: 'Trust-based plans designed to avoid probate, preserve privacy, and carry out faraid distribution with legal precision.'
+			title: 'Legacy Plan',
+			body: 'A full-service plan personally designed by your attorney: a revocable living trust, pour-over wills, powers of attorney and healthcare directives, deed preparation and recording, and a dedicated heba strategy session. From $3,500.',
+			href: '/legacy-plan'
 		},
 		{
 			num: '03',
-			title: 'Islamic Wills',
-			body: 'Wills drafted to honor Qur\u2019anic inheritance shares while satisfying the formalities your state courts require.'
+			title: 'Family Waqf Plan',
+			body: 'We draft the legal framework for your family waqf, built into your estate plan and designed for ongoing sadaqah jariyah.',
+			href: '/family-waqf-plan'
 		},
 		{
 			num: '04',
-			title: 'Trust Funding & Deed Preparation',
-			body: 'Retitling real property and accounts into your trust — the step that determines whether a trust actually works.'
+			title: 'Probate & Estate Administration',
+			body: 'Guiding families through the court process after a death, including estates with Islamic distribution instructions.',
+			href: '/probate-estate-administration'
 		},
 		{
 			num: '05',
-			title: 'Probate & Estate Administration',
-			body: 'Guiding families through the court process after a death, including estates with Islamic distribution instructions.'
-		},
-		{
-			num: '06',
-			title: 'Advanced Planning for Complex Families & Business Owners',
-			body: 'Customized planning for blended families, business interests, multiple properties, and multi-state considerations.'
-		}
-	];
-
-	const testimonials: { quote: string; name: string; detail: string; featured?: boolean }[] = [
-		{
-			quote: "I have personally witnessed Brother Leonard's professionalism and integrity. His sincere concern for clients makes him a trustworthy advocate.",
-			name: 'Dr. Sh. Mamdouh Mahmoud',
-			detail: 'Klein Islamic Center · Houston, TX'
-		},
-		{
-			quote: 'As a father of four, I wanted my family secure. Leonard explained both Islamic inheritance and Texas law clearly, reduced costs where possible, and offered unmatched value.',
-			name: 'Muhammed Johnson',
-			detail: 'Bear Creek Masjid · Houston, TX'
+			title: 'Business Succession Planning',
+			body: 'Succession and estate planning for business owners, and customized planning for blended families and multiple properties.',
+			href: '/business-succession-planning'
 		}
 	];
 </script>
 
-<svelte:window onscroll={updateScroll} />
-
-<svelte:head>
-	<link rel="preconnect" href="https://fonts.googleapis.com" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-	<link
-		href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..700;1,300..700&display=swap"
-		rel="stylesheet"
-	/>
-</svelte:head>
-
-<div class="mep min-h-[100dvh] bg-[#FCFBF8] text-[#1F2D3D] antialiased">
-
-	<!-- ═══════════════════ NAVIGATION ═══════════════════ -->
-	<header
-		class="fixed top-0 inset-x-0 z-50 transition-all duration-500 {navScrolled
-			? 'bg-[#FCFBF8]/92 backdrop-blur-md border-b border-[#1F2D3D]/8 shadow-[0_1px_0_rgba(31,45,61,0.04)]'
-			: 'bg-transparent border-b border-transparent'}"
-	>
-		<div class="max-w-7xl mx-auto px-6 lg:px-10 h-[4.5rem] flex items-center justify-between">
-			<a href="#top" class="group flex items-baseline gap-2.5">
-				<span class="mep-serif text-[1.15rem] leading-none tracking-tight">McDaniel Estate Planning</span>
-				<span class="hidden sm:inline text-[10px] tracking-[0.22em] uppercase text-[#1F2D3D]/50">PLLC</span>
-			</a>
-
-			<nav class="hidden lg:flex items-center gap-9">
-				{#each navLinks as link}
-					<a
-						href={link.href}
-						class="text-[13px] tracking-[0.04em] text-[#1F2D3D]/65 hover:text-[#1F2D3D] transition-colors duration-300"
-					>{link.label}</a>
-				{/each}
-				<a
-					href={consultationBookingUrl}
-					target="_blank"
-					rel="noopener"
-					class="inline-flex items-center gap-2 bg-[#1F2D3D] text-[#FCFBF8] text-[13px] tracking-[0.04em] px-5 py-2.5 hover:bg-[#2B3D52] active:translate-y-px transition-all duration-300"
-				>
-					Book a Legal Consultation
-				</a>
-			</nav>
-
-			<button
-				class="lg:hidden flex flex-col gap-[5px] p-2 -mr-2"
-				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-				aria-label="Toggle menu"
-				aria-expanded={mobileMenuOpen}
-			>
-				<span class="block w-5 h-px bg-[#1F2D3D] transition-transform duration-300 {mobileMenuOpen ? 'translate-y-[6px] rotate-45' : ''}"></span>
-				<span class="block w-5 h-px bg-[#1F2D3D] transition-opacity duration-300 {mobileMenuOpen ? 'opacity-0' : ''}"></span>
-				<span class="block w-5 h-px bg-[#1F2D3D] transition-transform duration-300 {mobileMenuOpen ? '-translate-y-[6px] -rotate-45' : ''}"></span>
-			</button>
-		</div>
-
-		{#if mobileMenuOpen}
-			<div class="lg:hidden bg-[#FCFBF8] border-b border-[#1F2D3D]/8 px-6 pb-6 pt-2">
-				<nav class="flex flex-col gap-1">
-					{#each navLinks as link}
-						<a
-							href={link.href}
-							onclick={() => (mobileMenuOpen = false)}
-							class="py-3 text-[15px] text-[#1F2D3D]/75 border-b border-[#1F2D3D]/6"
-						>{link.label}</a>
-					{/each}
-					<a
-						href={consultationBookingUrl}
-						target="_blank"
-						rel="noopener"
-						class="mt-4 inline-flex justify-center bg-[#1F2D3D] text-[#FCFBF8] text-[14px] px-5 py-3.5 active:translate-y-px"
-					>Book a Legal Consultation</a>
-				</nav>
-			</div>
-		{/if}
-	</header>
-
-	<main id="top">
+<main id="top">
 
 		<!-- ═══════════════════ SECTION 1 — HERO ═══════════════════ -->
 		<section class="relative pt-36 md:pt-44 pb-20 md:pb-28 px-6 lg:px-10 overflow-hidden">
@@ -319,16 +219,28 @@
 					</p>
 				</div>
 
-				<div use:revealStagger class="divide-y divide-[#1F2D3D]/10 border-y border-[#1F2D3D]/10">
-					{#each services as service}
-						<div class="group grid sm:grid-cols-[3.5rem_1fr] gap-2 sm:gap-6 py-7 transition-colors duration-300 hover:bg-[#1F2D3D]/[0.025] sm:px-2 -mx-2">
-							<span class="text-[12px] tracking-[0.15em] text-[#9A7B45] pt-1.5 font-medium">{service.num}</span>
-							<div>
-								<h3 class="mep-serif text-[1.25rem] leading-snug mb-2">{service.title}</h3>
-								<p class="text-[14px] leading-relaxed text-[#1F2D3D]/60 max-w-[60ch]">{service.body}</p>
-							</div>
-						</div>
-					{/each}
+				<div>
+					<div use:revealStagger class="divide-y divide-[#1F2D3D]/10 border-y border-[#1F2D3D]/10">
+						{#each services as service}
+							<a
+								href={service.external ? service.href : mepHref(page.url.pathname, service.href)}
+								target={service.external ? '_blank' : undefined}
+								rel={service.external ? 'noopener' : undefined}
+								class="group grid sm:grid-cols-[3.5rem_1fr] gap-2 sm:gap-6 py-7 transition-colors duration-300 hover:bg-[#1F2D3D]/[0.025] sm:px-2 -mx-2"
+							>
+								<span class="text-[12px] tracking-[0.15em] text-[#9A7B45] pt-1.5 font-medium">{service.num}</span>
+								<div>
+									<h3 class="mep-serif text-[1.25rem] leading-snug mb-2 group-hover:text-[#9A7B45] transition-colors duration-300">{service.title}</h3>
+									<p class="text-[14px] leading-relaxed text-[#1F2D3D]/60 max-w-[60ch]">{service.body}</p>
+								</div>
+							</a>
+						{/each}
+					</div>
+					<p class="text-[14.5px] leading-relaxed text-[#1F2D3D]/70 mt-8 max-w-[62ch]">
+						Prefer to start online? <a href={trustUrl} class="border-b border-[#9A7B45]/50 hover:border-[#9A7B45]">{productNameShortCapitalized()}</a>
+						and the <a href={freeWillUrl} class="border-b border-[#9A7B45]/50 hover:border-[#9A7B45]">free Islamic will</a>
+						are available at <a href={mlpOrigin} class="border-b border-[#9A7B45]/50 hover:border-[#9A7B45]">Muslim Legacy Planning</a>.
+					</p>
 				</div>
 			</div>
 		</section>
@@ -362,45 +274,27 @@
 						<span class="text-[11px] tracking-[0.3em] uppercase text-[#9A7B45]">Attorney Credibility</span>
 					</div>
 
-					<h2 class="mep-serif text-[2.2rem] md:text-[2.7rem] leading-[1.12] tracking-tight mb-8 max-w-[20ch]">
-						Built at the intersection of fiqh and U.S. law.
+					<h2 class="mep-serif text-[2.2rem] md:text-[2.7rem] leading-[1.12] tracking-tight mb-8">
+						{attorneyName}
 					</h2>
 
 					<div class="space-y-5 text-[15.5px] leading-relaxed text-[#1F2D3D]/72 max-w-[58ch]">
 						<p>
-							Leonard McDaniel embraced Islam in 2014 while studying history at UCLA, graduating magna cum laude.
-							Having come to Islam as an adult, he understands firsthand how converts and lifelong Muslims alike
-							navigate the intersection of faith, family, and American law. He earned his Juris Doctor at the
-							University of Houston Law Center in 2017.
-						</p>
-						<p>
-							Since 2022, his practice has focused on probate and estate planning — helping Muslim
-							families protect their wealth through thoughtful legal work grounded in classical fiqh and Texas
-							and California law. He built {productNameMidSentence()} so that more families could put an attorney-supervised plan in place that reflects Islamic inheritance and is structured under the law of the state where they live.
+							Leonard McDaniel is an estate planning attorney licensed in Texas and California. He has focused on
+							estate planning for Muslim families since 2022.
 						</p>
 					</div>
 
+					<p class="mt-8 text-[14.5px] leading-relaxed text-[#1F2D3D]/70">
+						2017 — UH Law Center, JD · 2021 — Licensed in Texas · 2023 — Licensed in California
+					</p>
+
 					<a
-						href={attorneyProfileUrl}
+						href={mepHref(page.url.pathname, '/attorney')}
 						class="inline-block mt-6 text-[14.5px] text-[#1F2D3D]/75 hover:text-[#1F2D3D] border-b border-[#9A7B45]/50 hover:border-[#9A7B45] pb-0.5 transition-colors duration-300"
 					>
 						Read Leonard McDaniel&rsquo;s full profile
 					</a>
-
-					<div use:revealStagger class="flex flex-wrap gap-x-10 gap-y-6 mt-8 pt-7 border-t border-[#1F2D3D]/12">
-						<div>
-							<div class="mep-serif text-2xl tabular-nums tracking-tight">2014</div>
-							<div class="text-[11px] text-[#9A7B45] tracking-[0.18em] uppercase mt-1.5">Embraced Islam</div>
-						</div>
-						<div>
-							<div class="mep-serif text-2xl tabular-nums tracking-tight">2017</div>
-							<div class="text-[11px] text-[#9A7B45] tracking-[0.18em] uppercase mt-1.5">UH Law</div>
-						</div>
-						<div>
-							<div class="mep-serif text-2xl tracking-tight">TX · CA</div>
-							<div class="text-[11px] text-[#9A7B45] tracking-[0.18em] uppercase mt-1.5">Licensed</div>
-						</div>
-					</div>
 				</div>
 			</div>
 		</section>
@@ -408,39 +302,11 @@
 		<!-- ═══════════════════ SECTION 5 — TESTIMONIALS ═══════════════════ -->
 		<section id="reviews" class="py-24 md:py-32 px-6 lg:px-10 scroll-mt-20">
 			<div use:revealOnScroll class="scroll-reveal max-w-6xl mx-auto">
-				<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-16 md:mb-20">
-					<div>
-						<div class="flex items-center gap-3 mb-5">
-							<span class="w-8 h-px bg-[#9A7B45]"></span>
-							<span class="text-[11px] tracking-[0.3em] uppercase text-[#9A7B45]">Client Experiences</span>
-						</div>
-					</div>
-					<a
-						href={googleReviewsUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-[#1F2D3D]/45 text-xs underline underline-offset-2 hover:text-[#1F2D3D]/70 transition-colors duration-300 whitespace-nowrap"
-					>
-						Read our Google reviews.
-					</a>
+				<div class="flex items-center gap-3 mb-10">
+					<span class="w-8 h-px bg-[#9A7B45]"></span>
+					<h2 class="text-[11px] tracking-[0.3em] uppercase text-[#9A7B45] font-normal">Client Experiences</h2>
 				</div>
-
-				<div use:revealStagger class="grid lg:grid-cols-2 gap-x-20 gap-y-14">
-					{#each testimonials as t}
-						<figure class="{t.featured ? 'lg:col-span-2 lg:max-w-[52rem]' : ''} border-t border-[#1F2D3D]/12 pt-8">
-							<blockquote class="mep-serif {t.featured ? 'text-[1.5rem] md:text-[1.85rem]' : 'text-[1.15rem]'} leading-[1.45] text-[#1F2D3D]/90">
-								&ldquo;{t.quote}&rdquo;
-							</blockquote>
-							<figcaption class="mt-6 flex items-baseline gap-3">
-								<span class="w-5 h-px bg-[#9A7B45] translate-y-[-3px]"></span>
-								<span>
-									<span class="block text-[13.5px] font-medium text-[#1F2D3D]/85">{t.name}</span>
-									<span class="block text-[12px] text-[#1F2D3D]/50 mt-0.5">{t.detail}</span>
-								</span>
-							</figcaption>
-						</figure>
-					{/each}
-				</div>
+				<ReviewsBlock linksClass="text-[#9A7B45]" />
 				<TestimonialDisclaimer class="mt-12 text-[12.5px] leading-relaxed text-[#1F2D3D]/60 max-w-[52rem]" />
 
 			</div>
@@ -465,14 +331,12 @@
 								The Legal Practice Behind Muslim Legacy Planning
 							</h2>
 							<p class="text-[15.5px] leading-relaxed text-[#FCFBF8]/72 max-w-[62ch]">
-								Muslim Legacy Planning is {firmDescriptionInline} It is where Muslim families
-								can create a free Islamic will, complete {productNameMidSentence()}, and access attorney-reviewed
-								estate plans. McDaniel Estate Planning is the licensed law firm that backs all of it.
+								Muslim Legacy Planning is the Islamic estate-planning service of McDaniel Estate Planning, PLLC. It is where families can create a free Islamic will, build an attorney-guided online trust, and learn about Islamic estate planning. McDaniel Estate Planning is the law firm that provides the legal services.
 							</p>
 						</div>
 						<div class="lg:justify-self-end">
 							<a
-								href={mlpUrl}
+								href={mlpOrigin}
 								class="group inline-flex items-center gap-3 border border-[#C8A86B]/50 hover:border-[#C8A86B] text-[14.5px] tracking-[0.03em] px-8 py-4 hover:bg-[#C8A86B]/8 active:translate-y-px transition-all duration-300"
 							>
 								Visit Muslim Legacy Planning
@@ -495,7 +359,7 @@
 						<span class="text-[11px] tracking-[0.3em] uppercase text-[#9A7B45]">Begin</span>
 					</div>
 					<h2 class="mep-serif text-[2.2rem] md:text-[3.2rem] leading-[1.12] tracking-tight max-w-[20ch]">
-						Plan your estate with confidence — religiously and legally.
+						Plan your estate thoughtfully — in faith and in law.
 					</h2>
 				</div>
 				<div class="flex flex-col gap-4 lg:items-end">
@@ -516,45 +380,4 @@
 				</div>
 			</div>
 		</section>
-	</main>
-
-	<!-- ═══════════════════ FOOTER ═══════════════════ -->
-	<footer class="border-t border-[#1F2D3D]/8 px-6 lg:px-10 py-12 md:py-14">
-		<div class="max-w-7xl mx-auto">
-			<div class="flex flex-col md:flex-row md:items-baseline md:justify-between gap-6">
-				<div>
-					<p class="mep-serif text-[1.05rem]">McDaniel Estate Planning, PLLC</p>
-					<p class="text-[12.5px] text-[#1F2D3D]/55 mt-1.5">
-						A statewide practice serving clients across Texas and California.
-					</p>
-				</div>
-				<div class="flex items-center gap-7 text-[13px] text-[#1F2D3D]/60">
-					<a href="#services" class="hover:text-[#1F2D3D] transition-colors duration-300">Services</a>
-					<a href="#attorney" class="hover:text-[#1F2D3D] transition-colors duration-300">Attorney</a>
-					<a href={mlpUrl} class="hover:text-[#1F2D3D] transition-colors duration-300">Muslim Legacy Planning</a>
-				</div>
-			</div>
-			<div class="mt-10 border-t border-[#1F2D3D]/8 pt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-				<p class="text-[11.5px] leading-relaxed text-[#1F2D3D]/45 max-w-[72ch]">
-					Attorney Advertising. The information on this site is for general informational purposes only and
-					does not constitute legal advice. Viewing this site does not create an attorney&ndash;client relationship.
-				</p>
-				<p class="text-[11.5px] text-[#1F2D3D]/45 whitespace-nowrap">
-					&copy; {new Date().getFullYear()} McDaniel Estate Planning, PLLC
-				</p>
-			</div>
-		</div>
-	</footer>
-</div>
-
-<style>
-	.mep {
-		font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif;
-		font-weight: 400;
-	}
-	.mep :global(.mep-serif),
-	.mep .mep-serif {
-		font-family: 'Playfair Display', Georgia, serif;
-		font-weight: 500;
-	}
-</style>
+</main>

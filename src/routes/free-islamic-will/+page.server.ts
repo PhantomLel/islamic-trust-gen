@@ -6,17 +6,21 @@ import {
 	AcknowledgmentRequiredError,
 	assertAcknowledgmentComplete,
 	assertWillComplete,
+	assertWillSaveAllowed,
 	claimPendingFreeWills,
 	getLatestFreeWill,
 	IncompleteWillError,
+	NotHandledWillError,
 	savePendingFreeWill,
 	saveFreeWillForUser,
 	type SaveFreeWillInput,
 } from '$lib/server/freeWill';
+import { FREE_WILL_ENABLED_KEY, getBooleanSetting } from '$lib/server/settings';
+import { FREE_WILL_LEGAL_MODE } from '$lib/free-will/logic';
 import { isWillComplete, toWillResponses } from '$lib/free-will/logic';
 import { isAcknowledgmentComplete, type AcknowledgmentData } from '$lib/free-will/acknowledgment';
-import { renderFreeWill } from '$lib/server/documents/renderWill';
-import { saveGeneratedWillDocx } from '$lib/server/documents/storage';
+import { render } from '$lib/server/documents/willPdf/render';
+import { saveGeneratedWillFile } from '$lib/server/documents/storage';
 import { freeWillReadyEmailV2 } from '$lib/server/emails/freeWillReadyV2';
 import { attributionCodeFromCookies } from '$lib/attribution';
 import { stateName, type WillResponse } from '$lib/free-will/config';
@@ -82,12 +86,12 @@ async function generateWillDownload(
 	}
 
 	try {
-		const { buffer, filename } = await renderFreeWill({
+		const { buffer, filename } = await render({
 			id: willId,
 			responses: input.responses,
 			user: { name },
 		});
-		const file = await saveGeneratedWillDocx({
+		const file = await saveGeneratedWillFile({
 			freeWillId: willId,
 			kind: WILL_DOC_KIND,
 			buffer,
@@ -116,9 +120,15 @@ async function generateWillDownload(
 	}
 }
 
+async function assertFreeWillEnabled(): Promise<void> {
+	const enabled = await getBooleanSetting(FREE_WILL_ENABLED_KEY, true);
+	if (!enabled) throw error(503, 'The free Islamic will is temporarily unavailable.');
+}
+
 export const load: PageServerLoad = async ({ locals }) => {
+	const freeWillEnabled = await getBooleanSetting(FREE_WILL_ENABLED_KEY, true);
 	if (!locals.user) {
-		return { user: null, savedWill: null };
+		return { user: null, savedWill: null, freeWillEnabled };
 	}
 
 	// Pull any pre-signup submission into this account.
@@ -174,6 +184,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				}
 			: null,
 		willDownload,
+		freeWillEnabled,
 	};
 };
 
@@ -198,15 +209,6 @@ function parseSaveInput(form: FormData, cookies: Cookies): {
 	}
 	if (!Array.isArray(responses)) throw error(400, 'Invalid responses');
 
-	try {
-		assertWillComplete(responses);
-	} catch (e) {
-		if (e instanceof IncompleteWillError) {
-			throw error(400, 'Please complete all required questions before saving');
-		}
-		throw e;
-	}
-
 	const acknowledgmentDataRaw = form.get('acknowledgmentData');
 	let acknowledgmentData: AcknowledgmentData | null = null;
 	if (typeof acknowledgmentDataRaw === 'string' && acknowledgmentDataRaw) {
@@ -221,13 +223,31 @@ function parseSaveInput(form: FormData, cookies: Cookies): {
 		assertAcknowledgmentComplete(responses, acknowledgmentData);
 	} catch (e) {
 		if (e instanceof AcknowledgmentRequiredError) {
-			throw error(400, 'Please accept the required acknowledgments before continuing');
+			throw error(400, 'Please accept the required notice before continuing');
+		}
+		throw e;
+	}
+
+	try {
+		assertWillSaveAllowed(responses);
+	} catch (e) {
+		if (e instanceof NotHandledWillError) {
+			throw error(400, 'This situation is not handled by the free will tool');
+		}
+		throw e;
+	}
+
+	try {
+		assertWillComplete(responses);
+	} catch (e) {
+		if (e instanceof IncompleteWillError) {
+			throw error(400, 'Please complete all required questions before saving');
 		}
 		throw e;
 	}
 
 	const state = typeof form.get('state') === 'string' ? (form.get('state') as string) : null;
-	const legalMode = typeof form.get('legalMode') === 'string' ? (form.get('legalMode') as string) : 'self-help';
+	const legalMode = FREE_WILL_LEGAL_MODE;
 	const recommendedPlan =
 		typeof form.get('recommendedPlan') === 'string' && form.get('recommendedPlan')
 			? (form.get('recommendedPlan') as string)
@@ -260,6 +280,7 @@ function parseSaveInput(form: FormData, cookies: Cookies): {
 export const actions: Actions = {
 	/** Persist directly to the signed-in user's account, then generate the will. */
 	saveAuthed: async ({ request, locals, cookies }) => {
+		await assertFreeWillEnabled();
 		if (!locals.user) throw error(401, 'Not authenticated');
 		const { input, willId } = parseSaveInput(await request.formData(), cookies);
 		const { id } = await saveFreeWillForUser(
@@ -275,10 +296,21 @@ export const actions: Actions = {
 
 	/** Persist a pending submission keyed by email; claimed after the user signs in. */
 	savePending: async ({ request, cookies }) => {
+		await assertFreeWillEnabled();
 		const { name, email, input } = parseSaveInput(await request.formData(), cookies);
 		if (!email || !email.includes('@')) throw error(400, 'A valid email is required');
 		if (!name) throw error(400, 'A name is required');
 		const { id } = await savePendingFreeWill(name, email, input);
-		return { saved: true, willId: id };
+		const download = await generateWillDownload(id, name, email, input);
+		return { saved: true, willId: id, willDownload: download };
+	},
+
+	setFreeWillEnabled: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'admin') throw error(403, 'Forbidden');
+		const form = await request.formData();
+		const enabled = form.get('enabled') === 'true';
+		const { setSetting } = await import('$lib/server/settings');
+		await setSetting(FREE_WILL_ENABLED_KEY, enabled ? 'true' : 'false', locals.user.id);
+		return { freeWillEnabled: enabled };
 	},
 };

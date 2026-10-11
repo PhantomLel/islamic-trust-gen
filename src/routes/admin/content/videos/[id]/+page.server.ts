@@ -4,7 +4,7 @@ import { requireContentStaff } from '$lib/server/content/guard';
 import { checkVideo, getVideo, publishVideo, saveVideo, scheduleVideo, submitVideoForReview, unpublishVideo } from '$lib/server/content/videos';
 import { listPagesForAdmin } from '$lib/server/content/pages';
 import { listMedia } from '$lib/server/content/taxonomy';
-import { FEATURED_VIDEO_KEY, getSetting, setSetting } from '$lib/server/content/settings';
+import { FEATURED_VIDEO_KEY, getSetting, setSetting } from '$lib/server/settings';
 import { parseScheduleAt, parseVideoForm } from '$lib/server/content/parse';
 import { ContentPermissionError, can } from '$lib/content/permissions';
 import { formatDuration } from '$lib/content/rules';

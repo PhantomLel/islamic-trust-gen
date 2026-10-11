@@ -19,8 +19,7 @@ import {
 	getHeirsResponse,
 	getNamedHeirs,
 	isCommunityPropertySituation,
-	legalMode,
-	legalModeDisclaimers,
+	FREE_WILL_LEGAL_MODE,
 	normalizeWillPersonName,
 	recommendPlan,
 	type LeadTag,
@@ -159,7 +158,7 @@ export function buildWillDocumentContext(will: FreeWillLike): WillDocumentContex
 	const stateCode = typeof responses['state'] === 'string' ? responses['state'] : '';
 	const county = typeof responses['county'] === 'string' ? responses['county'] : '';
 	const homeInDifferentState = responses['home_state'] === true;
-	const mode = legalMode(responses);
+	const mode = FREE_WILL_LEGAL_MODE;
 	const rec = recommendPlan(responses);
 	const rangeId = assetRanges.find((r) => r.label === responses['asset_range'])?.id;
 
@@ -241,7 +240,7 @@ export function buildWillDocumentContext(will: FreeWillLike): WillDocumentContex
 		distributionNotes: heirsResponse?.notes ?? [],
 
 		legalMode: mode,
-		legalDisclaimer: legalModeDisclaimers[mode],
+		legalDisclaimer: '',
 
 		isCommunityProperty: isCommunityPropertySituation(responses),
 		communityPropertyWarning,

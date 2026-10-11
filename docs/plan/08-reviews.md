@@ -1,43 +1,55 @@
-# 08: Live Google reviews (AA W5, D8)
+# 08: Google reviews via Elfsight (AA W5, D8)
 
-Read `00-overview.md` and AA W5.
+Read `00-overview.md` and AA W5. D8 replaces the Places API approach: reviews come from the owner's paid Elfsight Google Reviews widget. There is no server code, no API key and no cache header for this task.
 
-**Before coding**, check the current docs for:
-- Place Details (New): https://developers.google.com/maps/documentation/places/web-service/place-details
-- Places policies and attribution: https://developers.google.com/maps/documentation/places/web-service/policies
-
-## 1. Server module: `src/lib/server/reviews.ts`
-- `getPlaceReviews()` → `PlaceReviews | null`.
-- Request: `GET https://places.googleapis.com/v1/places/ChIJszQ9uNfRQIYRg3017kJNF8Y`
-  - Headers: `X-Goog-Api-Key: env.GOOGLE_PLACES_API_KEY` and `X-Goog-FieldMask: rating,userRatingCount,reviews,googleMapsUri`. Confirm the field names against the docs.
-  - 3-second timeout (`AbortSignal.timeout`).
-  - Any error or missing key → `null`.
-- **No caching of any kind (D8):** no module cache, no DB, no CDN. The page responses that include reviews set `Cache-Control: private, no-store`.
-- Map each review to `{ authorName, authorUri, authorPhotoUri?, rating, text, relativeTime, publishTime }` in **Google's order**. Never filter by stars.
-- Put the place ID in `config.ts` as `googlePlaceId`.
-- Constants:
-  - `googleWriteReviewUrl` = `https://search.google.com/local/writereview?placeid=…` (already `googleReviewsUrl`; rename it).
-  - `googleReadReviewsUrl`: use `googleMapsUri` from the response when available, otherwise `https://search.google.com/local/reviews?placeid=…`.
+## 1. Config: `src/lib/config.ts`
+- Add `googlePlaceId = 'ChIJszQ9uNfRQIYRg3017kJNF8Y'`.
+- Add `elfsightReviewsAppId = 'fdfb23d6-45c5-41bd-950a-d905edc79df1'`.
+- Rename `googleReviewsUrl` to `googleWriteReviewUrl` and build it from `googlePlaceId`.
+- Add `googleReadReviewsUrl = https://search.google.com/local/reviews?placeid=${googlePlaceId}`.
 
 ## 2. Component: `src/lib/components/ReviewsBlock.svelte`
-- Props: `data: PlaceReviews | null`, `variant: 'full' | 'compact'`, `theme: 'mlp' | 'mep'`. Style it to match the site it sits on (D10).
-- `full` (MEP): star rating, `[N] Google reviews`, all returned reviews.
-- `compact` (MLP): rating, count, and the **two most recent** reviews (sort by `publishTime`).
-- Each review shows the reviewer name (linked to `authorUri`), the relative time as returned, the stars and the text.
-- Show the label "Reviews from Google", plus any attribution the policy page requires.
-- Links: "Read all reviews on Google" and "Leave a review".
-- `TestimonialDisclaimer` sits beside the block (V3 §2.8).
-- `data === null` → render **only** the "Read all reviews on Google" link. Never fall back to a stored number.
-- Plain HTML only. No Google script, iframe or widget in the browser. Reviewer photos load from Google only if the policy requires them; otherwise omit them.
+Replace the slot with the owner's embed:
+
+```svelte
+<script lang="ts">
+	import { elfsightReviewsAppId, googleReadReviewsUrl, googleWriteReviewUrl } from '$lib/config';
+	let { appId = elfsightReviewsAppId }: { appId?: string } = $props();
+</script>
+
+<svelte:head>
+	<script src="https://elfsightcdn.com/platform.js" async></script>
+</svelte:head>
+
+<div class="elfsight-app-{appId}" data-elfsight-app-lazy></div>
+
+<p>
+	<a href={googleReadReviewsUrl} rel="noopener" target="_blank">Read all reviews on Google</a>
+	<a href={googleWriteReviewUrl} rel="noopener" target="_blank">Leave a review</a>
+</p>
+```
+
+- The two plain links always render, outside the widget. If Elfsight fails to load or the view limit is hit, the visitor still sees the links (W5.1 fallback). Never render a stored rating or count.
+- Remove the `variant` prop. One widget serves both sites. Style the links to match the page they sit on (D10); leave the widget's look to the Elfsight dashboard.
+- Load the script only from this component. It must never appear on the free will, the trust app, login, payment or dashboard (overview rule).
 
 ## 3. Wire it
-- `src/routes/+page.server.ts` (MLP home) and `src/routes/mcdaniel/+page.server.ts` (MEP home): load `reviews: await getPlaceReviews()` and set the no-store header. Fill the slots that tasks 05 and 06 left.
-- **No Review or AggregateRating JSON-LD** (AA W5.2). Add a test asserting the home pages' JSON-LD contains neither.
-- Add `GOOGLE_PLACES_API_KEY` to `.env.example`.
+- MLP home (`src/routes/+page.svelte`) and MEP home (`src/routes/mcdaniel/+page.svelte`): replace `<ReviewsBlock variant="…" />` with `<ReviewsBlock />`.
+- `TestimonialDisclaimer` sits beside the block on both pages (V3 §2.8). MEP already has it; add it to the MLP reviews section.
+- **No Review or AggregateRating JSON-LD** of our own (AA W5.2).
+- Client-side navigation: load `/` directly, then navigate to it from another page with a client-side link. If the widget doesn't render after the client-side navigation, add `data-sveltekit-reload` to links that point to the home page.
+
+## 4. Elfsight dashboard settings (human, record the result in the final report)
+- No star-rating or keyword filter. Show every review Google returns (W5.1).
+- Rich snippets / schema markup **off** (W5.2).
+- Show the reviewer name, time and a Google attribution (W5.1).
+- Elfsight branding hidden (paid plan).
 
 ## Tests
-- Mock `fetch`: the mapping preserves order; the compact variant picks the 2 newest; an error returns null.
-- Component test (or SSR string test): null → only the read link; the count is never hard-coded.
+- SSR render of `ReviewsBlock`: contains `elfsight-app-fdfb23d6-45c5-41bd-950a-d905edc79df1`, the read link and the leave link, and no hard-coded rating or "Google reviews" count text.
+- Home-page JSON-LD contains no `Review` or `AggregateRating`.
 
 ## Done when
-Both homepages show live reviews, the count matches Google, and a failure shows only the link.
+Both homepages show the Elfsight widget, the read and leave links always render, and the browser shows no `Review` or `AggregateRating` markup after the widget loads (check DevTools once by hand).
+
+`TODO(Leonard)`: Elfsight loads a third-party script and sees visitor IPs. List it in the privacy policy when AB B9 is built (D12).

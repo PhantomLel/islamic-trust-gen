@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteName, productName, productAttorneyReviewSentence, defaultPrepFee, formatUsd, jabalFoundationUrl, jabalProPublicaUrl, jabalLandingCopy } from '$lib/config';
+	import { siteName, productName, productAttorneyReviewSentence, defaultPrepFee, formatUsdWhole, jabalFoundationUrl, jabalProPublicaUrl, jabalLandingCopy } from '$lib/config';
 	import { authClient } from '$lib/auth-client';
 	import { slide } from 'svelte/transition';
 
@@ -66,7 +66,7 @@
 	const included = [
 		{
 			title: 'Revocable living trust',
-			body: 'The core instrument — drafted by a licensed Texas attorney and structured to reflect Qur\'anic inheritance shares.'
+			body: 'The core instrument — drafted by a licensed Texas attorney and structured to carry out Qur\'anic inheritance shares privately, and designed to avoid probate for the assets it holds.'
 		},
 		{
 			title: 'Pour-over wills',
@@ -101,7 +101,7 @@
 		},
 		{
 			question: 'Are trusts only for wealthy families?',
-			answer: 'No. In many cases, working families benefit the most from avoiding probate. A properly structured trust reduces court involvement, and preserves privacy.'
+			answer: 'No. A properly structured trust is designed to avoid probate for the assets it holds. It reduces court involvement, and preserves privacy.'
 		}
 	];
 </script>
@@ -220,6 +220,9 @@
 			<h1 class="text-4xl md:text-6xl tracking-tight text-navy leading-[1.05] text-balance">
 				Build your Islamic trust online, in about an hour.
 			</h1>
+			<p class="text-navy/70 text-base md:text-lg max-w-xl leading-snug text-balance">
+				For Texas families — built around Qur'anic inheritance shares.
+			</p>
 
 			<p class="text-navy text-lg md:text-xl font-medium max-w-xl leading-snug text-balance">{productName}</p>
 			<p class="text-navy/60 text-base md:text-lg font-light max-w-xl leading-relaxed text-balance -mt-3">
@@ -248,7 +251,7 @@
 					<div class="text-left">
 						<div class="text-[10px] tracking-[0.25em] uppercase text-navy/40 mb-1.5">Flat fee</div>
 						<div class="flex items-baseline gap-2.5">
-							<span class="text-3xl tabular-nums tracking-tight text-navy">{formatUsd(defaultPrepFee)}</span>
+							<span class="text-3xl tabular-nums tracking-tight text-navy">{formatUsdWhole(defaultPrepFee)}</span>
 							<span class="text-navy/35 text-xs">one-time</span>
 						</div>
 					</div>
@@ -263,6 +266,11 @@
 				<div class="flex items-center gap-2">
 					<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 					<span class="text-navy/45 text-xs">Attorney-supervised</span>
+				</div>
+				<div class="w-px h-3 bg-navy/15 sm:block hidden"></div>
+				<div class="flex items-center gap-2">
+					<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+					<span class="text-navy/45 text-xs">Qur'anic shares built in</span>
 				</div>
 				<div class="w-px h-3 bg-navy/15 sm:block hidden"></div>
 				<div class="flex items-center gap-2">
@@ -324,29 +332,30 @@
 		<div use:revealOnScroll class="scroll-reveal max-w-4xl mx-auto relative">
 			<div class="flex items-center gap-4 mb-5">
 				<span class="w-8 h-px bg-emerald-accent/60"></span>
-				<span class="text-emerald-accent text-[11px] tracking-[0.3em] uppercase font-medium">Giving back</span>
 			</div>
 			<h2 class="text-3xl md:text-4xl tracking-tight text-navy leading-tight text-balance mb-8">
-				We're the waqf guys.
+				Giving back
 			</h2>
 
 			<div class="rounded-2xl border border-navy/8 bg-white/60 backdrop-blur p-7 md:p-10 space-y-5">
 				<p class="text-navy/70 text-base md:text-[17px] leading-relaxed">
-					We believe every Muslim family should build a waqf of their own — or leave a bequest to one that already exists. When you build your plan with us, you choose your own charitable bequests from a neutral, alphabetical list. We deliberately don't recommend one.
+					In your plan, any charitable gifts are your own choice. Our list of Islamic charities is alphabetical and is not a recommendation.
 				</p>
 				<p class="text-navy/70 text-base md:text-[17px] leading-relaxed">
 					{jabalLandingCopy()}
-					<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent underline hover:text-emerald-light">See more</a>.
 				</p>
-				<a
-					href={jabalFoundationUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="inline-flex items-center gap-2 text-emerald-accent text-sm font-medium hover:text-emerald-light transition-colors"
-				>
-					Learn more about Jabal Foundation
-					<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-				</a>
+				<p class="flex flex-wrap gap-x-5 gap-y-2">
+					<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent text-sm underline hover:text-emerald-light">See Jabal's public filings</a>
+					<a
+						href={jabalFoundationUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center gap-2 text-emerald-accent text-sm font-medium hover:text-emerald-light transition-colors"
+					>
+						Learn more about Jabal
+						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+					</a>
+				</p>
 			</div>
 		</div>
 	</section>
@@ -366,8 +375,8 @@
 					</p>
 
 					<div class="inline-flex items-baseline gap-3 px-5 py-4 bg-cream border border-navy/10 rounded-2xl mb-5">
-						<span class="text-3xl tabular-nums tracking-tight text-navy">{formatUsd(defaultPrepFee)}</span>
-						<span class="text-navy/50 text-xs">flat · everything below</span>
+						<span class="text-3xl tabular-nums tracking-tight text-navy">{formatUsdWhole(defaultPrepFee)}</span>
+						<span class="text-navy/50 text-xs">One flat fee. One optional add-on if you need us to find your deed.</span>
 					</div>
 
 					<div class="flex flex-col gap-1.5">
@@ -381,7 +390,7 @@
 						</div>
 						<div class="inline-flex items-center gap-2 text-emerald-accent text-xs">
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-							<span class="font-medium">No upsells, no hourly billing</span>
+							<span class="font-medium">No hourly billing</span>
 						</div>
 					</div>
 				</div>
@@ -427,7 +436,7 @@
 						</div>
 						<h3 class="text-2xl md:text-3xl text-navy tracking-tight mb-6 text-balance">The online trust works for you if…</h3>
 						<ul class="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-							{#each ['You live in Texas', 'You own one primary residence', 'You want to avoid probate'] as item}
+							{#each ['You live in Texas', 'You are married and planning together.', 'You own one primary residence', 'You want your plan built around Islamic inheritance shares', 'You want a plan designed to avoid probate for the assets it holds'] as item}
 								<li class="flex items-start gap-3 text-navy/75 text-[15px] leading-relaxed">
 									<svg class="w-4 h-4 text-emerald-accent shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 									<span>{item}</span>

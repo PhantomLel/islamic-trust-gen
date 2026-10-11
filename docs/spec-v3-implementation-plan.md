@@ -1,3 +1,5 @@
+> SUPERSEDED by docs/plan/ (Addendum B). Historical record only. Do not follow its "Do not build" table.
+
 # Spec v3 implementation plan
 
 Handoff for an implementing agent. Source of truth, in order:
