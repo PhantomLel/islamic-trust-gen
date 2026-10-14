@@ -1,5 +1,7 @@
 import { db } from '$lib/server/db';
-import { freeWill } from '$lib/server/db/schema';
+import { freeWill, type GeneratedFile } from '$lib/server/db/schema';
+import { deleteUploadThingFiles } from '$lib/server/documents/storage';
+import { freeWillPurgeAfter } from '$lib/free-will/retention';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { WillResponse, WillResponses } from '$lib/free-will/config';
 import { getHeirsResponse, heirsQuestionId, isWillComplete, toWillResponses } from '$lib/free-will/logic';
@@ -79,6 +81,12 @@ export async function getLatestFreeWill(userId: string) {
 	});
 }
 
+function storageKeys(files: GeneratedFile[] | null | undefined): string[] {
+	return (files ?? [])
+		.map((file) => file.storageKey)
+		.filter((key): key is string => Boolean(key));
+}
+
 /**
  * Consent is recorded only when the visitor ticks the box. A later save that does
  * not tick it never clears an earlier opt-in on the same row.
@@ -153,6 +161,7 @@ export async function saveFreeWillForUser(
 		acknowledgmentAcceptedAt: new Date(),
 		acknowledgmentData: input.acknowledgmentData,
 		attributionCode: existing?.attributionCode ?? input.attributionCode ?? null,
+		purgeAfter: freeWillPurgeAfter(),
 		...consentColumns(input, existing),
 	};
 
@@ -181,6 +190,22 @@ export async function savePendingFreeWill(
 
 	const claimEmail = email.trim().toLowerCase();
 
+	const prior = await db.query.freeWill.findMany({
+		where: and(isNull(freeWill.userId), eq(freeWill.claimEmail, claimEmail)),
+		columns: { generated_files: true },
+	});
+	const priorKeys = prior.flatMap((row) => storageKeys(row.generated_files));
+	if (priorKeys.length > 0) {
+		try {
+			const removed = await deleteUploadThingFiles(priorKeys);
+			if (!removed.success) {
+				console.error('[free-will] failed to delete replaced pending files', priorKeys.length);
+			}
+		} catch (err) {
+			console.error('[free-will] failed to delete replaced pending files', err);
+		}
+	}
+
 	await db
 		.delete(freeWill)
 		.where(and(isNull(freeWill.userId), eq(freeWill.claimEmail, claimEmail)));
@@ -201,6 +226,7 @@ export async function savePendingFreeWill(
 			acknowledgmentAcceptedAt: new Date(),
 			acknowledgmentData: input.acknowledgmentData,
 			attributionCode: input.attributionCode ?? null,
+			purgeAfter: freeWillPurgeAfter(),
 			...consentColumns(input, null),
 		})
 		.returning({ id: freeWill.id });

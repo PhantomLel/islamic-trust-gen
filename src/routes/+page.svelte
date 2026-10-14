@@ -10,6 +10,7 @@
 		attorneyProfileUrl,
 		firmIdentityLine,
 		mcdanielOrigin,
+		mlpHeroImage,
 		productName,
 		productNameShortBare,
 		productAttorneyReviewSentence
@@ -181,21 +182,21 @@
 		<div class="hidden md:grid items-center grid-cols-[auto_1fr_auto] gap-8">
 
 			<a href="/" aria-label="Muslim Legacy Planning — home" class="flex items-center gap-3 transition-opacity hover:opacity-75">
-				<img src="/mcdaniel.png" alt="" class="h-8 w-auto" />
+				<img src="/mcdaniel.png" alt="" aria-hidden="true" width="500" height="337" class="h-8 w-auto" />
 				<span class="text-navy font-semibold text-sm tracking-tight whitespace-nowrap" style="font-family: 'Playfair Display', Georgia, serif;">
 					Muslim Legacy Planning
 				</span>
 			</a>
 
 			<div class="flex items-center gap-7 justify-center">
-				<a href="/plans" class="text-navy/55 text-sm transition-colors hover:text-navy">Plans</a>
-				<!-- <a href="#learn" class="text-navy/55 text-sm transition-colors hover:text-navy">Learn</a> -->
-				<a href={attorneyProfileUrl} class="text-navy/55 text-sm transition-colors hover:text-navy">About</a>
-				<a href="/free-islamic-will" class="text-navy/55 text-sm transition-colors hover:text-navy">Free Islamic Will</a>
-				<a href="/inheritance-calculator" class="text-navy/55 text-sm transition-colors hover:text-navy">Inheritance Calculator</a>
+				<a href="/plans" class="text-navy/65 text-sm transition-colors hover:text-navy">Plans</a>
+				<!-- <a href="#learn" class="text-navy/65 text-sm transition-colors hover:text-navy">Learn</a> -->
+				<a href={attorneyProfileUrl} class="text-navy/65 text-sm transition-colors hover:text-navy">About</a>
+				<a href="/free-islamic-will" class="text-navy/65 text-sm transition-colors hover:text-navy">Free Islamic Will</a>
+				<a href="/inheritance-calculator" class="text-navy/65 text-sm transition-colors hover:text-navy">Inheritance Calculator</a>
 				<a href="/trust" class="text-emerald-accent text-sm font-medium transition-colors hover:text-emerald-light">{productNameShortBare()}</a>
 				{#if data.user}
-					<a href="/dashboard" class="text-navy/55 text-sm transition-colors hover:text-navy">Dashboard</a>
+					<a href="/dashboard" class="text-navy/65 text-sm transition-colors hover:text-navy">Dashboard</a>
 				{/if}
 			</div>
 
@@ -203,10 +204,10 @@
 				{#if data.user}
 					<button
 						onclick={handleLogout}
-						class="px-4 py-1.5 text-sm text-navy/55 transition-colors hover:text-navy cursor-pointer"
+						class="px-4 py-1.5 text-sm text-navy/65 transition-colors hover:text-navy cursor-pointer"
 					>Log out</button>
 				{:else}
-					<a href="/login" class="px-4 py-1.5 text-sm text-navy/60 transition-colors hover:text-navy">Log in</a>
+					<a href="/login" class="px-4 py-1.5 text-sm text-navy/65 transition-colors hover:text-navy">Log in</a>
 				{/if}
 				<a
 					href={consultationBookingUrl}
@@ -219,13 +220,13 @@
 
 		<!-- Mobile nav -->
 		<div class="flex items-center justify-between md:hidden">
-			<a href="/" aria-label="Muslim Legacy Planning — home" class="flex items-center gap-2 transition-opacity hover:opacity-75">
-				<img src="/mcdaniel.png" alt="" class="h-7 w-auto" />
+			<a href="/" aria-label="Muslim Legacy Planning — home" class="flex items-center gap-2 min-h-11 transition-opacity hover:opacity-75">
+				<img src="/mcdaniel.png" alt="" aria-hidden="true" width="500" height="337" class="h-7 w-auto" />
 				<span class="text-navy font-semibold text-xs tracking-tight" style="font-family: 'Playfair Display', Georgia, serif;">Muslim Legacy Planning</span>
 			</a>
 			<button
 				onclick={() => mobileMenuOpen = !mobileMenuOpen}
-				class="p-1.5 -mr-1 text-navy/50 hover:text-navy transition-colors cursor-pointer"
+				class="min-h-11 min-w-11 inline-flex items-center justify-center -mr-1 text-navy/65 hover:text-navy transition-colors cursor-pointer"
 				aria-label="Toggle navigation menu"
 			>
 				{#if mobileMenuOpen}
@@ -240,19 +241,19 @@
 	{#if mobileMenuOpen}
 		<div class="md:hidden mx-3 mt-1 mb-2 rounded-2xl bg-white/90 backdrop-blur-lg border border-navy/8 shadow-lg overflow-hidden">
 			<div class="flex flex-col p-3 gap-1">
-				<a href="/plans" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Plans</a>
+				<a href="/plans" onclick={() => mobileMenuOpen = false} class="min-h-11 flex items-center px-4 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Plans</a>
 				<!-- <a href="#learn" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Learn</a> -->
-				<a href={attorneyProfileUrl} onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">About</a>
-				<a href="/free-islamic-will" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Free Islamic Will</a>
-				<a href="/inheritance-calculator" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Inheritance Calculator</a>
-				<a href="/trust" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm font-medium text-emerald-accent rounded-xl hover:bg-emerald-accent/8">{productNameShortBare()}</a>
+				<a href={attorneyProfileUrl} onclick={() => mobileMenuOpen = false} class="min-h-11 flex items-center px-4 text-sm text-navy/65 rounded-xl hover:bg-navy/5">About</a>
+				<a href="/free-islamic-will" onclick={() => mobileMenuOpen = false} class="min-h-11 flex items-center px-4 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Free Islamic Will</a>
+				<a href="/inheritance-calculator" onclick={() => mobileMenuOpen = false} class="min-h-11 flex items-center px-4 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Inheritance Calculator</a>
+				<a href="/trust" onclick={() => mobileMenuOpen = false} class="min-h-11 flex items-center px-4 text-sm font-medium text-emerald-accent rounded-xl hover:bg-emerald-accent/8">{productNameShortBare()}</a>
 				<div class="h-px bg-navy/8 my-1 mx-2"></div>
 				{#if data.user}
-					<button onclick={() => { mobileMenuOpen = false; handleLogout(); }} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 text-left cursor-pointer">Log out</button>
+					<button onclick={() => { mobileMenuOpen = false; handleLogout(); }} class="min-h-11 flex items-center px-4 text-sm text-navy/65 rounded-xl hover:bg-navy/5 text-left cursor-pointer">Log out</button>
 				{:else}
-					<a href="/login" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Log in</a>
+					<a href="/login" onclick={() => mobileMenuOpen = false} class="min-h-11 flex items-center px-4 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Log in</a>
 				{/if}
-				<a href={consultationBookingUrl} onclick={() => mobileMenuOpen = false} class="mx-2 mt-1 py-2.5 text-sm font-medium text-cream bg-emerald-accent rounded-xl text-center hover:bg-emerald-light">
+				<a href={consultationBookingUrl} onclick={() => mobileMenuOpen = false} class="mx-2 mt-1 min-h-11 flex items-center justify-center text-sm font-medium text-cream bg-emerald-accent rounded-xl text-center hover:bg-emerald-light">
 					Book a Consultation
 				</a>
 			</div>
@@ -285,7 +286,7 @@
 					Your family deserves a plan built on <span class="fill-word fill-word--1"><span class="fill-word__inner">faith</span></span> and <span class="fill-word fill-word--2"><span class="fill-word__inner">law</span></span>.
 				</h1>
 
-				<p class="text-navy/60 text-base md:text-[17px] leading-relaxed max-w-[52ch] mb-9">
+				<p class="text-navy/65 text-base md:text-[17px] leading-relaxed max-w-[52ch] mb-9">
 					Many Muslim families in Texas and California have no plan to keep their home out of probate court — and no plan that follows Islamic inheritance. We help families address both.
 				</p>
 
@@ -301,18 +302,21 @@
 				</div>
 
 				<div class="border-t border-navy/10 pt-6">
-					<p class="text-navy/38 text-xs leading-relaxed max-w-[44ch]">
+					<p class="text-navy/65 text-xs leading-relaxed max-w-[44ch]">
 						{firmIdentityLine}
 					</p>
 				</div>
 			</div>
 		</div>
 
-		<!-- Right: intentionally image-free until licensed photography is supplied -->
-		<div class="hidden lg:block relative overflow-hidden bg-navy" aria-hidden="true">
-			<div class="absolute inset-0"
-				style="background: radial-gradient(ellipse 80% 60% at 70% 30%, rgba(74,124,111,0.35) 0%, transparent 65%), linear-gradient(to right, rgba(250,246,240,0.45) 0%, transparent 20%);">
-			</div>
+		<div class="relative min-h-64 overflow-hidden bg-navy lg:min-h-full">
+			<img
+				src={mlpHeroImage.src}
+				alt={mlpHeroImage.alt}
+				width={mlpHeroImage.width}
+				height={mlpHeroImage.height}
+				class="h-72 w-full object-cover object-top lg:absolute lg:inset-0 lg:h-full"
+			/>
 		</div>
 	</section>
 
@@ -330,7 +334,7 @@
 						Three things many Muslim families don't know.
 					</h2>
 				</div>
-				<p class="text-navy/50 text-base leading-relaxed md:border-l md:border-navy/10 md:pl-10 max-w-lg">
+				<p class="text-navy/65 text-base leading-relaxed md:border-l md:border-navy/10 md:pl-10 max-w-lg">
 					The U.S. legal system was not designed with Islamic inheritance in mind. Without deliberate planning, what you intend to leave behind may not arrive as you intended.
 				</p>
 			</div>
@@ -340,7 +344,7 @@
 					<article class="py-10 md:py-0 md:px-10 first:md:pl-0 last:md:pr-0 flex flex-col gap-4">
 						<span class="text-emerald-accent/55 text-[11px] tabular-nums tracking-widest">{p.num}</span>
 						<h3 class="text-xl md:text-2xl text-navy tracking-tight leading-tight">{p.title}</h3>
-						<p class="text-navy/55 text-sm leading-relaxed">{p.body}</p>
+						<p class="text-navy/65 text-sm leading-relaxed">{p.body}</p>
 					</article>
 				{/each}
 			</div>
@@ -360,7 +364,7 @@
 					thumbnailSrc={data.featuredVideo.thumbnailSrc}
 				/>
 				<p class="mt-4 text-navy text-lg tracking-tight">{data.featuredVideo.title}</p>
-				{#if data.featuredVideo.description}<p class="mt-2 text-sm text-navy/55 leading-relaxed max-w-2xl">{data.featuredVideo.description}</p>{/if}
+				{#if data.featuredVideo.description}<p class="mt-2 text-sm text-navy/65 leading-relaxed max-w-2xl">{data.featuredVideo.description}</p>{/if}
 				{#if data.featuredVideo.isTestimonial}<div class="mt-4"><TestimonialDisclaimer /></div>{/if}
 				<a href="/videos/{data.featuredVideo.slug}" class="inline-block mt-4 text-sm text-emerald-accent underline underline-offset-2">Watch on the video page</a>
 			</div>
@@ -381,7 +385,7 @@
 				<div class="flex-1">
 					<div class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase font-medium mb-1">Free Tool</div>
 					<h3 class="text-lg md:text-xl text-navy tracking-tight">Curious what your family's Islamic inheritance shares would be?</h3>
-					<p class="text-navy/50 text-sm mt-1">Enter your surviving heirs and get an instant, itemized breakdown of the Qur'anic shares (farāʾiḍ).</p>
+					<p class="text-navy/65 text-sm mt-1">Enter your surviving heirs and get an instant, itemized breakdown of the Qur'anic shares (farāʾiḍ).</p>
 				</div>
 				<span class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-cream bg-navy shrink-0 transition-all group-hover:bg-navy-light">
 					Try the Calculator
@@ -403,7 +407,7 @@
 				<h2 class="text-3xl md:text-4xl tracking-tight text-navy text-balance max-w-md">
 					Two ways to protect your family's future.
 				</h2>
-				<p class="text-navy/50 text-sm leading-relaxed max-w-xs">
+				<p class="text-navy/65 text-sm leading-relaxed max-w-xs">
 					Every plan is attorney-supervised and designed around Islamic inheritance principles.
 				</p>
 			</div>
@@ -415,7 +419,7 @@
 					<div>
 						<div class="text-emerald-accent/70 text-[10px] tracking-[0.28em] uppercase mb-3">Online</div>
 						<h3 class="text-2xl tracking-tight text-navy mb-1.5">{productName}</h3>
-						<p class="text-navy/55 text-sm leading-relaxed">
+						<p class="text-navy/65 text-sm leading-relaxed">
 							An attorney-supervised Islamic revocable living trust for married couples with straightforward estates. {productAttorneyReviewSentence}
 						</p>
 					</div>
@@ -432,7 +436,7 @@
 					<div class="flex flex-col gap-1.5 pt-4 border-t border-navy/8 mt-auto">
 						<div class="flex items-baseline gap-1.5">
 							<span class="text-2xl tracking-tight text-navy">{formatUsdWhole(defaultPrepFee)}</span>
-							<span class="text-navy/40 text-xs">flat fee · attorney-supervised</span>
+							<span class="text-navy/65 text-xs">flat fee · attorney-supervised</span>
 						</div>
 					</div>
 
@@ -452,7 +456,7 @@
 					<div>
 						<div class="text-emerald-accent/70 text-[10px] tracking-[0.28em] uppercase mb-3">Full-service · Attorney-led</div>
 						<h3 class="text-2xl tracking-tight text-navy mb-1.5">Legacy Plan</h3>
-						<p class="text-navy/55 text-sm leading-relaxed">
+						<p class="text-navy/65 text-sm leading-relaxed">
 							Personally designed by your attorney. Includes a dedicated Heba Strategy Session, trust drafting, deed recording, wills, healthcare directives, and hands-on delivery.
 						</p>
 					</div>
@@ -467,7 +471,7 @@
 					</ul>
 
 					<div class="flex items-baseline gap-1.5 pt-4 border-t border-navy/8 mt-auto">
-						<span class="text-2xl tracking-tight text-navy">from $3,500</span>
+						<span class="text-2xl tracking-tight text-navy">from {formatUsdWhole(3500)}</span>
 					</div>
 
 					<a
@@ -481,14 +485,14 @@
 				</article>
 			</div>
 
-			<p class="text-center text-xs text-navy/38 mt-8">
-				Not ready yet? <a href="/free-islamic-will" class="underline underline-offset-2 hover:text-navy/60 transition-colors">Start with the free Islamic will.</a>
+			<p class="text-center text-xs text-navy/65 mt-8">
+				Not ready yet? <a href="/free-islamic-will" class="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-navy/65 transition-colors">Start with the free Islamic will.</a>
 			</p>
 
-			<div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-4 text-xs text-navy/38">
-				<span>Not sure which plan fits your situation? <a href="/which-plan" class="underline underline-offset-2 hover:text-navy/60 transition-colors">Take the two-minute routing quiz →</a></span>
+			<div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-4 text-xs text-navy/65">
+				<span>Not sure which plan fits your situation? <a href="/which-plan" class="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-navy/65 transition-colors">Take the two-minute routing quiz →</a></span>
 				<span class="hidden sm:inline w-px h-3 bg-navy/15"></span>
-				<a href="/plans" class="hover:text-navy/60 transition-colors">Compare all plans →</a>
+				<a href="/plans" class="inline-flex min-h-11 items-center hover:text-navy/65 transition-colors">Compare all plans →</a>
 			</div>
 		</div>
 	</section>
@@ -503,15 +507,15 @@
 				</div>
 				<div class="flex-1">
 					<h2 class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase font-medium mb-1">Giving back</h2>
-					<p class="text-navy/60 text-sm leading-relaxed">
+					<p class="text-navy/65 text-sm leading-relaxed">
 						In your plan, any charitable gifts are your own choice. Our list of Islamic charities is alphabetical and is not a recommendation.
 					</p>
-					<p class="text-navy/60 text-sm leading-relaxed mt-2">
+					<p class="text-navy/65 text-sm leading-relaxed mt-2">
 						{jabalLandingCopy()}
 					</p>
 					<p class="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-						<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent text-sm underline hover:text-emerald-light">See Jabal's public filings</a>
-						<a href={jabalFoundationUrl} target="_blank" rel="noopener noreferrer" class="text-emerald-accent text-sm font-medium hover:text-emerald-light">Learn more about Jabal</a>
+						<a href={jabalProPublicaUrl} target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center text-emerald-accent text-sm underline hover:text-emerald-light">See Jabal's public filings</a>
+						<a href={jabalFoundationUrl} target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center text-emerald-accent text-sm font-medium hover:text-emerald-light">Learn more about Jabal</a>
 					</p>
 				</div>
 			</div>
@@ -570,6 +574,8 @@
 						<img
 							src="/pfp.jpg"
 							alt="Leonard McDaniel, founding attorney of McDaniel Estate Planning"
+							width="720"
+							height="1080"
 							class="w-full h-full object-cover"
 							loading="lazy"
 						/>
@@ -591,25 +597,25 @@
 					<h2 class="text-3xl md:text-4xl tracking-tight text-navy leading-tight text-balance">
 						Built at the intersection of fiqh and U.S. law.
 					</h2>
-					<p class="text-navy/62 text-base leading-relaxed">
+					<p class="text-navy/65 text-base leading-relaxed">
 						Brother Leonard embraced Islam in 2014 while studying history at UCLA, graduating magna cum laude. Having come to Islam as an adult, Leonard understands firsthand how converts and lifelong Muslims alike navigate the intersection of faith, family, and American law. Inspired by a desire to serve his community with both faith and expertise, he earned his Juris Doctor at the University of Houston Law Center in 2017.
 					</p>
-					<p class="text-navy/62 text-base leading-relaxed">
+					<p class="text-navy/65 text-base leading-relaxed">
 						Since 2022, he has focused on estate planning for Muslim families — helping them protect their wealth through thoughtful legal work grounded in classical fiqh and Texas and California law.
 					</p>
 
 					<div use:revealStagger class="flex flex-wrap gap-7 pt-5 border-t border-navy/10 mt-2">
 						<div>
 							<div class="text-2xl tabular-nums text-navy tracking-tight">2014</div>
-							<div class="text-xs text-navy/40 tracking-wider uppercase mt-1">Embraced Islam</div>
+							<div class="text-xs text-navy/65 tracking-wider uppercase mt-1">Embraced Islam</div>
 						</div>
 						<div>
 							<div class="text-2xl tabular-nums text-navy tracking-tight">2017</div>
-							<div class="text-xs text-navy/40 tracking-wider uppercase mt-1">UH Law Center, JD</div>
+							<div class="text-xs text-navy/65 tracking-wider uppercase mt-1">UH Law Center, JD</div>
 						</div>
 						<div>
 							<div class="text-2xl tabular-nums text-navy tracking-tight">TX · CA</div>
-							<div class="text-xs text-navy/40 tracking-wider uppercase mt-1">Licensed</div>
+							<div class="text-xs text-navy/65 tracking-wider uppercase mt-1">Licensed</div>
 						</div>
 					</div>
 
@@ -617,7 +623,7 @@
 						href={attorneyProfileUrl}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="text-emerald-accent text-sm hover:text-emerald-light transition-colors flex items-center gap-1.5 group"
+						class="min-h-11 text-emerald-accent text-sm hover:text-emerald-light transition-colors inline-flex items-center gap-1.5 group"
 					>
 						View full profile at McDanielEstatePlanning.com
 						<svg class="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -654,7 +660,7 @@
 			<h2 class="text-2xl md:text-3xl tracking-tight text-navy text-balance mb-3">
 				Not sure where to start?
 			</h2>
-			<p class="text-navy/55 text-base leading-relaxed mb-8 max-w-[46ch] mx-auto">
+			<p class="text-navy/65 text-base leading-relaxed mb-8 max-w-[46ch] mx-auto">
 				Download our free Islamic estate planning checklist — a plain-English guide to what every Muslim family needs to know before meeting with an attorney.
 			</p>
 
@@ -667,7 +673,7 @@
 					disabled={emailStatus === 'loading' || emailStatus === 'success'}
 					class="flex-1 px-4 py-3 text-sm text-navy bg-cream border border-navy/15 rounded-lg outline-none
 						   focus:border-emerald-accent/60 focus:ring-1 focus:ring-emerald-accent/30 transition-all
-						   placeholder:text-navy/30 disabled:opacity-50"
+						   placeholder:text-navy/65 disabled:opacity-50"
 				/>
 				<button
 					type="submit"
@@ -715,12 +721,12 @@
 								class="w-full flex items-center justify-between px-6 py-5 text-left cursor-pointer"
 							>
 								<span class="text-navy pr-4">{faq.q}</span>
-								<svg class="w-4 h-4 text-navy/35 shrink-0 transition-transform duration-200 {openFaq === i ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+								<svg class="w-4 h-4 text-navy/65 shrink-0 transition-transform duration-200 {openFaq === i ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
 							</button>
 						</h3>
 						{#if openFaq === i}
 							<div transition:slide={{ duration: 200 }} class="px-6 pb-5">
-								<p class="text-navy/58 text-sm leading-relaxed">{faq.a}</p>
+								<p class="text-navy/65 text-sm leading-relaxed">{faq.a}</p>
 							</div>
 						{/if}
 					</div>
@@ -759,7 +765,7 @@
 					<div class="flex flex-col gap-3 shrink-0">
 						<a
 							href={consultationBookingUrl}
-							class="group inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-cream text-navy text-sm font-medium rounded-lg whitespace-nowrap
+							class="group inline-flex w-full items-center justify-center gap-2.5 px-8 py-3.5 bg-cream text-navy text-sm font-medium rounded-lg text-center
 								   transition-all duration-300 hover:bg-white hover:-translate-y-0.5 active:scale-[0.98]"
 						>
 							Book a Consultation
@@ -767,14 +773,14 @@
 						</a>
 						<a
 							href="/free-islamic-will"
-							class="group inline-flex items-center justify-center gap-2 px-8 py-3.5 border border-cream/18 text-cream text-sm font-medium rounded-lg whitespace-nowrap
+							class="group inline-flex w-full items-center justify-center gap-2 px-8 py-3.5 border border-cream/18 text-cream text-sm font-medium rounded-lg text-center
 								   transition-all duration-200 hover:border-cream/40 hover:bg-cream/5"
 						>
 							Create Your Free Islamic Will
 						</a>
 						<div class="flex flex-col gap-1 pt-2 text-center">
-							<a href="tel:+17136599668" class="text-cream/40 text-xs hover:text-cream/60 transition-colors">+1 (713) 659-9668</a>
-							<a href="mailto:admin@mcdanielestateplanning.com" class="text-cream/40 text-xs hover:text-cream/60 transition-colors">admin@mcdanielestateplanning.com</a>
+							<a href="tel:+17136599668" class="min-h-11 inline-flex items-center justify-center text-cream/40 text-xs hover:text-cream/60 transition-colors">+1 (713) 659-9668</a>
+							<a href="mailto:admin@mcdanielestateplanning.com" class="min-h-11 inline-flex items-center justify-center text-cream/40 text-xs hover:text-cream/60 transition-colors">admin@mcdanielestateplanning.com</a>
 						</div>
 					</div>
 				</div>
@@ -787,60 +793,63 @@
 		<div class="max-w-7xl mx-auto">
 			<div class="grid md:grid-cols-[1.6fr_1fr_1fr] gap-10 md:gap-12 mb-12">
 				<div>
-					<a href="/" aria-label="Muslim Legacy Planning — home" class="inline-flex items-center gap-3 mb-5 transition-opacity hover:opacity-75">
-						<img src="/mcdaniel.png" alt="" class="h-10 w-auto" />
+					<a href="/" aria-label="Muslim Legacy Planning — home" class="min-h-11 inline-flex items-center gap-3 mb-5 transition-opacity hover:opacity-75">
+						<img src="/mcdaniel.png" alt="" aria-hidden="true" width="500" height="337" class="h-10 w-auto" />
 						<span class="text-navy font-semibold text-sm" style="font-family: 'Playfair Display', Georgia, serif;">Muslim Legacy Planning</span>
 					</a>
-					<p class="text-navy/45 text-sm leading-relaxed max-w-xs">
+					<p class="text-navy/65 text-sm leading-relaxed max-w-xs">
 						Attorney-led Islamic estate planning for Muslim families in Texas and California. Legal services provided by McDaniel Estate Planning, PLLC.
 					</p>
-					<p class="text-navy/30 text-xs mt-4 leading-relaxed max-w-xs">
+					<p class="text-navy/65 text-xs mt-4 leading-relaxed max-w-xs">
 						Licensed in Texas and California. The information on this site is general and is not legal advice. Viewing this site does not create an attorney-client relationship. Legal services are provided only under a written engagement agreement with McDaniel Estate Planning, PLLC.
 					</p>
-					<p class="text-navy/30 text-xs mt-4 leading-relaxed max-w-xs">
+					<p class="text-navy/65 text-xs mt-4 leading-relaxed max-w-xs">
 						{formatFirmNapLine()}
 					</p>
 				</div>
 
-				<div class="flex flex-col gap-2.5">
-					<div class="text-navy/30 text-[10px] tracking-[0.25em] uppercase mb-1.5">Plans</div>
-					<a href="/free-islamic-will" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Free Islamic Will</a>
-					<a href="/trust" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">{productNameShortBare()}</a>
-					<a href="{mcdanielOrigin}/legacy-plan" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Legacy Plan</a>
-					<a href="{mcdanielOrigin}/family-waqf-plan" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Family Waqf Plan</a>
-					<a href="{mcdanielOrigin}/probate-estate-administration" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Probate & Estate Administration</a>
-					<a href="{mcdanielOrigin}/business-succession-planning" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Business Succession Planning</a>
-					<a href={attorneyProfileUrl} class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Attorney</a>
-					<a href="/which-plan" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Which plan is right?</a>
-					<a href="/inheritance-calculator" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Inheritance Calculator</a>
+				<div class="flex flex-col [&_a]:min-h-11 [&_a]:flex [&_a]:items-center">
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-1.5">Plans</div>
+					<a href="/free-islamic-will" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Free Islamic Will</a>
+					<a href="/trust" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">{productNameShortBare()}</a>
+					<a href="{mcdanielOrigin}/legacy-plan" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Legacy Plan</a>
+					<a href="{mcdanielOrigin}/family-waqf-plan" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Family Waqf Plan</a>
+					<a href="{mcdanielOrigin}/probate-estate-administration" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Probate & Estate Administration</a>
+					<a href="{mcdanielOrigin}/business-succession-planning" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Business Succession Planning</a>
+					<a href={attorneyProfileUrl} class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Attorney</a>
+					<a href="/which-plan" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Which plan is right?</a>
+					<a href="/inheritance-calculator" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Inheritance Calculator</a>
 				</div>
 
 				<!-- Learn section — uncomment when pages are ready
-				<div class="flex flex-col gap-2.5">
-					<div class="text-navy/30 text-[10px] tracking-[0.25em] uppercase mb-1.5">Learn</div>
-					<a href="/learn" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Articles</a>
-					<a href="/videos" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Videos</a>
-					<a href="/community-property" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Community Property</a>
-					<a href="/endowment" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Endowment Movement</a>
+				<div class="flex flex-col [&_a]:min-h-11 [&_a]:flex [&_a]:items-center">
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-1.5">Learn</div>
+					<a href="/learn" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Articles</a>
+					<a href="/videos" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Videos</a>
+					<a href="/community-property" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Community Property</a>
+					<a href="/endowment" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Endowment Movement</a>
 				</div>
 				-->
 
-				<div class="flex flex-col gap-2.5">
-					<div class="text-navy/30 text-[10px] tracking-[0.25em] uppercase mb-1.5">Contact</div>
-					<a href="tel:+17136599668" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">+1 (713) 659-9668</a>
-					<a href="mailto:admin@mcdanielestateplanning.com" class="text-navy/60 text-sm hover:text-emerald-accent transition-colors break-all">admin@mcdanielestateplanning.com</a>
-					<a href={consultationBookingUrl} class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">Book a Consultation</a>
-					<a href={mcdanielOrigin} class="text-navy/60 text-sm hover:text-emerald-accent transition-colors">McDaniel Estate Planning</a>
+				<div class="flex flex-col [&_a]:min-h-11 [&_a]:flex [&_a]:items-center">
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-1.5">Contact</div>
+					<a href="tel:+17136599668" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">+1 (713) 659-9668</a>
+					<a href="mailto:admin@mcdanielestateplanning.com" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors break-all">admin@mcdanielestateplanning.com</a>
+					<a href={consultationBookingUrl} class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Book a Consultation</a>
+					<a href={mcdanielOrigin} class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">McDaniel Estate Planning</a>
 				</div>
 			</div>
 
 			<div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between pt-6 border-t border-navy/8">
-				<p class="text-navy/35 text-xs">
+				<p class="text-navy/65 text-xs">
 					© 2026 McDaniel Estate Planning, PLLC. All rights reserved. Licensed in Texas and California.
 				</p>
-				<p class="text-navy/25 text-xs">
-					Muslim Legacy Planning is a service of McDaniel Estate Planning, PLLC.
-				</p>
+				<div class="flex flex-wrap items-center gap-x-5 gap-y-1">
+					<a href="/privacy" class="text-navy/65 text-xs hover:text-emerald-accent transition-colors min-h-11 inline-flex items-center">Privacy Policy</a>
+					<p class="text-navy/65 text-xs">
+						Muslim Legacy Planning is a service of McDaniel Estate Planning, PLLC.
+					</p>
+				</div>
 			</div>
 		</div>
 	</footer>

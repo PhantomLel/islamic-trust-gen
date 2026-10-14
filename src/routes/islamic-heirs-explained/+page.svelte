@@ -46,5 +46,5 @@
 		</a>
 	</div>
 
-	<p class="text-navy/40 text-xs leading-relaxed border-t border-navy/8 pt-6">{heirExplainerDisclaimer}</p>
+	<p class="text-navy/65 text-xs leading-relaxed border-t border-navy/8 pt-6">{heirExplainerDisclaimer}</p>
 </WillGuideLayout>

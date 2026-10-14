@@ -8,7 +8,7 @@ Scope: this repository serves both public sites (`hooks.ts` rewrites `mcdanieles
 
 Searched `src/`, `static/`, `vercel.json`, `package.json`, and `svelte.config.js` for: Meta Pixel (`fbq`, `connect.facebook.net`), Google Analytics (`gtag`, `google-analytics`), Google Tag Manager (`googletagmanager`), Google Ads, LinkedIn Insight, TikTok, Microsoft Clarity, Hotjar, FullStory, PostHog, Segment, Mixpanel, HubSpot, Intercom, Crisp, Drift, Vercel Analytics / Speed Insights, Plausible, Umami.
 
-Result: none present. `src/app.html` contains only the viewport meta tag, the Google Fonts stylesheet, and `%sveltekit.head%` / `%sveltekit.body%`. `src/routes/+layout.svelte` contains the favicon, title, description, and first-party UTM capture. No `<script src=...>` tag exists anywhere under `src/`. No dependency in `package.json` is an analytics or advertising SDK.
+Result: none present. `src/app.html` contains the viewport meta tag and the `%sveltekit.head%` / `%sveltekit.body%` placeholders. Google Fonts and the Video.js CDN are removed (rows 1 and 4). `src/routes/+layout.svelte` contains the favicon, title, description, and first-party UTM capture. No `<script src=...>` tag exists anywhere under `src/`. No dependency in `package.json` is an analytics or advertising SDK.
 
 This is a finding from the code, not an assumption. If a tag manager container or pixel was added through a hosting-level script injection, a Vercel integration, or a browser extension on a staff machine, it would not appear here.
 
@@ -16,10 +16,10 @@ This is a finding from the code, not an assumption. If a tag manager container o
 
 | # | Mechanism | Where it loads | What it sends | Interview | Trust app | Login | Booking | Payment | Client pages |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | Google Fonts stylesheet (`fonts.googleapis.com`, `fonts.gstatic.com`) | `src/app.html`, every route. `src/routes/mcdaniel/+page.svelte` adds a Figtree request. | Visitor IP address and user agent to Google as part of the font request. No cookie set by the stylesheet. | Yes | Yes | Yes | Yes | Yes | Yes |
+| 1 | Google Fonts stylesheet — **removed** | Was `src/app.html` (Playfair Display) and `src/routes/mcdaniel/+layout.svelte` (Figtree). Faces are now self-hosted from `@fontsource-variable`. Email templates still `@import` Google Fonts; that request is the mail client, not the site (row 11). | No visitor request from site pages. | No | No | No | No | No | No |
 | 2 | `picsum.photos` hero image | `src/routes/+page.svelte` (homepage hero). Removed in Phase 6. | IP address and user agent to a random-image service. | No | No | No | No | No | No |
 | 3 | `i.ytimg.com` video thumbnail URL | `src/routes/+page.svelte`, inside an HTML comment block (not rendered). Removed in Phase 6. | Nothing today. It would send IP and user agent to Google if the comment block were enabled. | No | No | No | No | No | No |
-| 4 | Video.js stylesheet from `vjs.zencdn.net` | `src/lib/components/VideoPlayer.svelte` on routes that render the player: `/community-property`, `/create-trust/[id]` (question videos), `/make-your-trust-work/[id]`. | IP address and user agent to the Video.js CDN. | No | Yes | No | No | No | Yes |
+| 4 | Video.js stylesheet from `vjs.zencdn.net` — **removed** | Was `src/lib/components/VideoPlayer.svelte`. The player now imports `video.js/dist/video-js.css` from the installed package. | No CDN request. | No | No | No | No | No | No |
 | 5 | Uploaded training videos from UploadThing (`*.ufs.sh`) | `VideoPlayer` `src` values in `src/lib/config.ts` and `/community-property`. | IP address and user agent to UploadThing's CDN when the video is played or preloaded. | No | Yes | No | No | No | Yes |
 | 6 | Clio Grow booking URL (`mcdaniel.cliogrow.com`) | `consultationBookingUrl` in `src/lib/config.ts`. Rendered as a plain link, opened in a new tab. No embed, no script. | Nothing until the visitor clicks. After the click the visitor is on Clio's page under Clio's own policy. | Link only | Link only | No | Link only | Link only | Link only |
 | 7 | Calendly notarization URL (`calendly.com`) | `notarizationBookingUrl` in `src/lib/config.ts`, and a per-matter single-use link built in `src/lib/server/calendly.ts`. Plain link, no embed. The per-matter link carries `utm_source=goodtree&utm_content=<opaque token>`; the token is matched to the matter on our webhook (`/api/webhooks/calendly`). | On click, the visitor's browser goes to Calendly. Our server calls `api.calendly.com` with the matter's invitee details to create the scheduling link. | No | No | No | Yes | No | Yes |
@@ -38,7 +38,7 @@ The notice says: "We do not send your interview answers, documents, or identifia
 
 Against the code:
 
-- No advertising platform receives any request from the interview, the trust app, login, booking links, payment, or client pages. The only third-party browser requests on those routes are Google Fonts (1), the Video.js stylesheet (4), uploaded-video CDN requests (5), and the clicked-through destinations (6, 7, 8). None of those is an advertising platform. Google Fonts is a Google service and receives an IP address and user agent on every page load. That is a font request. It carries no interview content, no email, and no identifier.
+- No advertising platform receives any request from the interview, the trust app, login, booking links, payment, or client pages. Google Fonts (row 1) and the Video.js CDN (row 4) are removed, so site pages no longer send those requests. The remaining third-party browser requests on those routes are uploaded-video CDN requests (5) and the clicked-through destinations (6, 7, 8). None of those is an advertising platform.
 - Help questions (12) go to Voyage AI and OpenAI, which are service providers, not advertising platforms.
 - UTM data (13) is stored first party.
 

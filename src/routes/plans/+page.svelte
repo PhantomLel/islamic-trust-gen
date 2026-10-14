@@ -12,19 +12,19 @@
 <!-- ═══ NAV ═══ -->
 <nav class="fixed top-0 inset-x-0 z-50 bg-cream/95 backdrop-blur-sm border-b border-navy/10">
 	<div class="max-w-7xl mx-auto px-5 py-3 flex items-center justify-between">
-		<a href="/" aria-label="Muslim Legacy Planning — home" class="flex items-center gap-3 transition-opacity hover:opacity-75">
-			<img src="/mcdaniel.png" alt="" class="h-8 w-auto" />
+		<a href="/" aria-label="Muslim Legacy Planning — home" class="min-h-11 flex items-center gap-3 transition-opacity hover:opacity-75">
+			<img src="/mcdaniel.png" alt="" aria-hidden="true" width="500" height="337" class="h-8 w-auto" />
 			<span class="text-navy font-semibold text-sm tracking-tight hidden sm:inline" style="font-family: 'Playfair Display', Georgia, serif;">
 				Muslim Legacy Planning
 			</span>
 		</a>
 		<div class="flex items-center gap-3">
-			<a href="/which-plan" class="text-navy/55 text-sm hover:text-navy transition-colors hidden sm:inline">
+			<a href="/which-plan" class="text-navy/65 text-sm hover:text-navy transition-colors hidden sm:inline">
 				Not sure? Take the quiz →
 			</a>
 			<a
 				href="/free-islamic-will"
-				class="px-5 py-2 text-sm font-medium text-cream bg-emerald-accent rounded-lg transition-all duration-200 hover:bg-emerald-light hover:-translate-y-px"
+				class="min-h-11 inline-flex items-center px-5 text-sm font-medium text-cream bg-emerald-accent rounded-lg transition-all duration-200 hover:bg-emerald-light hover:-translate-y-px"
 			>
 				Free Islamic Will
 			</a>
@@ -48,7 +48,7 @@
 				<h1 class="text-4xl md:text-5xl tracking-tight text-navy text-balance leading-tight mb-4">
 					Five ways to protect your family's legacy.
 				</h1>
-				<p class="text-navy/55 text-base leading-relaxed max-w-[54ch]">
+				<p class="text-navy/65 text-base leading-relaxed max-w-[54ch]">
 					Every plan is attorney-supervised and designed around Islamic inheritance principles. Choose the level of service your situation requires — or start free and build from there.
 				</p>
 			</div>
@@ -81,16 +81,16 @@
 						</div>
 						<div class="text-right shrink-0">
 							<div class="text-3xl tracking-tight text-navy">Free</div>
-							<div class="text-navy/40 text-xs mt-0.5">no cost</div>
+							<div class="text-navy/65 text-xs mt-0.5">no cost</div>
 						</div>
 					</div>
 
-					<p class="text-navy/60 text-sm leading-relaxed">
+					<p class="text-navy/65 text-sm leading-relaxed">
 						The starting point for many Muslim families. Attorney-informed and designed around Islamic inheritance principles — regardless of estate size or how much you already know about Islamic inheritance.
 					</p>
 
 					<div class="bg-navy/3 rounded-xl border border-navy/6 px-4 py-3">
-						<p class="text-navy/45 text-xs leading-relaxed">
+						<p class="text-navy/65 text-xs leading-relaxed">
 							Available for Texas and California. No attorney reviews your answers or the document.
 						</p>
 					</div>
@@ -111,7 +111,7 @@
 
 				<!-- Right: what's included -->
 				<div class="p-8 md:p-10">
-					<div class="text-navy/35 text-[10px] tracking-[0.25em] uppercase mb-5">What's included</div>
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-5">What's included</div>
 					<ul class="flex flex-col gap-3.5">
 						{#each [
 							'Islamic distribution schedule following Qur\'anic fractions',
@@ -145,22 +145,22 @@
 						</div>
 						<div class="text-right shrink-0">
 							<div class="text-3xl tracking-tight text-navy">{formatUsdWhole(defaultPrepFee)}</div>
-							<div class="text-navy/40 text-xs mt-0.5">flat fee</div>
+							<div class="text-navy/65 text-xs mt-0.5">flat fee</div>
 						</div>
 					</div>
 
-					<p class="text-navy/60 text-sm leading-relaxed">
+					<p class="text-navy/65 text-sm leading-relaxed">
 						Islamic revocable living trust for individuals and families with straightforward estates. Build at your own pace — an attorney reviews, supervises, and signs the final trust.
 					</p>
 
 					<div class="bg-emerald-accent/6 rounded-xl border border-emerald-accent/15 px-4 py-3">
 						<div class="text-emerald-accent text-[10px] tracking-[0.22em] uppercase mb-1 font-medium">Add-on available</div>
-						<p class="text-navy/55 text-xs leading-relaxed">
-							Business Succession Planning — $1,000. Available if you have any LLC or business ownership interest.
+						<p class="text-navy/65 text-xs leading-relaxed">
+							Business Succession Planning — {formatUsdWhole(1000)}. Available if you have any LLC or business ownership interest.
 						</p>
 					</div>
 
-					<div class="text-navy/35 text-xs leading-relaxed">
+					<div class="text-navy/65 text-xs leading-relaxed">
 						Attorney-supervised · Notarization included · Texas & California
 					</div>
 
@@ -180,7 +180,7 @@
 
 				<!-- Right: what's included -->
 				<div class="p-8 md:p-10">
-					<div class="text-navy/35 text-[10px] tracking-[0.25em] uppercase mb-5">What's included</div>
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-5">What's included</div>
 					<ul class="flex flex-col gap-3.5">
 						{#each [
 							"Distribution built around the Qur'anic shares",
@@ -214,7 +214,7 @@
 							<h2 class="text-2xl md:text-3xl tracking-tight text-cream mt-1">Legacy Plan</h2>
 						</div>
 						<div class="text-right shrink-0">
-							<div class="text-3xl tracking-tight text-cream">$3,500</div>
+							<div class="text-3xl tracking-tight text-cream">{formatUsdWhole(3500)}</div>
 							<div class="text-cream/40 text-xs mt-0.5">starting price</div>
 						</div>
 					</div>
@@ -226,7 +226,7 @@
 					<div class="bg-cream/6 rounded-xl border border-cream/10 px-4 py-3">
 						<div class="text-emerald-light text-[10px] tracking-[0.22em] uppercase mb-1 font-medium">Add-on available</div>
 						<p class="text-cream/50 text-xs leading-relaxed">
-							Business Succession Planning — $1,000. Applies if corporate document amendments are needed.
+							Business Succession Planning — {formatUsdWhole(1000)}. Applies if corporate document amendments are needed.
 						</p>
 					</div>
 
@@ -295,15 +295,15 @@
 						</div>
 						<div class="text-right shrink-0">
 							<div class="text-lg tracking-tight text-navy/70">Inquire</div>
-							<div class="text-navy/40 text-xs mt-0.5">for pricing</div>
+							<div class="text-navy/65 text-xs mt-0.5">for pricing</div>
 						</div>
 					</div>
 
-					<p class="text-navy/60 text-sm leading-relaxed">
+					<p class="text-navy/65 text-sm leading-relaxed">
 						For families who want to protect their estate and build something that outlasts them. Includes everything in the Legacy Plan, plus the legal and operational infrastructure to create a lasting family endowment.
 					</p>
 
-					<p class="text-navy/60 text-sm leading-relaxed">
+					<p class="text-navy/65 text-sm leading-relaxed">
 						The Family Waqf Plan: we draft the legal framework for your family waqf, built into your estate plan and designed for ongoing sadaqah jariyah.
 					</p>
 
@@ -323,7 +323,7 @@
 
 				<!-- Right: what's included -->
 				<div class="p-8 md:p-10">
-					<div class="text-navy/35 text-[10px] tracking-[0.25em] uppercase mb-3">Everything in the Legacy Plan, plus:</div>
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-3">Everything in the Legacy Plan, plus:</div>
 
 					<ul class="flex flex-col gap-3.5 mb-7">
 						{#each [
@@ -336,17 +336,17 @@
 								</svg>
 								<span>
 									{item.label}
-									<span class="block text-navy/42 text-xs mt-0.5">{item.sub}</span>
+									<span class="block text-navy/65 text-xs mt-0.5">{item.sub}</span>
 								</span>
 							</li>
 						{/each}
 					</ul>
 
 					<div class="border-t border-navy/8 pt-5">
-						<div class="text-navy/35 text-[10px] tracking-[0.25em] uppercase mb-3">Also includes all Legacy Plan items</div>
+						<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-3">Also includes all Legacy Plan items</div>
 						<div class="flex flex-wrap gap-2">
 							{#each ['Heba Strategy Session', 'Trust drafting', 'Deed recording', 'Pour-over wills', 'POA & healthcare directives', 'Physical binder', 'Attorney access'] as tag}
-								<span class="px-2.5 py-1 rounded-md bg-navy/5 text-navy/50 text-[11px]">{tag}</span>
+								<span class="px-2.5 py-1 rounded-md bg-navy/5 text-navy/65 text-[11px]">{tag}</span>
 							{/each}
 						</div>
 					</div>
@@ -362,22 +362,22 @@
 				<div class="p-8 md:p-10 flex flex-col gap-4">
 					<div class="flex items-baseline justify-between gap-4 flex-wrap">
 						<div>
-							<span class="text-[10px] tracking-[0.28em] uppercase text-navy/40 font-medium">Plan 05 · Strategic</span>
+							<span class="text-[10px] tracking-[0.28em] uppercase text-navy/65 font-medium">Plan 05 · Strategic</span>
 							<h2 class="text-2xl md:text-3xl tracking-tight text-navy mt-1">Advanced Planning</h2>
 						</div>
 						<div class="text-right shrink-0">
 							<div class="text-lg tracking-tight text-navy/70">Consultation</div>
-							<div class="text-navy/40 text-xs mt-0.5">required</div>
+							<div class="text-navy/65 text-xs mt-0.5">required</div>
 						</div>
 					</div>
 
-					<p class="text-navy/60 text-sm leading-relaxed">
+					<p class="text-navy/65 text-sm leading-relaxed">
 						For Muslim professionals and families who want their estate plan to work strategically across legal, charitable, and financial dimensions. Requires coordination with a CPA or tax advisor.
 					</p>
 
 					<div class="bg-white/70 rounded-xl border border-navy/8 px-4 py-3">
-						<p class="text-navy/45 text-xs leading-relaxed">
-							This plan drafts legal structures and works alongside tax professionals. It does not provide tax advice. Families who can fund a CLAT with approximately $100,000 or more may benefit.
+						<p class="text-navy/65 text-xs leading-relaxed">
+							This plan drafts legal structures and works alongside tax professionals. It does not provide tax advice. Families who can fund a CLAT with approximately {formatUsdWhole(100000)} or more may benefit.
 						</p>
 					</div>
 
@@ -397,7 +397,7 @@
 
 				<!-- Right: what's included -->
 				<div class="p-8 md:p-10">
-					<div class="text-navy/35 text-[10px] tracking-[0.25em] uppercase mb-5">Structures available</div>
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-5">Structures available</div>
 					<ul class="flex flex-col gap-4">
 						{#each [
 							{
@@ -418,12 +418,12 @@
 							}
 						] as item}
 							<li class="flex items-start gap-3 text-sm">
-								<svg class="w-3.5 h-3.5 shrink-0 mt-0.5 text-navy/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+								<svg class="w-3.5 h-3.5 shrink-0 mt-0.5 text-navy/65" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 								</svg>
 								<span>
 									<span class="text-navy/75 font-medium">{item.label}</span>
-									<span class="block text-navy/42 text-xs mt-0.5 leading-relaxed">{item.sub}</span>
+									<span class="block text-navy/65 text-xs mt-0.5 leading-relaxed">{item.sub}</span>
 								</span>
 							</li>
 						{/each}
@@ -438,12 +438,13 @@
 	<!-- ═══ FOOTER (minimal) ═══ -->
 	<footer class="px-6 py-10 border-t border-navy/8">
 		<div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
-			<p class="text-navy/35 text-xs">© 2026 McDaniel Estate Planning, PLLC. Licensed in Texas and California.</p>
+			<p class="text-navy/65 text-xs">© 2026 McDaniel Estate Planning, PLLC. Licensed in Texas and California.</p>
 			<div class="flex flex-wrap gap-6">
-				<a href="/" class="text-navy/45 text-xs hover:text-navy/70 transition-colors">Home</a>
-				<a href="/which-plan" class="text-navy/45 text-xs hover:text-navy/70 transition-colors">Which plan is right?</a>
-				<a href="/trust" class="text-navy/45 text-xs hover:text-navy/70 transition-colors">{productNameShortBare()}</a>
-				<a href={consultationBookingUrl} class="text-navy/45 text-xs hover:text-navy/70 transition-colors">Book Consultation</a>
+				<a href="/" class="text-navy/65 text-xs hover:text-navy/70 transition-colors">Home</a>
+				<a href="/which-plan" class="text-navy/65 text-xs hover:text-navy/70 transition-colors">Which plan is right?</a>
+				<a href="/trust" class="text-navy/65 text-xs hover:text-navy/70 transition-colors">{productNameShortBare()}</a>
+				<a href={consultationBookingUrl} class="text-navy/65 text-xs hover:text-navy/70 transition-colors">Book Consultation</a>
+				<a href="/privacy" class="text-navy/65 text-xs hover:text-navy/70 transition-colors">Privacy Policy</a>
 			</div>
 		</div>
 	</footer>

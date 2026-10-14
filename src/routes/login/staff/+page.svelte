@@ -39,6 +39,6 @@
 		</div>
 		{#if error}<p class="text-sm text-red-700" role="alert">{error}</p>{/if}
 		<button disabled={busy} class="w-full px-4 py-2.5 rounded-lg bg-navy text-cream text-sm">{busy ? 'Signing in…' : 'Continue'}</button>
-		<p class="text-xs text-navy/50">You will be asked for a verification code from your authenticator app.</p>
+		<p class="text-xs text-navy/65">You will be asked for a verification code from your authenticator app.</p>
 	</form>
 </main>

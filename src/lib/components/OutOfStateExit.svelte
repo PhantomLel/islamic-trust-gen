@@ -102,7 +102,7 @@
 					type="email"
 					bind:value={email}
 					placeholder="you@example.com"
-					class="flex-1 px-4 py-2.5 rounded-lg border border-navy/12 bg-white text-navy text-sm outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+					class="flex-1 px-4 py-2.5 rounded-lg border border-navy/12 bg-white text-navy text-sm outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/65"
 				/>
 				<button
 					type="button"

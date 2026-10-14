@@ -25,7 +25,7 @@
 		{/if}
 
 		<p class="mt-5 text-navy/70 leading-relaxed">{v.description}</p>
-		{#if v.duration}<p class="mt-1 text-xs text-navy/45">Length {v.duration}</p>{/if}
+		{#if v.duration}<p class="mt-1 text-xs text-navy/65">Length {v.duration}</p>{/if}
 
 		{#if v.relatedPage}
 			<p class="mt-4 text-sm"><a href="/answers/{v.relatedPage.slug}" class="text-emerald-accent underline underline-offset-2">Read: {v.relatedPage.title}</a></p>
@@ -43,7 +43,7 @@
 			</nav>
 		{/if}
 		{#if v.seriesSlug}
-			<p class="mt-4 text-sm"><a href="/videos/series/{v.seriesSlug}" class="text-navy/60 underline underline-offset-2">More in {v.series}</a></p>
+			<p class="mt-4 text-sm"><a href="/videos/series/{v.seriesSlug}" class="text-navy/65 underline underline-offset-2">More in {v.series}</a></p>
 		{/if}
 	</article>
 </SiteShell>

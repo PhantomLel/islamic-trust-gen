@@ -1,5 +1,14 @@
+@import "./lib/fonts.css";
 @config "../tailwind.config.ts";
 @import "tailwindcss";
+
+/*
+ * AA W8.3 contrast floors, composited on the page background.
+ * Navy #1e2a3a on cream #faf6f0: 3:1 at 51% opacity, 4.5:1 at 65%.
+ * MEP ink #1F2D3D on #FCFBF8: 3:1 at 51% opacity, 4.5:1 at 65%.
+ * Body and caption text on public pages uses at least /65.
+ * Large headings (24px and up) need 3:1, so /51 is enough for those.
+ */
 
 @theme {
 	--color-navy: #1e2a3a;
@@ -179,4 +188,23 @@ html {
 		transform: none !important;
 	}
 	.fill-word::after { opacity: 0.5 !important; }
+}
+
+/*
+ * AA W8.3 keyboard focus. Unlayered so it wins over utilities that clear the outline.
+ * MLP uses the emerald accent. MEP keeps its own ink color (D10).
+ */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible {
+	outline: 2px solid #4a7c6f;
+	outline-offset: 3px;
+}
+
+.mep :is(a, button, input, select, textarea, summary, [role="button"]):focus-visible {
+	outline-color: #1f2d3d;
 }

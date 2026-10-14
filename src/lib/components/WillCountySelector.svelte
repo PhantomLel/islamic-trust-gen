@@ -101,7 +101,7 @@
 	}
 
 	const defaultInputClass = `w-full px-5 py-4 rounded-xl bg-white/70 border border-navy/12 text-navy text-[15px]
-		placeholder:text-navy/30 outline-none transition-all
+		placeholder:text-navy/65 outline-none transition-all
 		focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15`;
 </script>
 
@@ -125,7 +125,7 @@
 			onblur={handleBlur}
 			onkeydown={handleKeydown}
 		/>
-		<span class="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-navy/30">
+		<span class="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-navy/65">
 			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
 			</svg>
@@ -155,7 +155,7 @@
 			{/each}
 		</ul>
 	{:else if open && query.trim() !== '' && filtered.length === 0}
-		<div class="absolute z-50 mt-1.5 w-full rounded-xl border border-navy/10 bg-white shadow-lg shadow-navy/8 px-4 py-3 text-sm text-navy/40">
+		<div class="absolute z-50 mt-1.5 w-full rounded-xl border border-navy/10 bg-white shadow-lg shadow-navy/8 px-4 py-3 text-sm text-navy/65">
 			No county found for "{query}"
 		</div>
 	{/if}

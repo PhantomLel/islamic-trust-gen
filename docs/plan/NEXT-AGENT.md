@@ -14,11 +14,11 @@ Read **`docs/plan/00-overview.md`**, then **`docs/plan/00-tests.md`**, then do *
 | `06-mep-pages.md` | Done — shared MEP shell, W4 homepage, `/attorney`, four practice pages, `/about` 301 |
 | `07-hosts-routing.md` | Done — `hostPolicy.ts`, 301s, MEP reroute, www canonicals, cross-links |
 | `08-reviews.md` | Done — Elfsight widget on both home pages, read/leave links, disclaimer |
-| `09-a11y-polish.md` | **Next** |
+| `09-a11y-polish.md` | Done — pinch-zoom, self-hosted fonts, hero headshot, contrast, focus, error pages |
 
 ## Next task
 
-**`docs/plan/09-a11y-polish.md`** — AA W8 and the hero image.
+**`docs/plan/10-seo.md`** — AA W9 and V3 §6 deltas.
 
 ## Workflow (unchanged)
 
@@ -46,13 +46,15 @@ Set `ORIGIN=https://www.muslimlegacyplanning.com`. better-auth `baseURL` is `env
 - Host policy: `src/lib/hostPolicy.ts` (`hostSite`, `redirectFor`, `rerouteFor`, `publicPathFor`). Wired in `src/hooks.ts` and the first handle in `src/hooks.server.ts`.
 - Banned phrases: `src/lib/copy/banned.ts`, test `src/lib/copy/banned.test.ts`, scan `node scripts/w7-scan.mjs http://127.0.0.1:5173` → `docs/w7-scan.md`
 - Reviews: `ReviewsBlock.svelte` embeds Elfsight app `fdfb23d6-45c5-41bd-950a-d905edc79df1` on both home pages, plus the read and leave links. Dashboard still injects Product / AggregateRating / Review JSON-LD (rich snippets on). Turn that off.
-- MEP pages: `src/routes/mcdaniel/+layout.svelte`, `PracticePage.svelte`, `/attorney`, `/legacy-plan`, `/family-waqf-plan`, `/probate-estate-administration`, `/business-succession-planning`. `/about` is a 301 to `/attorney`. Unknown MEP paths render `mcdaniel/+error.svelte` (task 09 brands it).
+- MEP pages: `src/routes/mcdaniel/+layout.svelte`, `PracticePage.svelte`, `/attorney`, `/legacy-plan`, `/family-waqf-plan`, `/probate-estate-administration`, `/business-succession-planning`. `/about` is a 301 to `/attorney`. Unknown MEP paths throw 404 inside the MEP layout (`mcdaniel/[...rest]`) and render `mcdaniel/+error.svelte`. MLP unknown paths render `src/routes/+error.svelte`.
+- Hero: `mlpHeroImage` in `src/lib/config.ts`. Share images: MLP `/og-image.png`, MEP `/og-mep.png` (`scripts/build-mep-og.mjs`). Favicons: `/favicon-mlp.png`, `/favicon-mep.png`.
+- Fonts: `src/lib/fonts.css` (Playfair Display and Figtree, self-hosted). Video.js CSS is imported from the package in `VideoPlayer.svelte`.
 - Free will PDF: `src/lib/server/documents/willPdf/` (`context.ts`, `definition.ts`, `render.ts`)
 - Free will flow: `src/routes/free-islamic-will/`, `src/lib/free-will/`
 - Settings: `src/lib/server/settings.ts` (`free_will_enabled`, `featured_video_id`)
 - Spec precedence: owner table in `00-overview.md` > AB > AA > V3 > AppA
 - Do **not** follow `docs/spec-v3-implementation-plan.md` “Do not build” table (superseded)
 
-## After 08 (order)
+## After 09 (order)
 
-`09-a11y-polish.md` → `10-seo.md` → … see `00-overview.md` § Order.
+`10-seo.md` → `11-plans-quiz-calculator.md` → … see `00-overview.md` § Order.

@@ -9,6 +9,6 @@
 	let { class: className = '' }: { class?: string } = $props();
 </script>
 
-<p data-testid="testimonial-disclaimer" class={className || 'text-xs leading-relaxed text-navy/55'}>
+<p data-testid="testimonial-disclaimer" class={className || 'text-xs leading-relaxed text-navy/65'}>
 	{testimonialDisclaimer}
 </p>

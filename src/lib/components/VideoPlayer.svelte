@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import 'video.js/dist/video-js.css';
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	type Player = any;
 
@@ -95,10 +96,6 @@
 	});
 </script>
 
-<svelte:head>
-	<link rel="stylesheet" href="https://vjs.zencdn.net/8.21.1/video-js.css" />
-</svelte:head>
-
 <div class="video-player-wrapper w-full">
 	{#if title}
 		<p class="text-sm font-medium text-navy/70 leading-tight mb-3">{title}</p>
@@ -115,7 +112,7 @@
 			playsinline
 		>
 			<source src={src} type="video/mp4" />
-			<p class="vjs-no-js text-sm text-navy/50 p-4">
+			<p class="vjs-no-js text-sm text-navy/65 p-4">
 				To view this video please enable JavaScript, and consider upgrading to a web browser that
 				supports HTML5 video.
 			</p>

@@ -25,7 +25,7 @@
 		{view.answerSummary}
 	</div>
 
-	<p class="mt-5 text-sm text-navy/60 leading-relaxed" data-testid="byline">
+	<p class="mt-5 text-sm text-navy/65 leading-relaxed" data-testid="byline">
 		<a href={view.byline.href} class="font-medium text-navy underline underline-offset-2 hover:text-emerald-accent">{view.byline.name}</a>{view.byline.rest}
 		{#if reviewed}<span class="block mt-1">Last reviewed {reviewed}.</span>{/if}
 	</p>
@@ -75,7 +75,7 @@
 			>
 				{view.cta.label}
 			</a>
-			{#if view.cta.note}<p class="mt-2 text-sm text-navy/55">{view.cta.note}</p>{/if}
+			{#if view.cta.note}<p class="mt-2 text-sm text-navy/65">{view.cta.note}</p>{/if}
 		</div>
 	{/if}
 </article>

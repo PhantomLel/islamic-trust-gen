@@ -298,7 +298,14 @@ export const freeWill = pgTable('free_will', {
 	// ── Marketing consent at account email (spec v3 §4.3) ───────────────
 	marketingConsent: boolean('marketing_consent').notNull().default(false),
 	marketingConsentAt: timestamp('marketing_consent_at'),
-});
+	/**
+	 * Answers and the generated PDF are deleted after this time.
+	 * Each save sets it to 30 days out, so an edit restarts the clock.
+	 */
+	purgeAfter: timestamp('purge_after').notNull(),
+}, (t) => [
+	index('free_will_purge_after_idx').on(t.purgeAfter),
+]);
 
 export const invoice = pgTable('invoice', {
 	id: serial('id').primaryKey(),

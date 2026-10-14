@@ -24,7 +24,7 @@
 			referrerpolicy="strict-origin-when-cross-origin"
 		></iframe>
 	{:else}
-		<img src={thumbnailSrc} alt="" class="absolute inset-0 h-full w-full object-cover" width="1280" height="720" />
+		<img src={thumbnailSrc} alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover" width="1280" height="720" />
 		<button
 			type="button"
 			onclick={() => (playing = true)}

@@ -24,6 +24,10 @@ export const B6_6_WARNING_COPY =
 export const FREE_WILL_PRIVACY_LINE =
 	'We protect your information and use it as described in our Privacy Policy.';
 
+/** Shown with the privacy line. Matches `FREE_WILL_RETENTION_DAYS` in retention.ts. */
+export const FREE_WILL_RETENTION_LINE =
+	'We delete answers kept in this browser, and the finished will and its file on our servers, 30 days after the last save.';
+
 export function isNoticeComplete(notice: NoticeRecord | null | undefined): boolean {
 	return notice?.version === FLOW_NOTICE_VERSION && !!notice.acceptedAt;
 }

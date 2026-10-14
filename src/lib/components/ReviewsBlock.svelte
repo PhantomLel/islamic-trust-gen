@@ -19,7 +19,7 @@
 		href={googleReadReviewsUrl}
 		rel="noopener"
 		target="_blank"
-		class="underline underline-offset-4 hover:opacity-80"
+		class="min-h-11 inline-flex items-center underline underline-offset-4 hover:opacity-80"
 	>
 		Read all reviews on Google
 	</a>
@@ -27,7 +27,7 @@
 		href={googleWriteReviewUrl}
 		rel="noopener"
 		target="_blank"
-		class="underline underline-offset-4 hover:opacity-80"
+		class="min-h-11 inline-flex items-center underline underline-offset-4 hover:opacity-80"
 	>
 		Leave a review
 	</a>

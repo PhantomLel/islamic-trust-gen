@@ -14,6 +14,13 @@ function utapi(): UTApi {
 	return _utapi;
 }
 
+/** Delete stored files. `success: false` means the caller must keep the keys and retry. */
+export async function deleteUploadThingFiles(keys: string[]): Promise<{ success: boolean }> {
+	if (keys.length === 0) return { success: true };
+	const result = await utapi().deleteFiles(keys);
+	return { success: result.success };
+}
+
 /**
  * Upload multiple generated documents and persist them in one DB write so
  * parallel saves cannot overwrite each other's `generated_files` entries.
@@ -138,7 +145,7 @@ export async function saveGeneratedWillFile(opts: {
 
 	if (replaced?.storageKey) {
 		try {
-			await utapi().deleteFiles(replaced.storageKey);
+			await deleteUploadThingFiles([replaced.storageKey]);
 		} catch (err) {
 			console.error('Failed to delete superseded generated will file', err);
 		}

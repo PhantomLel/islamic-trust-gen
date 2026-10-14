@@ -16,8 +16,8 @@
 				src="/pfp.jpg"
 				alt="{attorneyName}, founding attorney of McDaniel Estate Planning"
 				class="w-full h-full object-cover"
-				width="800"
-				height="1000"
+				width="720"
+				height="1080"
 			/>
 		</figure>
 		<dl class="mt-8 space-y-4">
@@ -62,7 +62,7 @@
 			>
 				Book a Legal Consultation
 			</a>
-			<a href={mlpOrigin} class="text-[#1F2D3D]/75 hover:text-[#1F2D3D] border-b border-[#9A7B45]/50 pb-0.5 self-start sm:self-auto">
+			<a href={mlpOrigin} class="min-h-11 inline-flex items-center text-[#1F2D3D]/75 hover:text-[#1F2D3D] border-b border-[#9A7B45]/50 self-start sm:self-auto">
 				Visit Muslim Legacy Planning
 			</a>
 		</div>

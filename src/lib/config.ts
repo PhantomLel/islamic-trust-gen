@@ -39,6 +39,14 @@ export function formatUsd(amountUsd: number): string {
 	return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amountUsd);
 }
 
+/** MLP homepage hero. Replace this object to swap the photo. */
+export const mlpHeroImage = {
+	src: '/pfp.jpg',
+	alt: 'Leonard McDaniel, estate planning attorney.',
+	width: 720,
+	height: 1080,
+} as const;
+
 /** Public list prices: whole dollars, no cents (AA W8.2). */
 export function formatUsdWhole(amountUsd: number): string {
 	return new Intl.NumberFormat('en-US', {
@@ -134,12 +142,7 @@ export const jabalProPublicaUrl =
 
 /** The fixed donation figure for display, e.g. "$75" (never derived from the fee charged). */
 export function formatJabalDonation(): string {
-	return new Intl.NumberFormat('en-US', {
-		style: 'currency',
-		currency: 'USD',
-		minimumFractionDigits: 0,
-		maximumFractionDigits: 0
-	}).format(jabalDonationUsd);
+	return formatUsdWhole(jabalDonationUsd);
 }
 
 /** Appendix A §3.2 — landing page giving section (short form rendered from config). */

@@ -683,9 +683,12 @@
 			<p class="text-navy/40 text-xs leading-relaxed max-w-xl">
 				This calculator is an educational tool and does not constitute legal or religious advice. Islamic inheritance can involve nuances not captured here — always confirm your specific situation with a qualified scholar or attorney.
 			</p>
-			<p class="text-navy/30 text-xs whitespace-nowrap">
-				© 2026 McDaniel Estate Planning, PLLC.
-			</p>
+			<div class="flex flex-wrap items-center gap-x-5 gap-y-1">
+				<a href="/privacy" class="text-navy/40 text-xs underline underline-offset-2 hover:text-navy min-h-11 inline-flex items-center">Privacy Policy</a>
+				<p class="text-navy/30 text-xs whitespace-nowrap">
+					© 2026 McDaniel Estate Planning, PLLC.
+				</p>
+			</div>
 		</div>
 	</footer>
 </div>

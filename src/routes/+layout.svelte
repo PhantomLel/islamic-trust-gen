@@ -19,6 +19,12 @@
 			localPrefix: isLocalOrigin,
 		})
 	);
+	const onMep = $derived(
+		seo?.site === 'mcdaniel' ||
+			(page.route.id?.startsWith('/mcdaniel') ?? false) ||
+			page.url.pathname === '/mcdaniel' ||
+			page.url.pathname.startsWith('/mcdaniel/')
+	);
 
 	if (browser) captureFirstTouchUtm();
 
@@ -37,7 +43,7 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" type="image/png" href="/mcdaniel.png" />
+	<link rel="icon" type="image/png" href={onMep ? '/favicon-mep.png' : '/favicon-mlp.png'} />
 	{#if seo}
 		<title>{seo.title}</title>
 		{#if seo.description}

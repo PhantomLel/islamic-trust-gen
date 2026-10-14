@@ -47,8 +47,8 @@
 					{#each data.hits as h}
 						<li>
 							<a href={h.href} class="text-emerald-accent underline underline-offset-2 hover:text-emerald-light">{h.title}</a>
-							<span class="ml-2 text-[11px] uppercase tracking-wider text-navy/40">{h.type === 'video' ? 'Video' : 'Answer'}</span>
-							<p class="text-sm text-navy/60 mt-0.5">{h.snippet}</p>
+							<span class="ml-2 text-[11px] uppercase tracking-wider text-navy/65">{h.type === 'video' ? 'Video' : 'Answer'}</span>
+							<p class="text-sm text-navy/65 mt-0.5">{h.snippet}</p>
 						</li>
 					{/each}
 				</ul>
@@ -57,14 +57,14 @@
 
 		<section class="mt-10" aria-label="All answers">
 			{#if data.pages.length === 0}
-				<p class="text-navy/55">{data.q || data.categoryId || data.jurisdiction ? 'No answers match those filters.' : 'No answers have been published yet.'}</p>
+				<p class="text-navy/65">{data.q || data.categoryId || data.jurisdiction ? 'No answers match those filters.' : 'No answers have been published yet.'}</p>
 			{:else}
 				<ul class="divide-y divide-navy/10">
 					{#each data.pages as p}
 						<li class="py-5">
 							<h2 class="text-lg text-navy"><a href="/answers/{p.slug}" class="hover:text-emerald-accent">{p.title}</a></h2>
-							<p class="mt-1 text-sm text-navy/60 leading-relaxed">{p.answerSummary}</p>
-							<p class="mt-1 text-xs text-navy/40">{[p.categoryName, p.jurisdiction ? JURISDICTION_LABELS[p.jurisdiction as ContentJurisdiction] : null].filter(Boolean).join(' · ')}</p>
+							<p class="mt-1 text-sm text-navy/65 leading-relaxed">{p.answerSummary}</p>
+							<p class="mt-1 text-xs text-navy/65">{[p.categoryName, p.jurisdiction ? JURISDICTION_LABELS[p.jurisdiction as ContentJurisdiction] : null].filter(Boolean).join(' · ')}</p>
 						</li>
 					{/each}
 				</ul>

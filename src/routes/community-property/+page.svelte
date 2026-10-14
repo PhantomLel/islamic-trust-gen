@@ -79,7 +79,7 @@
 			<div class="flex items-center gap-4 md:gap-5 shrink-0">
 				<a
 					href="tel:{firmPhoneTel}"
-					class="whitespace-nowrap text-[12.5px] md:text-[13.5px] tabular-nums text-navy/55 hover:text-navy border-b border-emerald-accent/40 hover:border-emerald-accent pb-0.5 transition-colors"
+					class="whitespace-nowrap text-[12.5px] md:text-[13.5px] tabular-nums text-navy/65 hover:text-navy border-b border-emerald-accent/40 hover:border-emerald-accent pb-0.5 transition-colors"
 					>{firmPhone}</a
 				>
 				<a
@@ -128,7 +128,7 @@
 						<span
 							class="block mt-2.5 text-[12px] md:text-[13px] transition-colors {i === active
 								? 'text-navy font-medium'
-								: 'text-navy/40 group-hover:text-navy/70'}">{chapter.short}</span
+								: 'text-navy/65 group-hover:text-navy/70'}">{chapter.short}</span
 						>
 					</button>
 				{/each}
@@ -170,7 +170,7 @@
 					type="button"
 					onclick={() => go(active - 1)}
 					disabled={active === 0}
-					class="justify-self-start inline-flex items-center gap-2 text-[13.5px] text-navy/55 hover:text-navy disabled:opacity-0 disabled:pointer-events-none transition-colors cursor-pointer active:translate-y-px"
+					class="justify-self-start inline-flex items-center gap-2 text-[13.5px] text-navy/65 hover:text-navy disabled:opacity-0 disabled:pointer-events-none transition-colors cursor-pointer active:translate-y-px"
 				>
 					<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
 						<path d="M14 8H3M7 3.5 2.5 8 7 12.5" stroke-linecap="round" stroke-linejoin="round" />
@@ -178,7 +178,7 @@
 					Back
 				</button>
 
-				<span class="text-[11.5px] tabular-nums text-navy/30 tracking-wider"
+				<span class="text-[11.5px] tabular-nums text-navy/65 tracking-wider"
 					>{active + 1} / {chapters.length}</span
 				>
 

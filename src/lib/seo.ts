@@ -20,6 +20,7 @@ import {
 	mcdanielOrigin,
 	mlpOrigin,
 	productAttorneyReviewSentence,
+	formatUsdWhole,
 	productName,
 	productNameShort,
 	siteName,
@@ -59,6 +60,7 @@ export type ResolvedSeo = {
 };
 
 export const DEFAULT_OG_IMAGE = '/og-image.png';
+export const MEP_OG_IMAGE = '/og-mep.png';
 
 const MCDANIEL_TITLE = 'McDaniel Estate Planning, PLLC';
 
@@ -158,7 +160,7 @@ export const staticRouteSeo: Record<string, PageSeo> = {
 	'/mcdaniel/legacy-plan': {
 		title: 'Legacy Plan │ McDaniel Estate Planning, PLLC — Texas & California',
 		description:
-			'A full-service plan personally designed by your attorney: a revocable living trust, pour-over wills, powers of attorney and healthcare directives, deed preparation and recording, and a dedicated heba strategy session. From $3,500.',
+			`A full-service plan personally designed by your attorney: a revocable living trust, pour-over wills, powers of attorney and healthcare directives, deed preparation and recording, and a dedicated heba strategy session. From ${formatUsdWhole(3500)}.`,
 	},
 	'/mcdaniel/family-waqf-plan': {
 		title: 'Family Waqf Plan │ McDaniel Estate Planning, PLLC — Texas & California',
@@ -175,6 +177,16 @@ export const staticRouteSeo: Record<string, PageSeo> = {
 		description:
 			'Succession and estate planning for business owners, and customized planning for blended families and multiple properties.',
 	},
+	'/privacy': {
+		title: `Privacy Policy | ${siteName}`,
+		description:
+			'How Muslim Legacy Planning and McDaniel Estate Planning collect, use, and protect your information.',
+	},
+	'/mcdaniel/privacy': {
+		title: `Privacy Policy | ${MCDANIEL_TITLE}`,
+		description:
+			'How Muslim Legacy Planning and McDaniel Estate Planning collect, use, and protect your information.',
+	},
 };
 
 /** Routes (by route id) that appear in the sitemap. Dynamic content is appended by the sitemap handler. */
@@ -190,12 +202,14 @@ export const sitemapRoutes: { site: SiteId; path: string }[] = [
 	{ site: 'mlp', path: '/community-property' },
 	{ site: 'mlp', path: '/answers' },
 	{ site: 'mlp', path: '/videos' },
+	{ site: 'mlp', path: '/privacy' },
 	{ site: 'mcdaniel', path: '/' },
 	{ site: 'mcdaniel', path: '/attorney' },
 	{ site: 'mcdaniel', path: '/legacy-plan' },
 	{ site: 'mcdaniel', path: '/family-waqf-plan' },
 	{ site: 'mcdaniel', path: '/probate-estate-administration' },
 	{ site: 'mcdaniel', path: '/business-succession-planning' },
+	{ site: 'mcdaniel', path: '/privacy' },
 ];
 
 /**
@@ -272,7 +286,7 @@ export function resolveSeo(input: {
 			description: '',
 			canonical: canonicalUrl(url),
 			origin: site === 'mcdaniel' ? mcdanielOrigin : mlpOrigin,
-			image: DEFAULT_OG_IMAGE,
+			image: site === 'mcdaniel' ? MEP_OG_IMAGE : DEFAULT_OG_IMAGE,
 			type: 'website',
 			robots: 'noindex, nofollow',
 			site,
@@ -287,7 +301,7 @@ export function resolveSeo(input: {
 		description: base.description,
 		canonical: canonicalUrl(url),
 		origin: site === 'mcdaniel' ? mcdanielOrigin : mlpOrigin,
-		image: base.image ?? DEFAULT_OG_IMAGE,
+		image: base.image ?? (site === 'mcdaniel' ? MEP_OG_IMAGE : DEFAULT_OG_IMAGE),
 		type: base.type ?? 'website',
 		robots: noindex ? 'noindex, nofollow' : null,
 		site,

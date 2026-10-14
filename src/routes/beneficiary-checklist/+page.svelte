@@ -17,7 +17,7 @@
 	<div class="rounded-2xl border border-amber-300/60 bg-amber-50/80 p-6">
 		<h2 class="text-lg text-navy tracking-tight mb-2">{beneficiaryChecklistIntro.warningTitle}</h2>
 		<p class="text-navy/65 text-[15px] leading-relaxed mb-4">{beneficiaryChecklistIntro.warningBody}</p>
-		<p class="text-[13px] font-medium text-navy/55 mb-2">This commonly includes:</p>
+		<p class="text-[13px] font-medium text-navy/65 mb-2">This commonly includes:</p>
 		<ul class="space-y-2">
 			{#each beneficiaryChecklistIntro.commonAssets as item}
 				<li class="flex items-start gap-2.5 text-navy/65 text-sm leading-relaxed">
@@ -40,12 +40,12 @@
 						<div class="flex-1 min-w-0">
 							<h3 class="text-navy font-medium text-[15px] leading-snug mb-2">{step.title}</h3>
 							{#each step.paragraphs as paragraph}
-								<p class="text-navy/60 text-sm leading-relaxed mb-2 last:mb-0">{paragraph}</p>
+								<p class="text-navy/65 text-sm leading-relaxed mb-2 last:mb-0">{paragraph}</p>
 							{/each}
 							{#if step.bullets}
 								<ul class="mt-2 space-y-1.5">
 									{#each step.bullets as item}
-										<li class="flex items-start gap-2 text-navy/60 text-sm leading-relaxed">
+										<li class="flex items-start gap-2 text-navy/65 text-sm leading-relaxed">
 											<span class="text-emerald-accent/70 shrink-0">–</span>
 											<span>{item}</span>
 										</li>
@@ -98,5 +98,5 @@
 		</div>
 	</div>
 
-	<p class="text-navy/40 text-xs leading-relaxed border-t border-navy/8 pt-6">{beneficiaryChecklistDisclaimer}</p>
+	<p class="text-navy/65 text-xs leading-relaxed border-t border-navy/8 pt-6">{beneficiaryChecklistDisclaimer}</p>
 </WillGuideLayout>

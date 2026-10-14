@@ -72,7 +72,7 @@
 	<div class="relative z-1 w-full max-w-sm px-6">
 
 		<!-- back link -->
-		<a href="/" class="inline-flex items-center gap-1.5 text-navy/40 text-sm mb-10 transition-colors hover:text-navy/70">
+		<a href="/" class="inline-flex items-center gap-1.5 text-navy/65 text-sm mb-10 transition-colors hover:text-navy/70">
 			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
 			</svg>
@@ -82,7 +82,7 @@
 		<!-- header -->
 		<div class="mb-10">
 			<h1 class="text-2xl font-semibold text-navy tracking-tight">Sign in</h1>
-			<p class="text-navy/45 text-sm mt-1.5">Welcome back to {siteName}</p>
+			<p class="text-navy/65 text-sm mt-1.5">Welcome back to {siteName}</p>
 		</div>
 
 		{#if magicLinkSent}
@@ -94,8 +94,8 @@
 					</svg>
 				</div>
 				<p class="text-navy font-medium text-sm">Check your email</p>
-				<p class="text-navy/50 text-xs mt-1">We sent a sign-in link to <strong class="text-navy/70">{email}</strong></p>
-				<p class="text-navy/45 text-xs mt-2">If you don't see it, check your spam or junk folder.</p>
+				<p class="text-navy/65 text-xs mt-1">We sent a sign-in link to <strong class="text-navy/70">{email}</strong></p>
+				<p class="text-navy/65 text-xs mt-2">If you don't see it, check your spam or junk folder.</p>
 				<button
 					onclick={() => { magicLinkSent = false; email = ''; }}
 					class="mt-4 text-xs text-emerald-accent hover:text-emerald-light transition-colors cursor-pointer"
@@ -107,14 +107,14 @@
 			<!-- magic link form -->
 			<form onsubmit={e => { e.preventDefault(); handleMagicLink(); }} class="space-y-3">
 				<label class="block">
-					<span class="text-navy/60 text-xs font-medium tracking-wide uppercase">Email</span>
+					<span class="text-navy/65 text-xs font-medium tracking-wide uppercase">Email</span>
 					<input
 						type="email"
 						bind:value={email}
 						placeholder="you@example.com"
 						required
 						class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white border border-navy/10 text-navy text-sm
-							   placeholder:text-navy/30 outline-none transition-all
+							   placeholder:text-navy/65 outline-none transition-all
 							   focus:border-navy/30 focus:ring-2 focus:ring-navy/5"
 					/>
 				</label>
@@ -137,7 +137,7 @@
 			<!-- divider -->
 			<div class="flex items-center gap-4 my-6">
 				<div class="flex-1 h-px bg-navy/8"></div>
-				<span class="text-navy/30 text-xs">or</span>
+				<span class="text-navy/65 text-xs">or</span>
 				<div class="flex-1 h-px bg-navy/8"></div>
 			</div>
 
@@ -157,7 +157,7 @@
 			</button>
 
 			<!-- signup link -->
-			<p class="text-center text-navy/40 text-xs mt-6">
+			<p class="text-center text-navy/65 text-xs mt-6">
 				Don't have an account? <a href="/signup" class="text-emerald-accent hover:text-emerald-light transition-colors">Sign up</a>
 			</p>
 		{/if}

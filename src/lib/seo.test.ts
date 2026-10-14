@@ -102,6 +102,20 @@ describe('robots and sitemap', () => {
 		}
 	});
 
+	it('publishes the privacy policy on both sites', () => {
+		for (const [routeId, url] of [
+			['/privacy', 'https://www.muslimlegacyplanning.com/privacy'],
+			['/mcdaniel/privacy', 'https://www.mcdanielestateplanning.com/privacy'],
+		] as const) {
+			const seo = resolveSeo({ routeId, url: new URL(url) });
+			expect(seo?.title).toContain('Privacy Policy');
+			expect(seo?.description).toContain('McDaniel Estate Planning');
+			expect(seo?.canonical).toBe(url);
+		}
+		expect(sitemapRoutes).toContainEqual({ site: 'mlp', path: '/privacy' });
+		expect(sitemapRoutes).toContainEqual({ site: 'mcdaniel', path: '/privacy' });
+	});
+
 	it('detects the firm host', () => {
 		expect(siteForHost('www.mcdanielestateplanning.com')).toBe('mcdaniel');
 		expect(siteForHost('www.muslimlegacyplanning.com')).toBe('mlp');

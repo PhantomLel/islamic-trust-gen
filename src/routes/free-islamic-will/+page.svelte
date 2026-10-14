@@ -56,7 +56,7 @@
 		B6_1_NOTICE_COPY,
 		B6_6_WARNING_COPY,
 		FLOW_NOTICE_VERSION,
-		FREE_WILL_PRIVACY_LINE,
+		FREE_WILL_RETENTION_LINE,
 		isNoticeComplete,
 		maritalStatusOptions,
 		resolvesToNotHandled,
@@ -64,6 +64,7 @@
 		type FlowPhase
 	} from '$lib/free-will/flow';
 	import type { AcknowledgmentData } from '$lib/free-will/acknowledgment';
+	import { isFreeWillDraftExpired, nextDraftSavedAt } from '$lib/free-will/retention';
 	import { trackWillCompletion } from '$lib/utm';
 
 	let { data } = $props();
@@ -82,6 +83,9 @@
 	// means "start a new will" (the next save inserts a fresh row); set means
 	// "editing/viewing that specific will" (the next save updates it in place).
 	let activeWillId = $state<number | null>(null);
+	/** Last time the browser draft changed. Opening the page does not move this. */
+	let draftSavedAt = $state<string | null>(null);
+	let draftBody = '';
 
 	let acknowledgmentData = $state<AcknowledgmentData | null>(null);
 
@@ -132,7 +136,7 @@
 		'legacy-plan': {
 			title: 'Legacy Plan',
 			tagline: 'Full-service estate planning designed personally by your attorney.',
-			price: 'From $3,500',
+			price: `From ${formatUsdWhole(3500)}`,
 			href: consultationBookingUrl
 		},
 		'family-waqf': {
@@ -148,9 +152,8 @@
 
 
 	// ── persistence (localStorage) ──
-	function persist() {
-		if (!hydrated || typeof localStorage === 'undefined') return;
-		const payload = {
+	function draftFields() {
+		return {
 			phase,
 			responses,
 			currentIndex,
@@ -160,8 +163,16 @@
 			acknowledgmentData,
 			activeWillId
 		};
+	}
+
+	function persist() {
+		if (!hydrated || typeof localStorage === 'undefined') return;
+		const fields = draftFields();
+		const body = JSON.stringify(fields);
+		draftSavedAt = nextDraftSavedAt(draftBody, body, draftSavedAt);
+		draftBody = body;
 		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+			localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...fields, savedAt: draftSavedAt }));
 		} catch {
 			// ignore quota / privacy-mode errors
 		}
@@ -198,22 +209,28 @@
 			if (raw) {
 				try {
 					const p = JSON.parse(raw);
-					if (p.responses) responses = p.responses;
-					if (typeof p.currentIndex === 'number') currentIndex = p.currentIndex;
-					// legacy sessions may still have the old 'community' phase name stored
-					if (typeof p.phase === 'string') {
-						const legacy = p.phase as string;
-						if (legacy === 'account') phase = 'delivery';
-						else if (legacy === 'acknowledge' || legacy === 'limitations' || legacy === 'returning')
-							phase = isNoticeComplete(p.acknowledgmentData) ? 'questions' : 'notice';
-						else if (legacy === 'community') phase = 'notice';
-						else phase = legacy as Phase;
+					const savedAt = typeof p.savedAt === 'string' ? p.savedAt : null;
+					if (isFreeWillDraftExpired(savedAt)) {
+						localStorage.removeItem(STORAGE_KEY);
+					} else {
+						if (p.responses) responses = p.responses;
+						if (typeof p.currentIndex === 'number') currentIndex = p.currentIndex;
+						// legacy sessions may still have the old 'community' phase name stored
+						if (typeof p.phase === 'string') {
+							const legacy = p.phase as string;
+							if (legacy === 'account') phase = 'delivery';
+							else if (legacy === 'acknowledge' || legacy === 'limitations' || legacy === 'returning')
+								phase = isNoticeComplete(p.acknowledgmentData) ? 'questions' : 'notice';
+							else if (legacy === 'community') phase = 'notice';
+							else phase = legacy as Phase;
+						}
+						if (typeof p.savedToAccount === 'boolean') savedToAccount = p.savedToAccount;
+						if (typeof p.accountName === 'string') accountName = p.accountName;
+						if (typeof p.accountEmail === 'string') accountEmail = p.accountEmail;
+						if (p.acknowledgmentData) acknowledgmentData = p.acknowledgmentData;
+						if (typeof p.activeWillId === 'number') activeWillId = p.activeWillId;
+						draftSavedAt = savedAt;
 					}
-					if (typeof p.savedToAccount === 'boolean') savedToAccount = p.savedToAccount;
-					if (typeof p.accountName === 'string') accountName = p.accountName;
-					if (typeof p.accountEmail === 'string') accountEmail = p.accountEmail;
-					if (p.acknowledgmentData) acknowledgmentData = p.acknowledgmentData;
-					if (typeof p.activeWillId === 'number') activeWillId = p.activeWillId;
 				} catch {
 					// ignore corrupt state
 				}
@@ -229,6 +246,7 @@
 		// Surface a previously generated will (returning, already-saved users).
 		if (data.willDownload) willDownload = data.willDownload;
 
+		draftBody = JSON.stringify(draftFields());
 		hydrated = true;
 	});
 
@@ -252,6 +270,8 @@
 		activeWillId = null;
 		savedToAccount = false;
 		willDownload = null;
+		draftSavedAt = null;
+		draftBody = '';
 		phase = 'welcome';
 	}
 
@@ -518,15 +538,15 @@
 	<!-- NAV -->
 	<nav class="relative z-10 shrink-0 flex items-center justify-between px-5 md:px-8 py-4 border-b border-navy/[0.06]">
 		<a href="/" class="flex items-center gap-3 transition-opacity hover:opacity-75">
-			<img src="/mcdaniel.png" alt="" class="h-7 w-auto" />
+			<img src="/mcdaniel.png" alt="" aria-hidden="true" width="500" height="337" class="h-7 w-auto" />
 			<span class="text-navy font-semibold text-sm tracking-tight" style="font-family: 'Playfair Display', Georgia, serif;">
 				{siteName}
 			</span>
 		</a>
 		{#if phase !== 'welcome' && phase !== 'complete'}
-			<span class="text-[11px] text-navy/40 tracking-[0.18em] uppercase">Free Islamic Will</span>
+			<span class="text-[11px] text-navy/65 tracking-[0.18em] uppercase">Free Islamic Will</span>
 		{:else}
-			<a href="/plans" class="text-sm text-navy/50 hover:text-navy transition-colors">All plans</a>
+			<a href="/plans" class="text-sm text-navy/65 hover:text-navy transition-colors">All plans</a>
 		{/if}
 	</nav>
 
@@ -554,7 +574,7 @@
 					<button
 						type="button"
 						onclick={() => (phase = 'welcome')}
-						class="block mx-auto mt-6 text-sm text-navy/45 hover:text-navy cursor-pointer"
+						class="block mx-auto mt-6 text-sm text-navy/65 hover:text-navy cursor-pointer"
 					>
 						← Back
 					</button>
@@ -572,7 +592,7 @@
 					<h1 class="text-3xl md:text-5xl text-navy tracking-tight leading-tight text-balance mb-5">
 						Start your free Islamic will
 					</h1>
-					<p class="text-navy/55 text-base leading-relaxed max-w-md mx-auto mb-10">
+					<p class="text-navy/65 text-base leading-relaxed max-w-md mx-auto mb-10">
 						A guided first step toward an estate plan built around the Qur'anic shares — no account needed to begin.
 					</p>
 
@@ -614,8 +634,11 @@
 						</a>
 					{/if}
 
-					<p class="text-navy/45 text-xs leading-relaxed max-w-sm mx-auto mt-8">
-						{FREE_WILL_PRIVACY_LINE}
+					<p class="text-navy/65 text-xs leading-relaxed max-w-sm mx-auto mt-8">
+						We protect your information and use it as described in our <a href="/privacy" class="underline underline-offset-2 hover:text-navy">Privacy Policy</a>.
+					</p>
+					<p class="text-navy/65 text-xs leading-relaxed max-w-sm mx-auto mt-2" data-testid="free-will-retention">
+						{FREE_WILL_RETENTION_LINE}
 					</p>
 				</div>
 			</div>
@@ -628,7 +651,7 @@
 						<p class="text-navy/70 text-[15px] leading-relaxed">{B6_1_NOTICE_COPY}</p>
 					</div>
 					<div class="flex items-center justify-between">
-						<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
+						<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/65 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
 							Back
 						</button>
@@ -651,7 +674,7 @@
 						<p class="text-navy/65 text-[15px] leading-relaxed">{B6_6_WARNING_COPY}</p>
 					</div>
 					<div class="flex items-center justify-between mt-8">
-						<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
+						<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/65 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
 							Back
 						</button>
@@ -678,7 +701,7 @@
 					>
 						Book a consultation
 					</a>
-					<button onclick={goBack} class="block mx-auto mt-6 text-sm text-navy/45 hover:text-navy cursor-pointer">← Back</button>
+					<button onclick={goBack} class="block mx-auto mt-6 text-sm text-navy/65 hover:text-navy cursor-pointer">← Back</button>
 				</div>
 			</div>
 
@@ -694,13 +717,14 @@
 							{currentStep.question}
 						</h2>
 						{#if currentStep.help}
-							<p class="text-navy/50 text-[15px] font-light leading-relaxed mb-8">{currentStep.help}</p>
+							<p class="text-navy/65 text-[15px] font-light leading-relaxed mb-8">{currentStep.help}</p>
 						{:else}
 							<div class="mb-8"></div>
 						{/if}
 
 						{#if currentStep.id === 'full_legal_name'}
-							<p class="text-navy/55 text-sm leading-relaxed mb-6">{FREE_WILL_PRIVACY_LINE}</p>
+							<p class="text-navy/65 text-sm leading-relaxed mb-2">We protect your information and use it as described in our <a href="/privacy" class="underline underline-offset-2 hover:text-navy">Privacy Policy</a>.</p>
+							<p class="text-navy/65 text-sm leading-relaxed mb-6" data-testid="free-will-retention">{FREE_WILL_RETENTION_LINE}</p>
 						{/if}
 
 						<!-- INPUT BY TYPE -->
@@ -718,7 +742,7 @@
 										<option value={s.code}>{s.name}</option>
 									{/each}
 								</select>
-								<svg class="w-4 h-4 text-navy/40 absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+								<svg class="w-4 h-4 text-navy/65 absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
 								</svg>
 							</div>
@@ -756,7 +780,7 @@
 								oninput={(e) => setResponse((e.currentTarget as HTMLInputElement).value)}
 								onblur={normalizeCurrentTextResponse}
 								placeholder="Full legal name"
-								class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+								class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/65"
 							/>
 
 						{:else if currentStep.type === 'yes-no'}
@@ -780,7 +804,7 @@
 									value={addressValue.street}
 									oninput={(e) => patchAddress({ street: (e.currentTarget as HTMLInputElement).value })}
 									placeholder="Street address"
-									class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+									class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/65"
 								/>
 								<input
 									type="text"
@@ -788,7 +812,7 @@
 									value={addressValue.unit ?? ''}
 									oninput={(e) => patchAddress({ unit: (e.currentTarget as HTMLInputElement).value })}
 									placeholder="Apt, suite, unit (optional)"
-									class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+									class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/65"
 								/>
 								<div class="grid grid-cols-[1fr_120px] gap-3">
 									<input
@@ -797,7 +821,7 @@
 										value={addressValue.city}
 										oninput={(e) => patchAddress({ city: (e.currentTarget as HTMLInputElement).value })}
 										placeholder="City"
-										class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+										class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/65"
 									/>
 									<input
 										type="text"
@@ -806,11 +830,11 @@
 										value={addressValue.zip}
 										oninput={(e) => patchAddress({ zip: (e.currentTarget as HTMLInputElement).value })}
 										placeholder="ZIP"
-										class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/30"
+										class="w-full px-5 py-4 rounded-xl border border-navy/12 bg-white/70 text-navy text-[15px] outline-none transition-all focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/15 placeholder:text-navy/65"
 									/>
 								</div>
 								{#if responses['state']}
-									<p class="text-navy/40 text-xs px-1">State: {stateName(responses['state'] as string)}</p>
+									<p class="text-navy/65 text-xs px-1">State: {stateName(responses['state'] as string)}</p>
 								{/if}
 							</div>
 
@@ -846,7 +870,7 @@
 						<button
 							type="button"
 							onclick={skipAssetQuestions}
-							class="mt-6 text-sm text-navy/45 hover:text-emerald-accent transition-colors cursor-pointer underline underline-offset-2"
+							class="mt-6 text-sm text-navy/65 hover:text-emerald-accent transition-colors cursor-pointer underline underline-offset-2"
 						>
 							Skip these questions — I&apos;ll review assets separately
 						</button>
@@ -863,7 +887,7 @@
 					<div class="flex items-center justify-between">
 						<button
 							onclick={goBack}
-							class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 transition-all hover:text-navy hover:bg-navy/[0.04] cursor-pointer"
+							class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/65 transition-all hover:text-navy hover:bg-navy/[0.04] cursor-pointer"
 						>
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -906,14 +930,14 @@
 					<div class="rounded-2xl border border-navy/10 bg-white/70 overflow-hidden mb-5">
 						<div class="px-6 py-4 border-b border-navy/8 flex items-center justify-between">
 							<h3 class="text-navy font-medium text-[15px]">Islamic Distribution Schedule</h3>
-							<span class="text-navy/40 text-xs">Your named heirs</span>
+							<span class="text-navy/65 text-xs">Your named heirs</span>
 						</div>
 						<div class="divide-y divide-navy/6">
 							{#if namedHeirs.length}
 								{#each namedHeirs as heir}
 									<div class="px-6 py-3.5">
 										<div class="flex items-center justify-between gap-4 mb-1.5">
-											<div class="text-navy/55 text-[11px] uppercase tracking-wider">
+											<div class="text-navy/65 text-[11px] uppercase tracking-wider">
 												{heir.label}{heir.count > 1 ? ` ×${heir.count}` : ''}
 											</div>
 											<div class="text-emerald-accent text-xs tabular-nums">
@@ -923,13 +947,13 @@
 										{#each heir.names as name}
 											<div class="flex items-center justify-between gap-4 py-0.5">
 												<span class="text-navy text-sm">{name || `[${heir.label}]`}</span>
-												<span class="text-navy/40 text-xs tabular-nums">{(heir.perPersonShare.decimal * 100).toFixed(1)}%</span>
+												<span class="text-navy/65 text-xs tabular-nums">{(heir.perPersonShare.decimal * 100).toFixed(1)}%</span>
 											</div>
 										{/each}
 									</div>
 								{/each}
 							{:else}
-								<div class="px-6 py-5 text-navy/50 text-sm">
+								<div class="px-6 py-5 text-navy/65 text-sm">
 									We’ll finalize your distribution once your heirs are confirmed.
 								</div>
 							{/if}
@@ -959,7 +983,7 @@
 					<p class="text-red-600 text-xs mb-3 text-right">{accountError}</p>
 				{/if}
 				<div class="flex items-center justify-between">
-					<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/55 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
+					<button onclick={goBack} class="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm text-navy/65 hover:text-navy hover:bg-navy/[0.04] transition-all cursor-pointer">
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
 						Back
 					</button>
@@ -980,30 +1004,31 @@
 				<div class="max-w-md w-full">
 					<div class="text-center mb-8">
 						<h2 class="text-2xl md:text-3xl text-navy tracking-tight mb-2">Deliver your will</h2>
-						<p class="text-navy/55 text-sm leading-relaxed">
+						<p class="text-navy/65 text-sm leading-relaxed">
 							Enter your name and email so we can generate your document and send it to you.
 						</p>
 					</div>
 
 					<div class="flex flex-col gap-3">
 						<label class="block">
-							<span class="text-navy/60 text-xs font-medium tracking-wide uppercase">Full name</span>
+							<span class="text-navy/65 text-xs font-medium tracking-wide uppercase">Full name</span>
 							<input
 								type="text"
 								bind:value={accountName}
 								placeholder="Your full name"
-								class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white border border-navy/10 text-navy text-sm placeholder:text-navy/30 outline-none transition-all focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10"
+								class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white border border-navy/10 text-navy text-sm placeholder:text-navy/65 outline-none transition-all focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10"
 							/>
 						</label>
 						<label class="block">
-							<span class="text-navy/60 text-xs font-medium tracking-wide uppercase">Email</span>
+							<span class="text-navy/65 text-xs font-medium tracking-wide uppercase">Email</span>
 							<input
 								type="email"
 								bind:value={accountEmail}
 								placeholder="you@example.com"
-								class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white border border-navy/10 text-navy text-sm placeholder:text-navy/30 outline-none transition-all focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10"
+								class="mt-1.5 w-full px-4 py-3 rounded-lg bg-white border border-navy/10 text-navy text-sm placeholder:text-navy/65 outline-none transition-all focus:border-emerald-accent/50 focus:ring-2 focus:ring-emerald-accent/10"
 							/>
-							<span class="block text-navy/50 text-xs leading-relaxed mt-1.5" data-testid="email-purpose-notice">{emailPurposeNotice}</span>
+							<span class="block text-navy/65 text-xs leading-relaxed mt-1.5" data-testid="email-purpose-notice">{emailPurposeNotice}</span>
+							<span class="block text-navy/65 text-xs leading-relaxed mt-1.5" data-testid="free-will-retention">{FREE_WILL_RETENTION_LINE}</span>
 						</label>
 
 						<label class="flex items-start gap-3 cursor-pointer mt-1">
@@ -1028,7 +1053,7 @@
 							{deliveryLoading ? 'Preparing your will…' : 'Get my will'}
 						</button>
 
-						<button onclick={goBack} class="mx-auto mt-3 text-navy/45 text-xs hover:text-navy/70 transition-colors cursor-pointer">← Back to review</button>
+						<button onclick={goBack} class="mx-auto mt-3 text-navy/65 text-xs hover:text-navy/70 transition-colors cursor-pointer">← Back to review</button>
 					</div>
 				</div>
 			</div>
@@ -1044,7 +1069,7 @@
 						<h2 class="text-2xl md:text-4xl text-navy tracking-tight leading-tight text-balance mb-3">
 							Your free Islamic will is complete
 						</h2>
-						<p class="text-navy/55 text-base leading-relaxed max-w-md mx-auto">
+						<p class="text-navy/65 text-base leading-relaxed max-w-md mx-auto">
 							Masha’Allah — you’ve taken a real first step for your family. We’ve saved your answers to your account{willDownload ? ' and your document is ready to download below' : ' and will email your document shortly'}.
 						</p>
 					</div>
@@ -1069,7 +1094,7 @@
 							</a>
 						</div>
 
-						<div class="flex items-center justify-center gap-2 text-navy/50 text-[13px] mb-8 -mt-1">
+						<div class="flex items-center justify-center gap-2 text-navy/65 text-[13px] mb-8 -mt-1">
 							<svg class="w-4 h-4 shrink-0 text-emerald-accent/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
 							<span>We’ve also emailed a copy{accountEmail ? ` to ${accountEmail}` : ''}, with the document attached.</span>
 						</div>
@@ -1082,7 +1107,7 @@
 					<!-- Will limitation upsell block -->
 					{#if showWillLimitationWarning}
 						<div class="rounded-2xl border border-amber-300/60 bg-amber-50/70 p-6 mb-5">
-							<p class="text-navy/60 text-sm leading-relaxed mb-5">{willFlagBoundaryCopy}</p>
+							<p class="text-navy/65 text-sm leading-relaxed mb-5">{willFlagBoundaryCopy}</p>
 							<div class="flex flex-col gap-2.5">
 								{#if tags.includes('beneficiary_designation_review')}
 									<a href="/beneficiary-checklist" class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-white border border-navy/10 text-sm text-navy/75 hover:border-emerald-accent/40 transition-colors">
@@ -1118,9 +1143,9 @@
 							<div class="rounded-2xl border border-navy/10 bg-white/70 overflow-hidden mb-5">
 								<div class="p-7">
 									<h3 class="text-navy text-xl md:text-2xl tracking-tight mb-2">{card.title}</h3>
-									<p class="text-navy/60 text-sm leading-relaxed mb-5">{card.tagline}</p>
+									<p class="text-navy/65 text-sm leading-relaxed mb-5">{card.tagline}</p>
 									<div class="flex items-center justify-between gap-4">
-										<span class="text-navy/45 text-sm">{card.price}</span>
+										<span class="text-navy/65 text-sm">{card.price}</span>
 										<a href={card.href} class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-navy text-cream text-sm font-medium transition-all duration-200 hover:bg-navy-light">
 											Learn more
 											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
@@ -1132,7 +1157,7 @@
 					{/each}
 
 					<div class="text-center">
-						<a href="/plans" class="text-navy/45 text-sm hover:text-navy/70 transition-colors">Explore all plans →</a>
+						<a href="/plans" class="text-navy/65 text-sm hover:text-navy/70 transition-colors">Explore all plans →</a>
 					</div>
 
 					<!-- A4 — the flow isn't locked to a single will: let a signed-in user
@@ -1176,7 +1201,7 @@
 					<button
 						type="button"
 						onclick={() => (devNavOpen = false)}
-						class="text-navy/40 hover:text-navy cursor-pointer leading-none text-base"
+						class="text-navy/65 hover:text-navy cursor-pointer leading-none text-base"
 						aria-label="Collapse dev navigator">×</button
 					>
 				</div>
@@ -1198,7 +1223,7 @@
 								class="px-2 py-1 rounded border text-[10px] cursor-pointer transition-colors
 									{phase === p
 									? 'border-fuchsia-500 bg-fuchsia-500 text-white'
-									: 'border-navy/15 text-navy/60 hover:border-fuchsia-400'}"
+									: 'border-navy/15 text-navy/65 hover:border-fuchsia-400'}"
 							>
 								{p}
 							</button>
@@ -1254,8 +1279,11 @@
 	{/if}
 
 	<footer class="relative z-10 shrink-0 border-t border-navy/[0.06] px-6 py-4 text-center">
-		<p class="text-navy/35 text-xs leading-relaxed">
+		<p class="text-navy/65 text-xs leading-relaxed">
 			© 2026 McDaniel Estate Planning, PLLC. Licensed in Texas and California.
+		</p>
+		<p class="mt-1">
+			<a href="/privacy" class="text-navy/65 text-xs underline underline-offset-2 hover:text-navy min-h-11 inline-flex items-center">Privacy Policy</a>
 		</p>
 	</footer>
 </div>

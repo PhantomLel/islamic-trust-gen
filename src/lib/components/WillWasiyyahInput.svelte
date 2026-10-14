@@ -149,18 +149,18 @@
 		<p>
 			You may leave up to one-third of your estate to charities and to people who are not your heirs under Islamic inheritance law. Your heirs receive their inheritance shares instead. This portion is called your <strong class="text-navy/85">wasiyyah</strong>.
 		</p>
-		<p class="text-[13px] text-navy/50">This is optional. Most families leave this blank or donate to a local masjid or Islamic charity.</p>
+		<p class="text-[13px] text-navy/65">This is optional. Most families leave this blank or donate to a local masjid or Islamic charity.</p>
 	</div>
 
 	<!-- Yes / No interest toggle -->
 	<div class="space-y-2">
-		<p class="text-[13px] text-navy/60">Would you like to include a wasiyyah in your will?</p>
+		<p class="text-[13px] text-navy/65">Would you like to include a wasiyyah in your will?</p>
 		<div class="flex gap-2">
 			<button
 				type="button"
 				onclick={() => setInterested(false)}
 				class="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer border-2
-					{!data.interested ? 'border-navy bg-white text-navy' : 'border-navy/10 bg-white/60 text-navy/50 hover:border-navy/20'}"
+					{!data.interested ? 'border-navy bg-white text-navy' : 'border-navy/10 bg-white/60 text-navy/65 hover:border-navy/20'}"
 			>
 				No
 			</button>
@@ -168,7 +168,7 @@
 				type="button"
 				onclick={() => setInterested(true)}
 				class="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer border-2
-					{data.interested ? 'border-navy bg-white text-navy' : 'border-navy/10 bg-white/60 text-navy/50 hover:border-navy/20'}"
+					{data.interested ? 'border-navy bg-white text-navy' : 'border-navy/10 bg-white/60 text-navy/65 hover:border-navy/20'}"
 			>
 				Yes
 			</button>
@@ -216,7 +216,7 @@
 				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
 					<div>
 						<h3 class="text-sm font-medium text-navy">Other charities or recipients</h3>
-						<p class="text-xs text-navy/55 mt-0.5">Add any U.S. charity by legal name and EIN, or any other recipient.</p>
+						<p class="text-xs text-navy/65 mt-0.5">Add any U.S. charity by legal name and EIN, or any other recipient.</p>
 					</div>
 					<button
 						type="button"
@@ -230,7 +230,7 @@
 					<div class="rounded-lg border border-navy/10 bg-white p-3 mb-3 last:mb-0">
 						<div class="grid gap-3 sm:grid-cols-2">
 							<div>
-								<label for="w-custom-name-{custom.charityId}" class="block text-xs text-navy/55 mb-1">Name</label>
+								<label for="w-custom-name-{custom.charityId}" class="block text-xs text-navy/65 mb-1">Name</label>
 								<input
 									id="w-custom-name-{custom.charityId}"
 									type="text"
@@ -241,7 +241,7 @@
 								/>
 							</div>
 							<div>
-								<label for="w-custom-ein-{custom.charityId}" class="block text-xs text-navy/55 mb-1">EIN (if charity)</label>
+								<label for="w-custom-ein-{custom.charityId}" class="block text-xs text-navy/65 mb-1">EIN (if charity)</label>
 								<input
 									id="w-custom-ein-{custom.charityId}"
 									type="text"
@@ -262,7 +262,7 @@
 										}}
 										class="mt-0.5 w-4 h-4 accent-emerald-accent cursor-pointer shrink-0"
 									/>
-									<span class="text-xs text-navy/55 leading-relaxed">I&apos;ll add the EIN later</span>
+									<span class="text-xs text-navy/65 leading-relaxed">I&apos;ll add the EIN later</span>
 								</label>
 							</div>
 						</div>
@@ -283,12 +283,12 @@
 									class="w-full px-3 py-2 rounded-lg border border-navy/10 text-sm text-navy outline-none transition-all focus:border-emerald-accent/40 focus:ring-2 focus:ring-emerald-accent/10"
 									placeholder="0"
 								/>
-								<span class="text-sm text-navy/50 shrink-0">%</span>
+								<span class="text-sm text-navy/65 shrink-0">%</span>
 							</div>
 							<button
 								type="button"
 								onclick={() => removeCustom(custom.charityId)}
-								class="ml-auto text-xs font-medium text-navy/45 hover:text-red-600 transition-colors cursor-pointer"
+								class="ml-auto text-xs font-medium text-navy/65 hover:text-red-600 transition-colors cursor-pointer"
 							>
 								Remove
 							</button>

@@ -115,22 +115,22 @@
 					<span class="w-2 h-2 rounded-full bg-emerald-accent"></span>
 					{siteName}
 				</a>
-				<span class="text-navy/20">·</span>
-				<a href="/" class="inline-flex items-center gap-1.5 text-navy/45 hover:text-navy transition-colors" aria-label="McDaniel Estate Planning — home">
-					<img src="/mcdaniel.png" alt="" class="h-6 w-auto opacity-70" />
+				<span class="text-navy/65">·</span>
+				<a href="/" class="inline-flex items-center gap-1.5 text-navy/65 hover:text-navy transition-colors" aria-label="McDaniel Estate Planning — home">
+					<img src="/mcdaniel.png" alt="" aria-hidden="true" width="500" height="337" class="h-6 w-auto opacity-70" />
 					<span class="sr-only">McDaniel Estate Planning</span>
 					<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 				</a>
 			</div>
 
 			<div class="justify-self-center flex items-center gap-7">
-				<a href="#how" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">How It Works</a>
-				<a href="#included" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">What's Included</a>
-				<a href="#giving" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">Giving Back</a>
-				<a href="#eligibility" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">Eligibility</a>
-				<a href="#concerns" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">FAQ</a>
+				<a href="#how" class="text-navy/65 text-sm transition-colors hover:text-emerald-accent">How It Works</a>
+				<a href="#included" class="text-navy/65 text-sm transition-colors hover:text-emerald-accent">What's Included</a>
+				<a href="#giving" class="text-navy/65 text-sm transition-colors hover:text-emerald-accent">Giving Back</a>
+				<a href="#eligibility" class="text-navy/65 text-sm transition-colors hover:text-emerald-accent">Eligibility</a>
+				<a href="#concerns" class="text-navy/65 text-sm transition-colors hover:text-emerald-accent">FAQ</a>
 				{#if data.user}
-					<a href="/dashboard" class="text-navy/55 text-sm transition-colors hover:text-emerald-accent">Dashboard</a>
+					<a href="/dashboard" class="text-navy/65 text-sm transition-colors hover:text-emerald-accent">Dashboard</a>
 				{/if}
 			</div>
 
@@ -138,7 +138,7 @@
 				{#if data.user}
 					<button
 						onclick={handleLogout}
-						class="px-4 py-1.5 text-sm text-navy/60 transition-colors hover:text-navy cursor-pointer"
+						class="px-4 py-1.5 text-sm text-navy/65 transition-colors hover:text-navy cursor-pointer"
 					>
 						Log out
 					</button>
@@ -160,7 +160,7 @@
 			</a>
 			<button
 				onclick={() => mobileMenuOpen = !mobileMenuOpen}
-				class="p-1.5 -mr-1 text-navy/50 hover:text-navy transition-colors cursor-pointer"
+				class="p-1.5 -mr-1 text-navy/65 hover:text-navy transition-colors cursor-pointer"
 				aria-label="Toggle menu"
 			>
 				{#if mobileMenuOpen}
@@ -180,7 +180,7 @@
 				<a href="#giving" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 hover:text-emerald-accent">Giving back</a>
 				<a href="#eligibility" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 hover:text-emerald-accent">Eligibility</a>
 				<a href="#concerns" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5 hover:text-emerald-accent">FAQ</a>
-				<a href="/" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/50 rounded-xl hover:bg-navy/5">McDaniel Estate Planning ↗</a>
+				<a href="/" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">McDaniel Estate Planning ↗</a>
 				<div class="h-px bg-navy/6 my-1 mx-2"></div>
 				{#if data.user}
 					<a href="/dashboard" onclick={() => mobileMenuOpen = false} class="px-4 py-2.5 text-sm text-navy/65 rounded-xl hover:bg-navy/5">Dashboard</a>
@@ -211,8 +211,8 @@
 
 		<div use:revealOnScroll class="scroll-reveal relative flex flex-col items-center gap-6 px-6 text-center max-w-3xl">
 
-			<a href="/" class="inline-flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-full bg-white/70 backdrop-blur border border-navy/8 text-[11px] text-navy/55 hover:border-emerald-accent/40 hover:text-navy transition-all">
-				<img src="/mcdaniel.png" alt="" class="h-5 w-auto" />
+			<a href="/" class="inline-flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-full bg-white/70 backdrop-blur border border-navy/8 text-[11px] text-navy/65 hover:border-emerald-accent/40 hover:text-navy transition-all">
+				<img src="/mcdaniel.png" alt="" aria-hidden="true" width="500" height="337" class="h-5 w-auto" />
 				A product of McDaniel Estate Planning
 				<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 			</a>
@@ -225,7 +225,7 @@
 			</p>
 
 			<p class="text-navy text-lg md:text-xl font-medium max-w-xl leading-snug text-balance">{productName}</p>
-			<p class="text-navy/60 text-base md:text-lg font-light max-w-xl leading-relaxed text-balance -mt-3">
+			<p class="text-navy/65 text-base md:text-lg font-light max-w-xl leading-relaxed text-balance -mt-3">
 				{productAttorneyReviewSentence}
 			</p>
 			<div class="flex flex-col sm:flex-row items-center gap-3 mt-3">
@@ -249,13 +249,13 @@
 			<div class="mt-6 w-full max-w-lg rounded-2xl border border-navy/8 bg-white/60 backdrop-blur overflow-hidden shadow-[0_12px_32px_-16px_rgba(31,42,55,0.18)]">
 				<div class="flex items-center justify-between gap-6 px-6 pt-5 pb-4">
 					<div class="text-left">
-						<div class="text-[10px] tracking-[0.25em] uppercase text-navy/40 mb-1.5">Flat fee</div>
+						<div class="text-[10px] tracking-[0.25em] uppercase text-navy/65 mb-1.5">Flat fee</div>
 						<div class="flex items-baseline gap-2.5">
 							<span class="text-3xl tabular-nums tracking-tight text-navy">{formatUsdWhole(defaultPrepFee)}</span>
-							<span class="text-navy/35 text-xs">one-time</span>
+							<span class="text-navy/65 text-xs">one-time</span>
 						</div>
 					</div>
-					<div class="hidden sm:flex items-center gap-2 text-navy/45 text-[11px] leading-snug text-right max-w-48">
+					<div class="hidden sm:flex items-center gap-2 text-navy/65 text-[11px] leading-snug text-right max-w-48">
 						<svg class="w-3.5 h-3.5 text-emerald-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
 						<span>Attorney drafting, review &amp; deed recording included</span>
 					</div>
@@ -265,17 +265,17 @@
 			<div class="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 mt-2">
 				<div class="flex items-center gap-2">
 					<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-					<span class="text-navy/45 text-xs">Attorney-supervised</span>
+					<span class="text-navy/65 text-xs">Attorney-supervised</span>
 				</div>
 				<div class="w-px h-3 bg-navy/15 sm:block hidden"></div>
 				<div class="flex items-center gap-2">
 					<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-					<span class="text-navy/45 text-xs">Qur'anic shares built in</span>
+					<span class="text-navy/65 text-xs">Qur'anic shares built in</span>
 				</div>
 				<div class="w-px h-3 bg-navy/15 sm:block hidden"></div>
 				<div class="flex items-center gap-2">
 					<svg class="w-3.5 h-3.5 text-emerald-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-					<span class="text-navy/45 text-xs">Deed prepared & recorded</span>
+					<span class="text-navy/65 text-xs">Deed prepared & recorded</span>
 				</div>
 			</div>
 		</div>
@@ -295,7 +295,7 @@
 						From sign-up to a funded trust, in five steps.
 					</h2>
 				</div>
-				<p class="text-navy/55 text-base leading-relaxed md:pl-8 md:border-l md:border-navy/10 md:pt-2">
+				<p class="text-navy/65 text-base leading-relaxed md:pl-8 md:border-l md:border-navy/10 md:pt-2">
 					No hourly billing, no chasing paperwork. You answer the questions, the attorney does the rest, and we record the deed at your county clerk.
 				</p>
 			</div>
@@ -312,10 +312,10 @@
 						</div>
 						<div class="flex flex-col gap-2 pt-1">
 							<h3 class="text-xl md:text-2xl text-navy tracking-tight">{step.label}</h3>
-							<p class="text-navy/60 text-sm md:text-[15px] leading-relaxed max-w-xl">{step.body}</p>
+							<p class="text-navy/65 text-sm md:text-[15px] leading-relaxed max-w-xl">{step.body}</p>
 						</div>
 						<div class="hidden md:block text-right pt-2">
-							<span class="text-navy/40 text-[11px] tracking-wider uppercase">{step.meta}</span>
+							<span class="text-navy/65 text-[11px] tracking-wider uppercase">{step.meta}</span>
 						</div>
 					</li>
 				{/each}
@@ -370,13 +370,13 @@
 						<span class="w-8 h-px bg-emerald-accent/60"></span>
 						<span class="text-emerald-accent text-[11px] tracking-[0.3em] uppercase font-medium">What's included</span>
 					</div>
-					<p class="text-navy/60 text-base leading-relaxed mb-7">
+					<p class="text-navy/65 text-base leading-relaxed mb-7">
 						Drafted by a licensed Texas attorney, reviewed before they reach your inbox, and signed in front of a notary we arrange for you.
 					</p>
 
 					<div class="inline-flex items-baseline gap-3 px-5 py-4 bg-cream border border-navy/10 rounded-2xl mb-5">
 						<span class="text-3xl tabular-nums tracking-tight text-navy">{formatUsdWhole(defaultPrepFee)}</span>
-						<span class="text-navy/50 text-xs">One flat fee. One optional add-on if you need us to find your deed.</span>
+						<span class="text-navy/65 text-xs">One flat fee. One optional add-on if you need us to find your deed.</span>
 					</div>
 
 					<div class="flex flex-col gap-1.5">
@@ -401,7 +401,7 @@
 							<span class="text-emerald-accent/70 text-[10px] tabular-nums tracking-widest pt-1.5 shrink-0">0{i + 1}</span>
 							<div class="flex flex-col gap-1.5">
 								<h3 class="text-navy text-base md:text-lg tracking-tight">{item.title}</h3>
-								<p class="text-navy/55 text-sm leading-relaxed">{item.body}</p>
+								<p class="text-navy/65 text-sm leading-relaxed">{item.body}</p>
 							</div>
 						</li>
 					{/each}
@@ -448,11 +448,11 @@
 
 				<!-- not for — quieter card -->
 				<div class="bg-white/40 rounded-2xl p-7 md:p-8 md:translate-y-6">
-					<div class="text-navy/40 text-[10px] tracking-[0.25em] uppercase mb-5">Talk to us in person instead</div>
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-5">Talk to us in person instead</div>
 					<ul class="space-y-3.5">
 						{#each ['Business owners needing entity structuring', 'Multiple properties or investment real estate', 'Blended families with complex custody', 'Special-needs beneficiaries', 'Estates approaching the federal tax threshold'] as item}
-							<li class="flex items-start gap-2.5 text-navy/55 text-sm leading-relaxed">
-								<span class="text-navy/30 mt-1.5 text-xs">—</span>
+							<li class="flex items-start gap-2.5 text-navy/65 text-sm leading-relaxed">
+								<span class="text-navy/65 mt-1.5 text-xs">—</span>
 								<span>{item}</span>
 							</li>
 						{/each}
@@ -494,7 +494,7 @@
 						>
 							<span class="text-navy text-sm font-medium pr-4">{concern.question}</span>
 							<svg
-								class="w-4 h-4 text-navy/35 shrink-0 transition-transform duration-200 {openConcern === i ? 'rotate-180' : ''}"
+								class="w-4 h-4 text-navy/65 shrink-0 transition-transform duration-200 {openConcern === i ? 'rotate-180' : ''}"
 								fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
 							>
 								<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
@@ -502,7 +502,7 @@
 						</button>
 						{#if openConcern === i}
 							<div transition:slide={{ duration: 200 }} class="px-6 pb-5">
-								<p class="text-navy/60 text-sm leading-relaxed">{concern.answer}</p>
+								<p class="text-navy/65 text-sm leading-relaxed">{concern.answer}</p>
 							</div>
 						{/if}
 					</div>
@@ -561,13 +561,13 @@
 						<span class="w-2 h-2 rounded-full bg-emerald-accent"></span>
 						{siteName}
 					</a>
-					<p class="text-navy/50 text-sm leading-relaxed mt-4 max-w-sm">
+					<p class="text-navy/65 text-sm leading-relaxed mt-4 max-w-sm">
 						The online Islamic trust from McDaniel Estate Planning, PLLC. Attorney-supervised, structured under Texas law, and grounded in Qur'anic inheritance principles.
 					</p>
 				</div>
 
 				<div class="flex flex-col gap-2.5">
-					<div class="text-navy/35 text-[10px] tracking-[0.25em] uppercase mb-1.5">The product</div>
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-1.5">The product</div>
 					<a href="#how" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">How it works</a>
 					<a href="#included" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">What's included</a>
 					<a href="#giving" class="text-navy/65 text-sm hover:text-emerald-accent transition-colors">Giving back</a>
@@ -576,9 +576,9 @@
 				</div>
 
 				<div class="flex flex-col gap-2.5">
-					<div class="text-navy/35 text-[10px] tracking-[0.25em] uppercase mb-1.5">The firm</div>
+					<div class="text-navy/65 text-[10px] tracking-[0.25em] uppercase mb-1.5">The firm</div>
 					<a href="/" class="inline-flex items-center gap-2 text-navy/65 text-sm hover:text-navy transition-colors">
-						<img src="/mcdaniel.png" alt="" class="h-7 w-auto" />
+						<img src="/mcdaniel.png" alt="" aria-hidden="true" width="500" height="337" class="h-7 w-auto" />
 						<span class="sr-only">McDaniel Estate Planning</span>
 						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
 					</a>
@@ -588,10 +588,11 @@
 			</div>
 
 			<div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between pt-6 border-t border-navy/8">
-				<p class="text-navy/40 text-xs">
+				<p class="text-navy/65 text-xs">
 					© 2026 McDaniel Estate Planning, PLLC. Licensed in Texas and California.
 				</p>
-				<p class="text-navy/35 text-xs italic">
+				<a href="/privacy" class="text-navy/65 text-xs hover:text-emerald-accent transition-colors min-h-11 inline-flex items-center">Privacy Policy</a>
+				<p class="text-navy/65 text-xs italic">
 					{siteName} is a service of McDaniel Estate Planning, PLLC.
 				</p>
 			</div>

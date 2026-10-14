@@ -30,15 +30,6 @@
 
 <svelte:window onscroll={updateScroll} />
 
-<svelte:head>
-	<link rel="preconnect" href="https://fonts.googleapis.com" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-	<link
-		href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..700;1,300..700&display=swap"
-		rel="stylesheet"
-	/>
-</svelte:head>
-
 <div class="mep min-h-[100dvh] bg-[#FCFBF8] text-[#1F2D3D] antialiased">
 	<header
 		class="fixed top-0 inset-x-0 z-50 transition-all duration-500 {navScrolled
@@ -46,9 +37,9 @@
 			: 'bg-transparent border-b border-transparent'}"
 	>
 		<div class="max-w-7xl mx-auto px-6 lg:px-10 h-[4.5rem] flex items-center justify-between">
-			<a href={mepHref(page.url.pathname, '/')} class="group flex items-baseline gap-2.5">
+			<a href={mepHref(page.url.pathname, '/')} class="group flex items-center gap-2.5 min-h-11">
 				<span class="mep-serif text-[1.15rem] leading-none tracking-tight">McDaniel Estate Planning</span>
-				<span class="hidden sm:inline text-[10px] tracking-[0.22em] uppercase text-[#1F2D3D]/50">PLLC</span>
+				<span class="hidden sm:inline text-[10px] tracking-[0.22em] uppercase text-[#1F2D3D]/65">PLLC</span>
 			</a>
 
 			<nav class="hidden lg:flex items-center gap-9">
@@ -69,7 +60,7 @@
 			</nav>
 
 			<button
-				class="lg:hidden flex flex-col gap-[5px] p-2 -mr-2"
+				class="lg:hidden min-h-11 min-w-11 flex flex-col items-center justify-center gap-[5px] -mr-2"
 				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
 				aria-label="Toggle menu"
 				aria-expanded={mobileMenuOpen}
@@ -87,7 +78,7 @@
 						<a
 							href={mepHref(page.url.pathname, link.href)}
 							onclick={() => (mobileMenuOpen = false)}
-							class="py-3 text-[15px] text-[#1F2D3D]/75 border-b border-[#1F2D3D]/6"
+							class="min-h-11 flex items-center text-[15px] text-[#1F2D3D]/75 border-b border-[#1F2D3D]/6"
 						>{link.label}</a>
 					{/each}
 					<a
@@ -108,10 +99,10 @@
 			<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
 				<div class="max-w-xl">
 					<p class="mep-serif text-[1.05rem]">McDaniel Estate Planning, PLLC</p>
-					<p class="text-[12.5px] text-[#1F2D3D]/55 mt-1.5">Serving clients in Texas and California.</p>
-					<p class="text-[12.5px] text-[#1F2D3D]/55 mt-2">{formatFirmNapLine()}</p>
+					<p class="text-[12.5px] text-[#1F2D3D]/65 mt-1.5">Serving clients in Texas and California.</p>
+					<p class="text-[12.5px] text-[#1F2D3D]/65 mt-2">{formatFirmNapLine()}</p>
 				</div>
-				<nav class="flex flex-col gap-2 text-[13px] text-[#1F2D3D]/60">
+				<nav class="flex flex-col text-[13px] text-[#1F2D3D]/65 [&_a]:min-h-11 [&_a]:flex [&_a]:items-center">
 					{#each pageLinks as link}
 						<a href={mepHref(page.url.pathname, link.href)} class="hover:text-[#1F2D3D] transition-colors duration-300">{link.label}</a>
 					{/each}
@@ -121,13 +112,16 @@
 				</nav>
 			</div>
 			<div class="mt-10 border-t border-[#1F2D3D]/8 pt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-				<p class="text-[11.5px] leading-relaxed text-[#1F2D3D]/45 max-w-[72ch]">
+				<p class="text-[11.5px] leading-relaxed text-[#1F2D3D]/65 max-w-[72ch]">
 					Attorney Advertising. The information on this site is for general informational purposes only and
 					does not constitute legal advice. Viewing this site does not create an attorney&ndash;client relationship.
 				</p>
-				<p class="text-[11.5px] text-[#1F2D3D]/45 whitespace-nowrap">
-					&copy; {new Date().getFullYear()} McDaniel Estate Planning, PLLC
-				</p>
+				<div class="flex flex-wrap items-center gap-x-5 gap-y-1">
+					<a href={mepHref(page.url.pathname, '/privacy')} class="text-[11.5px] text-[#1F2D3D]/65 hover:text-[#1F2D3D] transition-colors duration-300 min-h-11 inline-flex items-center">Privacy Policy</a>
+					<p class="text-[11.5px] text-[#1F2D3D]/65">
+						&copy; {new Date().getFullYear()} McDaniel Estate Planning, PLLC
+					</p>
+				</div>
 			</div>
 		</div>
 	</footer>

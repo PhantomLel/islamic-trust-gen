@@ -183,7 +183,7 @@
 		legacy: {
 			eyebrow: 'Full-service · In-person · TX & CA',
 			name: 'Legacy Plan',
-			price: 'from $3,500',
+			price: `from ${formatUsdWhole(3500)}`,
 			priceNote: 'Texas & California',
 			body: 'Personally designed by your attorney. Includes a dedicated Heba Strategy Session, trust drafting, deed recording, wills, powers of attorney, healthcare directives, and a physical binder shipped to your door.',
 			cta: { label: 'Schedule a Consultation', href: consultationBookingUrl },
@@ -211,7 +211,7 @@
 			aria-label="Muslim Legacy Planning — home"
 			class="flex items-center gap-3 transition-opacity hover:opacity-75"
 		>
-			<img src="/mcdaniel.png" alt="" class="h-8 w-auto" />
+			<img src="/mcdaniel.png" alt="" aria-hidden="true" width="500" height="337" class="h-8 w-auto" />
 			<span
 				class="text-navy font-semibold text-sm tracking-tight hidden sm:inline"
 				style="font-family: 'Playfair Display', Georgia, serif;"
@@ -220,7 +220,7 @@
 			</span>
 		</a>
 		<div class="flex items-center gap-3">
-			<a href="/plans" class="text-navy/55 text-sm hover:text-navy transition-colors hidden sm:inline">
+			<a href="/plans" class="text-navy/65 text-sm hover:text-navy transition-colors hidden sm:inline">
 				View all plans
 			</a>
 			<a
@@ -242,8 +242,8 @@
 
 				<!-- Progress -->
 				<div class="flex items-center justify-between mb-2">
-					<span class="text-[11px] text-navy/40 tracking-wider uppercase font-medium">Which plan fits you?</span>
-					<span class="text-[11px] text-navy/35">{step + 1} of {questions.length}</span>
+					<span class="text-[11px] text-navy/65 tracking-wider uppercase font-medium">Which plan fits you?</span>
+					<span class="text-[11px] text-navy/65">{step + 1} of {questions.length}</span>
 				</div>
 				<div class="w-full h-1 rounded-full bg-navy/6 overflow-hidden mb-10">
 					<div
@@ -257,7 +257,7 @@
 					<BoldUnderIslamicLawText text={questions[step].text} />
 				</h2>
 				{#if questions[step].sub}
-					<p class="text-sm text-navy/55 leading-relaxed mb-8">
+					<p class="text-sm text-navy/65 leading-relaxed mb-8">
 						{questions[step].sub}
 					</p>
 				{:else}
@@ -284,7 +284,7 @@
 					<button
 						onclick={back}
 						disabled={step === 0}
-						class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm text-navy/55
+						class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm text-navy/65
 							   transition-all hover:text-navy hover:bg-navy/4
 							   disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
 					>
@@ -335,7 +335,7 @@
 						{/if}
 					</h1>
 
-					<p class="text-navy/55 text-base leading-relaxed max-w-[52ch] mx-auto">
+					<p class="text-navy/65 text-base leading-relaxed max-w-[52ch] mx-auto">
 						{rec.reason}
 					</p>
 				</div>
@@ -347,19 +347,19 @@
 				<div class="rounded-2xl border border-navy/10 bg-white/70 p-7 mb-6" in:fly={{ y: 16, opacity: 0, duration: 300, delay: 120 }}>
 					<p class="text-[11px] text-emerald-accent tracking-[0.2em] uppercase font-medium mb-2">Get your personalised guidance</p>
 					<p class="text-navy text-base font-medium tracking-tight mb-1">Where should we send your recommendation?</p>
-					<p class="text-navy/50 text-sm leading-relaxed mb-5">We will email you your result and send you a short series of attorney-led guidance on next steps. Unsubscribe any time.</p>
+					<p class="text-navy/65 text-sm leading-relaxed mb-5">We will email you your result and send you a short series of attorney-led guidance on next steps. Unsubscribe any time.</p>
 					<div class="flex flex-col sm:flex-row gap-3 mb-3">
 						<input
 							type="text"
 							placeholder="First name"
 							bind:value={captureFirstName}
-							class="flex-1 px-4 py-3 rounded-lg border border-navy/15 bg-white text-navy text-sm placeholder:text-navy/35 focus:outline-none focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
+							class="flex-1 px-4 py-3 rounded-lg border border-navy/15 bg-white text-navy text-sm placeholder:text-navy/65 focus:outline-none focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
 						/>
 						<input
 							type="email"
 							placeholder="Email address"
 							bind:value={captureEmail}
-							class="flex-[2] px-4 py-3 rounded-lg border border-navy/15 bg-white text-navy text-sm placeholder:text-navy/35 focus:outline-none focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
+							class="flex-[2] px-4 py-3 rounded-lg border border-navy/15 bg-white text-navy text-sm placeholder:text-navy/65 focus:outline-none focus:border-emerald-accent/60 focus:ring-2 focus:ring-emerald-accent/10 transition-all"
 						/>
 					</div>
 					{#if captureError}
@@ -372,7 +372,7 @@
 					>
 						{captureSubmitting ? 'Sending…' : 'Send my recommendation →'}
 					</button>
-					<p class="text-navy/30 text-xs mt-3">No spam. Unsubscribe any time. We will not share your information.</p>
+					<p class="text-navy/65 text-xs mt-3">No spam. Unsubscribe any time. We will not share your information.</p>
 				</div>
 			{:else}
 				<div class="rounded-2xl border border-emerald-accent/25 bg-emerald-accent/6 px-6 py-4 mb-6 flex items-center gap-3" in:fly={{ y: 8, opacity: 0, duration: 250 }}>
@@ -451,7 +451,7 @@
 							<div>
 								<div class="text-emerald-accent text-[10px] tracking-[0.25em] uppercase mb-1.5">Also worth considering</div>
 								<h3 class="text-navy text-lg tracking-tight mb-1.5">{waqfPlan.name}</h3>
-								<p class="text-navy/55 text-sm leading-relaxed mb-4">{waqfPlan.body}</p>
+								<p class="text-navy/65 text-sm leading-relaxed mb-4">{waqfPlan.body}</p>
 								<a
 									href={waqfPlan.cta.href}
 									class="text-emerald-accent text-sm hover:text-emerald-light transition-colors flex items-center gap-1.5 group"
@@ -470,11 +470,11 @@
 				<!-- Divider and all-plans link -->
 				<div class="flex items-center gap-4 my-8">
 					<div class="flex-1 h-px bg-navy/8"></div>
-					<span class="text-navy/30 text-xs">This is a nudge, not a gate</span>
+					<span class="text-navy/65 text-xs">This is a nudge, not a gate</span>
 					<div class="flex-1 h-px bg-navy/8"></div>
 				</div>
 
-				<p class="text-center text-navy/45 text-sm mb-5">
+				<p class="text-center text-navy/65 text-sm mb-5">
 					You can choose any plan regardless of this result.
 				</p>
 
@@ -488,12 +488,12 @@
 							<div class="text-emerald-accent/65 text-[9px] tracking-[0.25em] uppercase mb-2">{p.eyebrow}</div>
 							<div class="flex items-baseline justify-between gap-2 mb-2">
 								<span class="text-navy text-base font-medium tracking-tight">{p.name}</span>
-								<span class="text-navy/60 text-sm">{p.price}</span>
+								<span class="text-navy/65 text-sm">{p.price}</span>
 							</div>
 							{#if key === 'goodtree'}
 								<p class="text-navy/65 text-xs leading-relaxed mb-2">{productAttorneyReviewSentence}</p>
 							{/if}
-							<p class="text-navy/48 text-xs leading-relaxed mb-3">{p.body.slice(0, 110)}…</p>
+							<p class="text-navy/65 text-xs leading-relaxed mb-3">{p.body.slice(0, 110)}…</p>
 							<span class="text-emerald-accent text-xs flex items-center gap-1 group-hover:gap-1.5 transition-all">
 								{p.cta.label}
 								<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -506,7 +506,7 @@
 
 				<!-- Restart + view all -->
 				<div class="text-center flex flex-col items-center gap-3">
-					<a href="/plans" class="text-navy/45 text-xs hover:text-navy/70 transition-colors underline underline-offset-2">
+					<a href="/plans" class="text-navy/65 text-xs hover:text-navy/70 transition-colors underline underline-offset-2">
 						View all five plans in detail
 					</a>
 				</div>
@@ -516,7 +516,7 @@
 				<div class="text-center flex flex-col items-center gap-3 mt-3">
 					<button
 						onclick={restart}
-						class="text-navy/30 text-xs hover:text-navy/55 transition-colors cursor-pointer"
+						class="text-navy/65 text-xs hover:text-navy/65 transition-colors cursor-pointer"
 					>
 						Retake the questionnaire
 					</button>

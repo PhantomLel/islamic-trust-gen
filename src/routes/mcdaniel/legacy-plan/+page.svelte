@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { productNameShort, productNameShortCapitalized } from '$lib/config';
+	import { formatUsdWhole, productNameShort, productNameShortCapitalized } from '$lib/config';
 	import PracticePage from '../PracticePage.svelte';
 </script>
 
 <PracticePage
 	title="Legacy Plan"
-	summary="The Legacy Plan is a full-service Islamic estate plan designed with your attorney and built around Islamic inheritance and the law of Texas or California. Plans start at $3,500."
+	summary={`The Legacy Plan is a full-service Islamic estate plan designed with your attorney and built around Islamic inheritance and the law of Texas or California. Plans start at ${formatUsdWhole(3500)}.`}
 	blocks={[
 		{
 			type: 'p',

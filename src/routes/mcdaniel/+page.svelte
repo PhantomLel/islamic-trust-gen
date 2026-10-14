@@ -3,6 +3,7 @@
 	import ReviewsBlock from '$lib/components/ReviewsBlock.svelte';
 	import TestimonialDisclaimer from '$lib/components/TestimonialDisclaimer.svelte';
 	import {
+		formatUsdWhole,
 		attorneyName,
 		consultationBookingUrl,
 		mlpOrigin,
@@ -83,7 +84,7 @@
 		{
 			num: '02',
 			title: 'Legacy Plan',
-			body: 'A full-service plan personally designed by your attorney: a revocable living trust, pour-over wills, powers of attorney and healthcare directives, deed preparation and recording, and a dedicated heba strategy session. From $3,500.',
+			body: `A full-service plan personally designed by your attorney: a revocable living trust, pour-over wills, powers of attorney and healthcare directives, deed preparation and recording, and a dedicated heba strategy session. From ${formatUsdWhole(3500)}.`,
 			href: '/legacy-plan'
 		},
 		{
@@ -130,7 +131,7 @@
 						and probate plans designed to honor Islamic inheritance principles while complying with U.S.&nbsp;law.
 					</p>
 
-					<p class="text-[13.5px] leading-relaxed text-[#1F2D3D]/55 max-w-[58ch] mb-10">
+					<p class="text-[13.5px] leading-relaxed text-[#1F2D3D]/65 max-w-[58ch] mb-10">
 						Legal services provided by Leonard McDaniel, attorney licensed in Texas and California.
 					</p>
 
@@ -145,7 +146,7 @@
 						</a>
 						<a
 							href={freeWillUrl}
-							class="group inline-flex items-center gap-2 text-[14.5px] text-[#1F2D3D]/75 hover:text-[#1F2D3D] transition-colors duration-300"
+							class="group min-h-11 inline-flex items-center gap-2 text-[14.5px] text-[#1F2D3D]/75 hover:text-[#1F2D3D] transition-colors duration-300"
 						>
 							<span class="border-b border-[#9A7B45]/50 group-hover:border-[#9A7B45] pb-0.5 transition-colors duration-300">Get the Free Islamic Will</span>
 							<svg class="w-3.5 h-3.5 translate-y-px group-hover:translate-x-0.5 transition-transform duration-300" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -162,6 +163,8 @@
 							<img
 								src="/pfp.jpg"
 								alt="Leonard McDaniel, founding attorney of McDaniel Estate Planning"
+								width="720"
+								height="1080"
 								class="w-full h-full object-cover"
 							/>
 						</div>
@@ -169,7 +172,7 @@
 					<div class="mt-6 flex items-baseline justify-between border-t border-[#1F2D3D]/12 pt-4">
 						<div>
 							<p class="mep-serif text-[1.05rem]">Leonard McDaniel</p>
-							<p class="text-[12px] tracking-[0.08em] text-[#1F2D3D]/55 mt-0.5">Attorney at Law</p>
+							<p class="text-[12px] tracking-[0.08em] text-[#1F2D3D]/65 mt-0.5">Attorney at Law</p>
 						</div>
 						<p class="text-[11px] tracking-[0.18em] uppercase text-[#9A7B45] text-right">TX · CA</p>
 					</div>
@@ -231,15 +234,15 @@
 								<span class="text-[12px] tracking-[0.15em] text-[#9A7B45] pt-1.5 font-medium">{service.num}</span>
 								<div>
 									<h3 class="mep-serif text-[1.25rem] leading-snug mb-2 group-hover:text-[#9A7B45] transition-colors duration-300">{service.title}</h3>
-									<p class="text-[14px] leading-relaxed text-[#1F2D3D]/60 max-w-[60ch]">{service.body}</p>
+									<p class="text-[14px] leading-relaxed text-[#1F2D3D]/65 max-w-[60ch]">{service.body}</p>
 								</div>
 							</a>
 						{/each}
 					</div>
 					<p class="text-[14.5px] leading-relaxed text-[#1F2D3D]/70 mt-8 max-w-[62ch]">
-						Prefer to start online? <a href={trustUrl} class="border-b border-[#9A7B45]/50 hover:border-[#9A7B45]">{productNameShortCapitalized()}</a>
-						and the <a href={freeWillUrl} class="border-b border-[#9A7B45]/50 hover:border-[#9A7B45]">free Islamic will</a>
-						are available at <a href={mlpOrigin} class="border-b border-[#9A7B45]/50 hover:border-[#9A7B45]">Muslim Legacy Planning</a>.
+						Prefer to start online? <a href={trustUrl} class="inline-flex min-h-11 items-center border-b border-[#9A7B45]/50 hover:border-[#9A7B45]">{productNameShortCapitalized()}</a>
+						and the <a href={freeWillUrl} class="inline-flex min-h-11 items-center border-b border-[#9A7B45]/50 hover:border-[#9A7B45]">free Islamic will</a>
+						are available at <a href={mlpOrigin} class="inline-flex min-h-11 items-center border-b border-[#9A7B45]/50 hover:border-[#9A7B45]">Muslim Legacy Planning</a>.
 					</p>
 				</div>
 			</div>
@@ -255,6 +258,8 @@
 						<img
 							src="/pfp.jpg"
 							alt="Leonard McDaniel, founding attorney of McDaniel Estate Planning"
+							width="720"
+							height="1080"
 							class="w-full h-full object-cover"
 							loading="lazy"
 						/>
@@ -291,7 +296,7 @@
 
 					<a
 						href={mepHref(page.url.pathname, '/attorney')}
-						class="inline-block mt-6 text-[14.5px] text-[#1F2D3D]/75 hover:text-[#1F2D3D] border-b border-[#9A7B45]/50 hover:border-[#9A7B45] pb-0.5 transition-colors duration-300"
+						class="min-h-11 inline-flex items-center mt-6 text-[14.5px] text-[#1F2D3D]/75 hover:text-[#1F2D3D] border-b border-[#9A7B45]/50 hover:border-[#9A7B45] transition-colors duration-300"
 					>
 						Read Leonard McDaniel&rsquo;s full profile
 					</a>
@@ -307,7 +312,7 @@
 					<h2 class="text-[11px] tracking-[0.3em] uppercase text-[#9A7B45] font-normal">Client Experiences</h2>
 				</div>
 				<ReviewsBlock linksClass="text-[#9A7B45]" />
-				<TestimonialDisclaimer class="mt-12 text-[12.5px] leading-relaxed text-[#1F2D3D]/60 max-w-[52rem]" />
+				<TestimonialDisclaimer class="mt-12 text-[12.5px] leading-relaxed text-[#1F2D3D]/65 max-w-[52rem]" />
 
 			</div>
 		</section>
@@ -373,7 +378,7 @@
 					</a>
 					<a
 						href={freeWillUrl}
-						class="group inline-flex justify-center items-center gap-2 text-[14px] text-[#1F2D3D]/70 hover:text-[#1F2D3D] transition-colors duration-300 py-2"
+						class="group min-h-11 inline-flex justify-center items-center gap-2 text-[14px] text-[#1F2D3D]/70 hover:text-[#1F2D3D] transition-colors duration-300"
 					>
 						<span class="border-b border-[#9A7B45]/50 group-hover:border-[#9A7B45] pb-0.5 transition-colors duration-300">Start with the Free Islamic Will</span>
 					</a>
