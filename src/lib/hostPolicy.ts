@@ -37,6 +37,7 @@ export const MEP_APP_PATHS = [
 	'/inheritance-calculator',
 	'/which-plan',
 	'/plans',
+	'/webinar',
 	'/answers',
 	'/videos',
 	'/consultation',

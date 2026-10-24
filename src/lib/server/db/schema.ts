@@ -588,3 +588,4 @@ export const utmTrackingEvent = pgTable('utm_tracking_event', {
 export * from './auth.schema';
 export * from './help.schema';
 export * from './content.schema';
+export * from './webinar.schema';

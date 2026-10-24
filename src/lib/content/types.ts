@@ -13,8 +13,8 @@ export const JURISDICTION_LABELS: Record<ContentJurisdiction, string> = {
 	GENERAL: 'General (no state)',
 };
 
-/** One call to action per page. "Register for the webinar" is deliberately absent (Phase 11 is blocked). */
-export const CTA_KEYS = ['consultation', 'free_will', 'related_video', 'next_question', 'none'] as const;
+/** One call to action per page. "Register for the webinar" is selectable only while a webinar is open. */
+export const CTA_KEYS = ['consultation', 'free_will', 'related_video', 'next_question', 'webinar', 'none'] as const;
 export type CtaKey = (typeof CTA_KEYS)[number];
 
 export const CTA_LABELS: Record<CtaKey, string> = {
@@ -22,6 +22,7 @@ export const CTA_LABELS: Record<CtaKey, string> = {
 	free_will: 'Use the free Islamic will (Texas or California pages only)',
 	related_video: 'Watch the related video',
 	next_question: 'Read the next question',
+	webinar: 'Register for the webinar',
 	none: 'None',
 };
 

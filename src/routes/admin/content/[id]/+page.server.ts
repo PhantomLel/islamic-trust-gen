@@ -18,6 +18,7 @@ import { listCategories, listMedia } from '$lib/server/content/taxonomy';
 import { parsePageForm, parseScheduleAt } from '$lib/server/content/parse';
 import { ContentPermissionError, can } from '$lib/content/permissions';
 import { allowedCtaKeys, countWords } from '$lib/content/rules';
+import { hasOpenWebinar } from '$lib/server/webinar/db';
 import { MAX_RELATED } from '$lib/content/types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -27,12 +28,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const bundle = await getPage(id);
 	if (!bundle) throw error(404, 'Not found');
 
-	const [check, categories, media, others, revisions] = await Promise.all([
+	const [check, categories, media, others, revisions, webinarOpen] = await Promise.all([
 		checkPage(id),
 		listCategories(),
 		listMedia(),
 		listPagesForAdmin(),
 		listRevisions(id),
+		hasOpenWebinar(),
 	]);
 	const { page } = bundle;
 	return {
@@ -62,7 +64,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		revisions: revisions.map((r) => ({ id: r.id, createdAt: r.createdAt.toISOString(), title: r.title })),
 		check: { errors: check.errors, warnings: check.warnings },
 		wordCount: countWords(page.answerSummary),
-		allowedCtas: allowedCtaKeys(page.jurisdiction),
+		allowedCtas: allowedCtaKeys(page.jurisdiction, { webinarOpen }),
+		webinarOpen,
 		maxRelated: MAX_RELATED,
 		can: {
 			publish: can(actor.role, 'publish'),

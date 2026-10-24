@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
 import { contentAudit } from '$lib/server/db/schema';
 
-export type AuditTarget = 'content_page' | 'video_page' | 'content_category' | 'content_redirect' | 'media_asset' | 'content_setting' | 'user' | 'review_email';
+export type AuditTarget = 'content_page' | 'video_page' | 'content_category' | 'content_redirect' | 'media_asset' | 'content_setting' | 'user' | 'review_email' | 'webinar';
 
 /**
  * Append one audit row. This is the only writer: there is deliberately no update or

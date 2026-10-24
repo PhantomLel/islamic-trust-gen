@@ -5,6 +5,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron/webinar",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/content",
       "schedule": "*/15 * * * *"
     },

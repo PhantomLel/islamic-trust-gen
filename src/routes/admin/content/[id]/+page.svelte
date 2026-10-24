@@ -136,7 +136,7 @@
 				<select id="ctaKey" name="ctaKey" class={input}>
 					<option value="">Choose…</option>
 					{#each Object.entries(CTA_LABELS) as [k, v]}
-						<option value={k} selected={data.page.ctaKey === k} disabled={k === 'free_will' && !stateScoped}>{v}</option>
+						<option value={k} selected={data.page.ctaKey === k} disabled={(k === 'free_will' && !stateScoped) || (k === 'webinar' && !data.webinarOpen)}>{v}</option>
 					{/each}
 				</select>
 			</div>

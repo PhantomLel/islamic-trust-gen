@@ -148,6 +148,10 @@ export const staticRouteSeo: Record<string, PageSeo> = {
 		title: `Videos — ${siteName}`,
 		description: 'Videos about Islamic estate planning from Muslim Legacy Planning.',
 	},
+	'/webinar': {
+		title: `Webinar | ${siteName}`,
+		description: "Educational webinar and demonstration of the firm's attorney-guided trust service.",
+	},
 	'/mcdaniel': {
 		title: `${MCDANIEL_TITLE} — Islamic Estate Planning Attorney | Texas & California`,
 		description:
@@ -202,6 +206,7 @@ export const sitemapRoutes: { site: SiteId; path: string }[] = [
 	{ site: 'mlp', path: '/community-property' },
 	{ site: 'mlp', path: '/answers' },
 	{ site: 'mlp', path: '/videos' },
+	{ site: 'mlp', path: '/webinar' },
 	{ site: 'mlp', path: '/privacy' },
 	{ site: 'mcdaniel', path: '/' },
 	{ site: 'mcdaniel', path: '/attorney' },

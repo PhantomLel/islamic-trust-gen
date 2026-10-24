@@ -49,6 +49,8 @@ export function buildCta(bundle: PageBundle, publishedRelated: { title: string; 
 			const next = publishedRelated[0];
 			return next ? { label: 'Read the next question', href: `/answers/${next.slug}`, note: next.title } : null;
 		}
+		case 'webinar':
+			return { label: 'Register for the webinar', href: '/webinar' };
 		default:
 			return null;
 	}

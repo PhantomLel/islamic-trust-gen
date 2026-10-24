@@ -30,6 +30,7 @@ import {
 } from '$lib/content/rules';
 import { MAX_RELATED, REVIEW_INTERVAL_MONTHS, type ContentJurisdiction, type CtaKey, type DocJson } from '$lib/content/types';
 import { recordAudit } from './audit';
+import { hasOpenWebinar } from '$lib/server/webinar/db';
 
 export type Actor = { id: string; role: string | null | undefined };
 
@@ -273,7 +274,11 @@ export async function revertToRevision(pageId: number, revisionId: number, actor
 
 /** Gather everything the publish rules need. */
 export async function draftForRules(bundle: PageBundle): Promise<PageDraft> {
-	const [cats] = await db.select({ n: sql<number>`count(*)::int` }).from(contentCategory);
+	const [catRows, webinarOpen] = await Promise.all([
+		db.select({ n: sql<number>`count(*)::int` }).from(contentCategory),
+		hasOpenWebinar(),
+	]);
+	const cats = catRows[0];
 	const { page } = bundle;
 	return {
 		title: page.title,
@@ -292,6 +297,7 @@ export async function draftForRules(bundle: PageBundle): Promise<PageDraft> {
 		hasRelatedVideo: bundle.videos.some((v) => v.status === 'published'),
 		categoryCount: cats?.n ?? 0,
 		caveatOverride: page.caveatOverride,
+		webinarOpen,
 	};
 }
 

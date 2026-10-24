@@ -85,6 +85,9 @@ describe('validatePageForPublish', () => {
 		expect(allowedCtaKeys('BOTH')).not.toContain('free_will');
 		expect(allowedCtaKeys('GENERAL')).not.toContain('free_will');
 		expect(allowedCtaKeys('TX')).not.toContain('webinar');
+		expect(allowedCtaKeys('GENERAL', { webinarOpen: true })).toContain('webinar');
+		expect(validatePageForPublish(goodPage({ ctaKey: 'webinar' })).errors.join()).toMatch(/while a webinar is open/);
+		expect(validatePageForPublish(goodPage({ ctaKey: 'webinar', webinarOpen: true })).errors).toEqual([]);
 		const r = validatePageForPublish(goodPage({ jurisdiction: 'GENERAL', ctaKey: 'free_will' }));
 		expect(r.errors.join()).toMatch(/Texas or California/);
 	});

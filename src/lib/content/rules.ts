@@ -45,10 +45,17 @@ export function slugify(title: string): string {
 		.replace(/-+$/g, '');
 }
 
-/** "Use the free Islamic will" is only available on Texas or California pages. */
-export function allowedCtaKeys(jurisdiction: ContentJurisdiction | null | undefined): CtaKey[] {
+/** Free-will CTA is TX/CA only. Webinar CTA exists only while a webinar is open. */
+export function allowedCtaKeys(
+	jurisdiction: ContentJurisdiction | null | undefined,
+	opts?: { webinarOpen?: boolean },
+): CtaKey[] {
 	const stateScoped = jurisdiction === 'TX' || jurisdiction === 'CA';
-	return CTA_KEYS.filter((k) => k !== 'free_will' || stateScoped);
+	return CTA_KEYS.filter((k) => {
+		if (k === 'free_will' && !stateScoped) return false;
+		if (k === 'webinar' && !opts?.webinarOpen) return false;
+		return true;
+	});
 }
 
 export type PageDraft = {
@@ -71,6 +78,8 @@ export type PageDraft = {
 	/** Number of categories that exist. Zero blocks publication with a plain message. */
 	categoryCount?: number;
 	caveatOverride?: string | null;
+	/** True only while a webinar status is `open`. The webinar CTA is refused otherwise. */
+	webinarOpen?: boolean;
 };
 
 /** Publication checks for an answer page (spec §7). */
@@ -109,9 +118,13 @@ export function validatePageForPublish(p: PageDraft): RuleResult {
 	if (!p.ctaKey || !(CTA_KEYS as readonly string[]).includes(p.ctaKey)) {
 		errors.push('Choose a call to action (or “None”).');
 	} else {
-		const allowed = allowedCtaKeys(p.jurisdiction as ContentJurisdiction | null);
+		const allowed = allowedCtaKeys(p.jurisdiction as ContentJurisdiction | null, { webinarOpen: p.webinarOpen });
 		if (!allowed.includes(p.ctaKey as CtaKey)) {
-			errors.push('“Use the free Islamic will” can only be chosen on Texas or California pages.');
+			errors.push(
+				p.ctaKey === 'webinar'
+					? '“Register for the webinar” can only be chosen while a webinar is open.'
+					: '“Use the free Islamic will” can only be chosen on Texas or California pages.',
+			);
 		}
 		if (p.ctaKey === 'next_question' && (p.relatedCount ?? 0) === 0) {
 			errors.push('Add at least one related question, or pick a different call to action.');

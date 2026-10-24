@@ -356,6 +356,7 @@
 			<a href="/admin/content" class="text-sm text-navy/50 transition-colors hover:text-navy">Content</a>
 			<a href="/admin/help" class="text-sm text-navy/50 transition-colors hover:text-navy">Help Assistant</a>
 			<a href="/admin/email-preview" class="text-sm text-navy/50 transition-colors hover:text-navy">Email preview</a>
+			<a href="/admin/webinar" class="text-sm text-navy/50 transition-colors hover:text-navy">Webinar</a>
 			<span class="text-[11px] text-emerald-accent tracking-wider uppercase font-medium">Admin</span>
 			<button onclick={handleLogout} class="text-sm text-navy/50 transition-colors hover:text-navy cursor-pointer">Log out</button>
 		</div>

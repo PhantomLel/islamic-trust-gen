@@ -34,6 +34,10 @@ describe('redirectFor', () => {
 			status: 301,
 			location: `${mlpOrigin}/plans`,
 		});
+		expect(redirectFor(new URL('https://www.mcdanielestateplanning.com/webinar'), 'GET')).toEqual({
+			status: 301,
+			location: `${mlpOrigin}/webinar`,
+		});
 		expect(redirectFor(new URL('https://www.mcdanielestateplanning.com/free-islamic-will?x=1'), 'GET')).toEqual({
 			status: 301,
 			location: `${mlpOrigin}/free-islamic-will?x=1`,
